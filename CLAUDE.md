@@ -2,6 +2,10 @@
 
 This is starter file manually written by Infinitinker.
 
+## Language and naming
+
+- Commit scopes: `ai`, `api`, `app`, `core`, `engine`, `plugins`, `sdk`, `services`, `ui`. Commits follow Conventional Commits, such as `fix(engine): keep the monitor in sync`.
+
 ## The target
 
 Project name: Mikser Studio (formerly codename Nexus), repository Mikser-Studio.
