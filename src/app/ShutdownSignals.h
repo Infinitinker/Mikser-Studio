@@ -11,6 +11,10 @@ namespace mikserstudio::app {
 // the API removes its discovery file, plugins are deactivated and the AI service is stopped. A
 // second signal while Mikser Studio is quitting ends the process at once.
 //
+// On Windows it also turns a close request from another program (`taskkill` without /F posts
+// WM_CLOSE to a hidden window of the process) into quit(). Qt's hidden event-loop windows would
+// otherwise destroy themselves and leave the app hanging.
+//
 // Create one after the QCoreApplication and destroy it after everything that must be torn down
 // (closing the console waits for that, up to the few seconds Windows allows). One at a time.
 class ShutdownSignals final {

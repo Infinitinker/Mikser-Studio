@@ -17,8 +17,11 @@
 #include <QCoreApplication>
 #include <QDir>
 #include <QFile>
+#include <QJsonArray>
 #include <QJsonDocument>
+#include <QJsonObject>
 #include <QSaveFile>
+#include <QSet>
 
 #include <algorithm>
 
@@ -91,6 +94,36 @@ KDDockWidgets::InitialOption sizeOption(Placement placement, int size)
         return {};
     const bool horizontal = placement == Placement::Left || placement == Placement::Right;
     return KDDockWidgets::InitialOption(horizontal ? QSize(size, 0) : QSize(0, size));
+}
+
+void collectPlacedDocks(const QJsonValue& value, QSet<QString>& names)
+{
+    if (value.isArray()) {
+        for (const QJsonValue& item : value.toArray())
+            collectPlacedDocks(item, names);
+        return;
+    }
+    const QJsonObject object = value.toObject();
+    for (auto it = object.constBegin(); it != object.constEnd(); ++it) {
+        if (it.key() == u"dockWidgets"_s) {
+            for (const QJsonValue& name : it.value().toArray())
+                names.insert(name.toString());
+        } else {
+            collectPlacedDocks(it.value(), names);
+        }
+    }
+}
+
+// The docks a saved layout puts in a tab group of a main or floating window, i.e. the open ones.
+// Not LayoutSaver::openedDockWidgetsInLayout(): KDDockWidgets 2.5 decides "closed" by visibility,
+// so it also lists every tab that was not the current one, and closing those would lose them.
+QSet<QString> placedDocks(const QJsonObject& layout)
+{
+    QSet<QString> names;
+    collectPlacedDocks(layout.value(u"mainWindows"_s), names);
+    collectPlacedDocks(layout.value(u"floatingWindows"_s), names);
+    names.remove(QString());
+    return names;
 }
 
 }  // namespace
@@ -529,10 +562,10 @@ std::expected<void, QString> KddwDockHost::restore(const QByteArray& layout, boo
     KDDockWidgets::LayoutSaver saver(options);
     if (!saver.restoreLayout(layout))
         return std::unexpected(u"The layout could not be restored; it may come from an incompatible version of Mikser Studio."_s);
-    // Panels the layout does not mention would otherwise stay open (KDDockWidgets floats them).
-    const auto inLayout = KDDockWidgets::LayoutSaver::openedDockWidgetsInLayout(layout);
+    // Panels the layout does not place would otherwise stay open (KDDockWidgets floats them).
+    const QSet<QString> placed = placedDocks(document.object());
     for (auto it = m_docks.cbegin(); it != m_docks.cend(); ++it) {
-        if (it.value() && it.value()->isOpen() && !inLayout.contains(it.key()))
+        if (it.value() && it.value()->isOpen() && !placed.contains(it.key()))
             it.value()->forceClose();
     }
     Q_EMIT layoutChanged();

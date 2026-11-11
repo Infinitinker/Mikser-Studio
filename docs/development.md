@@ -42,9 +42,10 @@ build/debug/bin/mikser-studio.exe D:/clips/a.mp4 --play         # import, place 
 build/debug/bin/mikser-studio.exe --headless --api-port 47123   # no window; control it through /v1 (docs/api.md)
 ```
 
-Stop the headless mode with Ctrl+C (or Ctrl+Break, closing its console, or SIGINT/SIGTERM on
-Linux and macOS): Mikser Studio then shuts down cleanly, so plugins are deactivated, the AI service is
-stopped and the API's discovery file `api.json` is removed. A second Ctrl+C ends it at once.
+Stop the headless mode with Ctrl+C (or Ctrl+Break, closing its console, `taskkill /IM
+mikser-studio.exe` without `/F` on Windows, or SIGINT/SIGTERM on Linux and macOS): Mikser Studio then
+shuts down cleanly, so plugins are deactivated, the AI service is stopped and the API's discovery file
+`api.json` is removed. A second Ctrl+C ends it at once; `taskkill /F` ends it without cleaning up.
 
 `--screenshot <png> [--screenshot-delay <ms>]` saves a screenshot of the window and quits, which is
 handy for checking UI changes. Debug builds are console programs so the log is visible; set

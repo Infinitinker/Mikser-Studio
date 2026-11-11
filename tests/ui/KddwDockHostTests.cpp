@@ -167,6 +167,50 @@ TEST_CASE("KddwDockHost saves and restores layouts", "[docking]")
     CHECK(f.host->isPanelOpen(u"test/a"_s));
 }
 
+TEST_CASE("KddwDockHost keeps background tabs open across a restart", "[docking]")
+{
+    const auto registerAll = [](KddwDockHost& host) {
+        host.registerPanel(labelPanel(u"test/front"_s, DockArea::Right));
+        host.registerPanel(labelPanel(u"test/back1"_s, DockArea::Right));
+        host.registerPanel(labelPanel(u"test/back2"_s, DockArea::Right));
+        host.registerPanel(labelPanel(u"test/closed"_s, DockArea::Left));
+    };
+
+    QByteArray layout;
+    QTemporaryDir dir;
+    {
+        KddwDockHost host(dir.path());
+        host.mainWindow()->resize(1200, 800);
+        host.mainWindow()->show();
+        registerAll(host);
+        // Same default area, so they share one tab group; the last one opened is in front.
+        REQUIRE(host.openPanel(u"test/back1"_s));
+        REQUIRE(host.openPanel(u"test/back2"_s));
+        REQUIRE(host.openPanel(u"test/front"_s));
+        REQUIRE(host.openPanel(u"test/closed"_s));
+        host.closePanel(u"test/closed"_s);
+        QApplication::processEvents();
+        REQUIRE(host.panelWidget(u"test/front"_s)->isVisible());
+        REQUIRE_FALSE(host.panelWidget(u"test/back1"_s)->isVisible());
+        layout = host.saveLayout();
+    }
+    QApplication::processEvents();
+
+    KddwDockHost host(dir.path());
+    host.mainWindow()->resize(1200, 800);
+    host.mainWindow()->show();
+    registerAll(host);
+    REQUIRE(host.openPanel(u"test/closed"_s));  // Open before the restore; the layout says closed.
+    REQUIRE(host.restoreLayout(layout));
+    QApplication::processEvents();
+
+    CHECK(host.isPanelOpen(u"test/front"_s));
+    CHECK(host.isPanelOpen(u"test/back1"_s));
+    CHECK(host.isPanelOpen(u"test/back2"_s));
+    CHECK(host.panelWidget(u"test/front"_s)->isVisible());
+    CHECK_FALSE(host.isPanelOpen(u"test/closed"_s));
+}
+
 TEST_CASE("KddwDockHost shows placeholders for unknown panels and replaces them later", "[docking]")
 {
     QByteArray layout;

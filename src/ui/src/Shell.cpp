@@ -132,9 +132,11 @@ void Shell::setProgramTransport(core::Transport* transport)
 void Shell::restoreState()
 {
     QString workspace = KddwDockHost::builtInWorkspaces().constFirst();
+    QJsonObject shellState;
     QFile shellFile(QDir(m_configDir).filePath(kShellFile));
     if (shellFile.open(QIODevice::ReadOnly)) {
-        const QString saved = QJsonDocument::fromJson(shellFile.readAll()).object().value(u"workspace").toString();
+        shellState = QJsonDocument::fromJson(shellFile.readAll()).object();
+        const QString saved = shellState.value(u"workspace").toString();
         if (!saved.isEmpty() && m_dockHost->workspaces().contains(saved, Qt::CaseInsensitive))
             workspace = saved;
     }
@@ -145,6 +147,7 @@ void Shell::restoreState()
         if (restored) {
             // The layout is the workspace as the user left it.
             m_dockHost->setCurrentWorkspace(workspace);
+            m_restoreMaximized = shellState.value(u"maximized").toBool();
             qCInfo(lcShell) << "Restored the last layout";
             return;
         }
@@ -166,7 +169,9 @@ bool Shell::saveState()
     }
     QSaveFile layout(QDir(m_configDir).filePath(kLayoutFile));
     QSaveFile shell(QDir(m_configDir).filePath(kShellFile));
-    const QJsonObject state{{u"workspace"_s, m_dockHost->currentWorkspace()}};
+    // QWidget keeps "maximized" while the window is minimized; the layout saves only "minimized".
+    const QJsonObject state{{u"workspace"_s, m_dockHost->currentWorkspace()},
+                            {u"maximized"_s, mainWindow()->isMaximized()}};
     const bool ok = layout.open(QIODevice::WriteOnly) && layout.write(m_dockHost->saveLayout()) >= 0 && layout.commit()
         && shell.open(QIODevice::WriteOnly) && shell.write(QJsonDocument(state).toJson()) >= 0 && shell.commit();
     if (!ok)
@@ -177,11 +182,13 @@ bool Shell::saveState()
 void Shell::show()
 {
     // A pending workspace means there is no saved layout (first start): fill the screen's work
-    // area instead of guessing a size that may run under the taskbar.
-    if (m_pendingWorkspace.isEmpty())
-        mainWindow()->show();
-    else
+    // area instead of guessing a size that may run under the taskbar. After a restore, use the
+    // saved "maximized" and never start minimized: KDDockWidgets saves one window state (minimized
+    // wins over maximized) and applies it to the native window, where plain show() would keep it.
+    if (!m_pendingWorkspace.isEmpty() || m_restoreMaximized)
         mainWindow()->showMaximized();
+    else
+        mainWindow()->showNormal();
     applyPendingWorkspace();
 }
 

@@ -72,7 +72,34 @@ TEST_CASE("Shell starts in the Editing workspace and keeps the layout across ses
         mikserstudio::ui::KddwDockHost& host = shell.dockHost();
         CHECK(host.isPanelOpen(panel_ids::kTimeline.toString()));
         CHECK_FALSE(host.isPanelOpen(panel_ids::kMediaBin.toString()));
+        // The Editing workspace's background tabs (AI and Log behind Properties) come back too.
+        CHECK(host.isPanelOpen(panel_ids::kPlugins.toString()));
+        CHECK(host.isPanelOpen(panel_ids::kAi.toString()));
+        CHECK(host.isPanelOpen(panel_ids::kLog.toString()));
         CHECK(host.currentWorkspace() == u"Editing"_s);
+        // The first start filled the screen, and the restored window does too.
+        CHECK(shell.mainWindow()->isMaximized());
+        shell.mainWindow()->showNormal();
+        shell.mainWindow()->close();
+    }
+
+    {
+        Shell shell(core.bus, core.project, core.plugins, configDir);
+        shell.restoreState();
+        shell.show();
+        CHECK_FALSE(shell.mainWindow()->isMaximized());  // The user made it smaller last time.
+        // Closed while minimized from maximized (e.g. "Close window" on the taskbar button).
+        shell.mainWindow()->showMaximized();
+        shell.mainWindow()->showMinimized();
+        shell.mainWindow()->close();
+    }
+
+    {
+        Shell shell(core.bus, core.project, core.plugins, configDir);
+        shell.restoreState();
+        shell.show();
+        CHECK(shell.mainWindow()->isMaximized());
+        CHECK_FALSE(shell.mainWindow()->isMinimized());
         shell.mainWindow()->close();
     }
 }
