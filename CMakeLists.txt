@@ -1,0 +1,63 @@
+cmake_minimum_required(VERSION 3.28)
+
+project(MikserStudio
+    VERSION 0.1.0
+    DESCRIPTION "AI-backed multimedia studio"
+    LANGUAGES C CXX)
+
+set(CMAKE_CXX_STANDARD 23)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
+include(MikserStudioCompilerOptions)
+
+# Every module can be switched off so it can be built and tested on its own.
+# Dependencies between modules: core <- engine, api, services <- ui <- app.
+option(MIKSERSTUDIO_WITH_ENGINE "Build the playback engine and monitors (MLT)" ON)
+option(MIKSERSTUDIO_WITH_API "Build the local /v1 API server" ON)
+option(MIKSERSTUDIO_WITH_SERVICES "Build the sidecar services (AI bridge)" ON)
+option(MIKSERSTUDIO_WITH_UI "Build the desktop UI" ON)
+option(MIKSERSTUDIO_WITH_PLUGINS "Build the bundled example plugins" ON)
+option(MIKSERSTUDIO_BUILD_TESTS "Build the test suite" ON)
+
+find_package(Qt6 6.8 REQUIRED COMPONENTS Core)
+qt_standard_project_setup(REQUIRES 6.8)
+
+# Shared output folders so the app finds its plugins and test data at run time.
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib")
+set(MIKSERSTUDIO_PLUGIN_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin/plugins")
+
+if(MIKSERSTUDIO_BUILD_TESTS)
+    enable_testing()
+    find_package(Catch2 3 REQUIRED)
+    include(Catch)
+endif()
+
+add_subdirectory(sdk)
+add_subdirectory(src/core)
+
+if(MIKSERSTUDIO_WITH_ENGINE)
+    add_subdirectory(src/engine)
+endif()
+if(MIKSERSTUDIO_WITH_API)
+    add_subdirectory(src/api)
+endif()
+if(MIKSERSTUDIO_WITH_SERVICES)
+    add_subdirectory(src/services)
+endif()
+if(MIKSERSTUDIO_WITH_UI)
+    add_subdirectory(src/ui)
+endif()
+if(MIKSERSTUDIO_WITH_UI AND MIKSERSTUDIO_WITH_ENGINE AND MIKSERSTUDIO_WITH_API AND MIKSERSTUDIO_WITH_SERVICES)
+    add_subdirectory(src/app)
+endif()
+if(MIKSERSTUDIO_WITH_PLUGINS)
+    add_subdirectory(plugins)
+endif()
+
+if(MIKSERSTUDIO_BUILD_TESTS)
+    add_subdirectory(tests)
+endif()

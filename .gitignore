@@ -1,0 +1,10 @@
+/build/
+/.cache/
+compile_commands.json
+*.user
+__pycache__/
+.venv/
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/

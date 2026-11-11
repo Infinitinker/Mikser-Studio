@@ -1,0 +1,71 @@
+#pragma once
+
+#include "mikserstudio/core/Command.h"
+
+#include <QJsonObject>
+#include <QObject>
+
+#include <map>
+
+namespace mikserstudio::core {
+
+class UndoStack;
+
+// The single registry and dispatcher of commands.
+//
+// Built-in commands registered by the constructor: "edit.undo" (Ctrl+Z) and "edit.redo"
+// (Ctrl+Shift+Z); they return {text} of the reverted/reapplied edit or fail with NotAvailable
+// (also while an undo group is open, see UndoStack::beginGroup).
+//
+// Spec rules: the id matches ^[a-z0-9_]+(\.[a-z0-9_]+)+$, the title is not empty, paramsSchema
+// has "type": "object" (an empty paramsSchema becomes one that accepts only {}) and a command is
+// not both readOnly and undoable.
+//
+// Handlers may execute other commands. To make those one undo step, open a core::UndoGroup in the
+// handler: the nested commands' edits become one compound edit, and an edit the handler itself
+// returns is pushed separately after the group has closed.
+class CommandBus final : public QObject {
+    Q_OBJECT
+
+public:
+    explicit CommandBus(UndoStack& undoStack, QObject* parent = nullptr);
+    ~CommandBus() override;
+
+    // Fails (returns false and logs) when the id is already taken or the spec is malformed.
+    bool registerCommand(CommandSpec spec, CommandHandler handler);
+    void unregisterCommand(const QString& id);
+
+    [[nodiscard]] bool contains(const QString& id) const;
+    [[nodiscard]] const CommandSpec* spec(const QString& id) const;
+    [[nodiscard]] QList<CommandSpec> specs() const;  // Sorted by id.
+
+    // Applies the schema defaults to params, validates the result against the spec's schema
+    // (InvalidParams lists every problem), runs the handler with the defaulted params, pushes its
+    // edit to the undo stack and emits executed() (with the defaulted params) or failed().
+    // A handler that throws is reported as Failed. The handler may unregister commands.
+    std::expected<QJsonObject, CommandError> execute(const QString& id, const QJsonObject& params = {});
+
+    [[nodiscard]] UndoStack& undoStack() const { return m_undoStack; }
+
+Q_SIGNALS:
+    void commandRegistered(const QString& id);
+    void commandUnregistered(const QString& id);
+    void executed(const QString& id, const QJsonObject& params, const QJsonObject& result);
+    void failed(const QString& id, const QJsonObject& params, const mikserstudio::core::CommandError& error);
+
+private:
+    struct Entry {
+        CommandSpec spec;
+        CommandHandler handler;
+    };
+
+    UndoStack& m_undoStack;
+    std::map<QString, Entry> m_commands;
+};
+
+// Converts a spec to the JSON published by the API and used by the command palette.
+[[nodiscard]] QJsonObject toJson(const CommandSpec& spec);
+// "unknown_command", "invalid_params", "failed", "not_available".
+[[nodiscard]] QString toString(CommandErrorCode code);
+
+}  // namespace mikserstudio::core

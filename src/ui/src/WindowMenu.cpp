@@ -1,0 +1,66 @@
+#include "WindowMenu.h"
+
+#include "mikserstudio/ui/KddwDockHost.h"
+
+#include <QAction>
+#include <QMenu>
+
+#include <algorithm>
+
+namespace mikserstudio::ui {
+
+WindowMenu::WindowMenu(KddwDockHost& host, QMenu* menu, QList<QAction*> leadingActions, QObject* parent)
+    : QObject(parent)
+    , m_host(host)
+    , m_menu(menu)
+    , m_leading(std::move(leadingActions))
+{
+    connect(&host, &KddwDockHost::panelsChanged, this, &WindowMenu::rebuild);
+    connect(&host, &KddwDockHost::panelOpened, this, &WindowMenu::updateChecks);
+    connect(&host, &KddwDockHost::panelClosed, this, &WindowMenu::updateChecks);
+    connect(&host, &KddwDockHost::layoutChanged, this, &WindowMenu::updateChecks);
+    connect(menu, &QMenu::aboutToShow, this, &WindowMenu::updateChecks);
+    rebuild();
+}
+
+void WindowMenu::rebuild()
+{
+    for (QAction* action : std::as_const(m_actions))
+        delete action;
+    m_actions.clear();
+    m_menu->clear();
+    for (QAction* action : std::as_const(m_leading))
+        m_menu->addAction(action);
+    if (!m_leading.isEmpty())
+        m_menu->addSeparator();
+
+    QList<PanelDescriptor> panels = m_host.panels();
+    std::ranges::sort(panels, [](const PanelDescriptor& a, const PanelDescriptor& b) {
+        return a.title.localeAwareCompare(b.title) < 0;
+    });
+    for (const PanelDescriptor& panel : panels) {
+        auto* action = m_menu->addAction(panel.title);
+        action->setCheckable(true);
+        action->setToolTip(panel.id);
+        const QString id = panel.id;
+        connect(action, &QAction::triggered, this, [this, id](bool checked) {
+            if (checked)
+                (void)m_host.openPanel(id);
+            else
+                m_host.closePanel(id);
+            updateChecks();
+        });
+        m_actions.insert(id, action);
+    }
+    updateChecks();
+}
+
+void WindowMenu::updateChecks()
+{
+    for (auto it = m_actions.cbegin(); it != m_actions.cend(); ++it) {
+        const QSignalBlocker blocker(it.value());
+        it.value()->setChecked(m_host.isPanelOpen(it.key()));
+    }
+}
+
+}  // namespace mikserstudio::ui

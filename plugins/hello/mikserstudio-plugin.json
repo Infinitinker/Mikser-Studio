@@ -1,0 +1,26 @@
+{
+    "id": "mikserstudio.examples.hello",
+    "name": "Hello",
+    "version": "0.1.0",
+    "description": "Example native plugin: a greeting command and a panel that runs it.",
+    "apiVersion": 1,
+    "kind": "native",
+    "entry": "hello",
+    "capabilities": ["commands", "panels"],
+    "settingsSchema": {
+        "type": "object",
+        "properties": {
+            "greeting": {
+                "type": "string",
+                "title": "Greeting",
+                "description": "Word the greeting starts with.",
+                "minLength": 1,
+                "default": "Hello"
+            }
+        },
+        "additionalProperties": false
+    },
+    "panels": [
+        {"id": "greeter", "title": "Greeter", "qml": "hello.qml", "defaultArea": "right"}
+    ]
+}

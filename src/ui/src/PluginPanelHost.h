@@ -1,0 +1,39 @@
+#pragma once
+
+#include <QWidget>
+
+class QLabel;
+class QQuickWidget;
+
+namespace mikserstudio::core {
+class CommandBus;
+class PluginManager;
+struct PanelContribution;
+}  // namespace mikserstudio::core
+
+namespace mikserstudio::ui {
+
+class PluginPanelBridge;
+
+// Hosts one plugin QML panel: a QQuickWidget loading <plugin directory>/<qml> with only the
+// "mikserstudio" context property (PluginPanelBridge). Load errors are shown in the panel instead.
+class PluginPanelHost final : public QWidget {
+    Q_OBJECT
+
+public:
+    PluginPanelHost(core::CommandBus& bus, const core::PluginManager& plugins, const QString& pluginId,
+                    const QString& pluginDirectory, const core::PanelContribution& panel, QWidget* parent = nullptr);
+
+    [[nodiscard]] QQuickWidget* quickWidget() const { return m_quick; }
+    [[nodiscard]] PluginPanelBridge* bridge() const { return m_bridge; }
+    [[nodiscard]] QString errorText() const;
+
+private:
+    void showError(const QString& message);
+
+    PluginPanelBridge* m_bridge;
+    QQuickWidget* m_quick;
+    QLabel* m_error;
+};
+
+}  // namespace mikserstudio::ui
