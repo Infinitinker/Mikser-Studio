@@ -6,6 +6,7 @@
 
 #include "AppPaths.h"
 #include "DesktopApp.h"
+#include "FatalError.h"
 #include "LogFile.h"
 #include "Logging.h"
 #include "ShutdownSignals.h"
@@ -20,14 +21,10 @@
 #include <QDir>
 #include <QGuiApplication>
 #include <QIcon>
-#include <QMessageBox>
-
-#include <cstdio>
 
 #include <cstring>
 #include <expected>
 #include <memory>
-#include <optional>
 
 using namespace Qt::StringLiterals;
 using namespace mikserstudio;
@@ -50,7 +47,9 @@ bool wantsHeadless(int argc, char** argv)
     return false;
 }
 
-std::optional<CommandLine> parseCommandLine(const QCoreApplication& app)
+// The command line, or what is wrong with it. --help, --version and unknown options are answered by
+// QCommandLineParser itself, which then exits.
+std::expected<CommandLine, QString> parseCommandLine(const QCoreApplication& app)
 {
     QCommandLineParser parser;
     parser.setApplicationDescription(u"Mikser Studio, an AI-backed multimedia studio."_s);
@@ -76,14 +75,14 @@ std::optional<CommandLine> parseCommandLine(const QCoreApplication& app)
         bool ok = false;
         const uint port = parser.value(apiPort).toUInt(&ok);
         if (!ok || port == 0 || port > 65535) {
-            qCCritical(app::lcApp) << "--api-port needs a number from 1 to 65535.";
-            return std::nullopt;
+            return std::unexpected(
+                u"--api-port is “%1”. Give it a port number from 1 to 65535."_s.arg(parser.value(apiPort)));
         }
         line.apiPort = static_cast<quint16>(port);
     }
     if (line.headless && !line.api) {
-        qCCritical(app::lcApp) << "--headless needs the API: without it nothing could control Mikser Studio.";
-        return std::nullopt;
+        return std::unexpected(
+            u"--headless needs the local API, since nothing else could control Mikser Studio. Leave out --no-api."_s);
     }
     line.desktop.importFiles = parser.positionalArguments();
     line.desktop.play = parser.isSet(play);
@@ -123,14 +122,16 @@ int runHeadless(int argc, char** argv)
 {
     QCoreApplication app(argc, argv);
     if (const auto identity = setIdentity(); !identity) {
-        std::fprintf(stderr, "%s\n", qPrintable(identity.error()));
+        app::reportFatalError(identity.error(), app::StartedAs::Headless);
         return 2;
     }
-    const auto line = parseCommandLine(app);
-    if (!line)
-        return 2;
     const app::AppPaths paths = app::AppPaths::resolve();
     const auto log = openLog(paths);  // Outlives the studio, so its teardown is logged.
+    const auto line = parseCommandLine(app);
+    if (!line) {
+        app::reportFatalError(line.error(), app::StartedAs::Headless);
+        return 2;
+    }
     const app::ShutdownSignals shutdown;  // Outlives the studio, so Ctrl+C runs its teardown.
     app::Studio studio(paths, {.audio = false, .api = true, .apiPort = line->apiPort});
     studio.start();
@@ -145,18 +146,18 @@ int runDesktop(int argc, char** argv)
     ui::prepareApplication();
     QApplication app(argc, argv);
     if (const auto identity = setIdentity(); !identity) {
-        std::fprintf(stderr, "%s\n", qPrintable(identity.error()));
-        QMessageBox::critical(nullptr, u"Mikser Studio"_s, identity.error());
+        app::reportFatalError(identity.error(), app::StartedAs::Desktop);
         return 2;
     }
     ui::applyTheme(app);
     QApplication::setWindowIcon(QIcon(u":/mikserstudio/icon.svg"_s));
-    const auto line = parseCommandLine(app);
-    if (!line)
-        return 2;
-
     const app::AppPaths paths = app::AppPaths::resolve();
     const auto log = openLog(paths);
+    const auto line = parseCommandLine(app);
+    if (!line) {
+        app::reportFatalError(line.error(), app::StartedAs::Desktop);
+        return 2;
+    }
     const app::ShutdownSignals shutdown;
     app::Studio studio(paths, {.audio = true, .api = line->api, .apiPort = line->apiPort});
     studio.start();

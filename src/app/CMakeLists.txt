@@ -8,6 +8,8 @@ add_executable(mikser-studio WIN32
     AppPaths.h
     DesktopApp.cpp
     DesktopApp.h
+    FatalError.cpp
+    FatalError.h
     Logging.cpp
     Logging.h
     LogFile.cpp
