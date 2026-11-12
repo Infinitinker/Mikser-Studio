@@ -1,0 +1,36 @@
+# Sets up MSYS2's UCRT64 environment with what builds Mikser Studio, the packages docs/development.md
+# lists: the toolchain, CMake, Ninja and ccache, Qt 6, KDDockWidgets, MLT with FFmpeg and RtAudio,
+# Catch2, MLT's optional run-time libraries, and git. Used by every job that builds the C++ code: in
+# checks.yml (Tests, C++ checks, which adds clang-format and clang-tidy), e2e.yml and build-windows.yml.
+# Steps run in it with `shell: msys2 {0}`. Needs a checkout first, as every local action does.
+name: MSYS2
+description: Installs MSYS2 (UCRT64) with Mikser Studio's toolchain and libraries, and any packages the job adds.
+
+inputs:
+  packages:
+    description: More UCRT64 packages to install, in pacboy's form (clang:p), separated by spaces.
+    required: false
+    default: ""
+
+runs:
+  using: composite
+  steps:
+    - uses: msys2/setup-msys2@v2
+      with:
+        msystem: UCRT64
+        update: true
+        install: >-
+          git
+        pacboy: >-
+          gcc:p gdb:p cmake:p ninja:p ccache:p pkgconf:p
+          qt6-base:p qt6-declarative:p qt6-shadertools:p qt6-tools:p qt6-httpserver:p qt6-websockets:p qt6-svg:p
+          kddockwidgets:p mlt:p ffmpeg:p rtaudio:p catch:p
+          libebur128:p fftw:p libsamplerate:p sox:p rubberband:p rnnoise:p lilv:p
+          ${{ inputs.packages }}
+
+    # MSYS2's git has settings of its own, without the safe.directory entry actions/checkout gives the
+    # runner's git, and it can take the checkout for another user's. The runner is thrown away after
+    # the job.
+    - name: Trust the checkout
+      shell: msys2 {0}
+      run: git config --global --add safe.directory '*'

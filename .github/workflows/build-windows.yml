@@ -1,0 +1,128 @@
+name: Build Windows app
+
+# Builds the Windows release files: the installer, the Windows zip and the third-party notices, each
+# kept on the run's page under its release file name, and checks them. The Release workflow
+# (release.yml) calls it and drafts the release from them; run on its own, it shows early that a
+# change still builds into a release.
+#
+# It runs for every pull request (also Dependabot's and those from forks), from the Release workflow,
+# and on demand (Actions > Build Windows app > Run workflow, on any branch); not for pushes, so a
+# change is built once, in its pull request, rather than on every push to dev.
+on:
+  pull_request:
+  workflow_dispatch:
+  workflow_call:
+
+# A newer push to a pull request cancels the build still going for the older one; a release's build
+# is never cut short. Called from release.yml, github.workflow is "Release".
+concurrency:
+  group: build-windows-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.workflow != 'Release' }}
+
+permissions:
+  contents: read
+
+env:
+  # Inno Setup's installer, checked against the SHA-256 that its release on GitHub lists. The runner's
+  # own Inno Setup is version 6; tools/installer.iss needs 7.
+  INNO_SETUP_URL: https://github.com/jrsoftware/issrc/releases/download/is-7_1_1/innosetup-7.1.1-x64.exe
+  INNO_SETUP_SHA256: 8a5a6711c3766a6e5fb74f280ba0e3551e719ce94538d901fdbd1f8f9920b3f0
+
+jobs:
+  build:
+    name: Windows build (x64)
+    runs-on: windows-latest
+    timeout-minutes: 60
+    outputs:
+      # The three files, so the check downloads exactly these, whatever else the run keeps.
+      artifacts: ${{ steps.setup.outputs.artifact-id }},${{ steps.windows-zip.outputs.artifact-id }},${{ steps.notices.outputs.artifact-id }}
+    steps:
+      - uses: actions/checkout@v7
+
+      # tools/build_release.py runs with MSYS2's own Python, which finds MSYS2 through cygpath.
+      - uses: ./.github/actions/msys2
+        with:
+          packages: python:p
+
+      - name: Install Inno Setup
+        shell: pwsh
+        run: |
+          $installer = Join-Path $env:RUNNER_TEMP "innosetup.exe"
+          $folder = Join-Path $env:RUNNER_TEMP "InnoSetup"
+          Invoke-WebRequest $env:INNO_SETUP_URL -OutFile $installer
+          $hash = (Get-FileHash $installer -Algorithm SHA256).Hash.ToLowerInvariant()
+          if ($hash -ne $env:INNO_SETUP_SHA256) { throw "Inno Setup's installer has the SHA-256 $hash, not $env:INNO_SETUP_SHA256." }
+          $setup = Start-Process $installer -ArgumentList "/VERYSILENT", "/SUPPRESSMSGBOXES", "/NORESTART", "/SP-", "/CURRENTUSER", "/DIR=$folder" -Wait -PassThru
+          if ($setup.ExitCode -ne 0) { throw "Inno Setup's installer failed with exit code $($setup.ExitCode)." }
+          "ISCC=$(Join-Path $folder 'ISCC.exe')" | Out-File $env:GITHUB_ENV -Append -Encoding utf8
+
+      - name: Build
+        shell: msys2 {0}
+        run: |
+          cmake --preset release
+          cmake --build --preset release
+      - name: Build the release
+        shell: msys2 {0}
+        run: python tools/build_release.py
+
+      # Each file on its own and unzipped, so the run's page offers the files themselves. Each step
+      # fails unless its pattern matches exactly one file.
+      - id: setup
+        uses: actions/upload-artifact@v7
+        with:
+          path: build/dist/*-windows-x64-setup.exe
+          archive: false
+          if-no-files-found: error
+      - id: windows-zip
+        uses: actions/upload-artifact@v7
+        with:
+          path: build/dist/*-windows-x64.zip
+          archive: false
+          if-no-files-found: error
+      - id: notices
+        uses: actions/upload-artifact@v7
+        with:
+          path: build/dist/*-third-party-notices.md
+          archive: false
+          if-no-files-found: error
+
+  files:
+    name: Windows release files
+    needs: build
+    runs-on: ubuntu-26.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          sparse-checkout: CMakeLists.txt
+          sparse-checkout-cone-mode: false
+      - name: Read the version
+        id: version
+        run: |
+          version=$(sed -nE 's/^project\(MikserStudio[[:space:]]+VERSION[[:space:]]+([0-9]+\.[0-9]+\.[0-9]+).*/\1/p' CMakeLists.txt)
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+      # skip-decompress keeps each file as uploaded: otherwise the zip would arrive unpacked.
+      - uses: actions/download-artifact@v8
+        with:
+          artifact-ids: ${{ needs.build.outputs.artifacts }}
+          merge-multiple: true
+          skip-decompress: true
+          path: ${{ runner.temp }}/release
+      - name: Check the files
+        working-directory: ${{ runner.temp }}/release
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          ls -l
+          expected=$(printf '%s\n' "MikserStudio-$VERSION-windows-x64-setup.exe" \
+            "MikserStudio-$VERSION-windows-x64.zip" "MikserStudio-$VERSION-third-party-notices.md" | LC_ALL=C sort)
+          if [ -z "$VERSION" ] || [ "$(ls -1 | LC_ALL=C sort)" != "$expected" ]; then
+            echo "::error::Expected exactly these files:" $expected
+            exit 1
+          fi
+          for file in $expected; do
+            [ -f "$file" ] || { echo "::error::$file did not arrive as a file."; exit 1; }
+          done
+          unzip -tq "MikserStudio-$VERSION-windows-x64.zip" || { echo "::error::The Windows zip is not a whole zip."; exit 1; }
+          unzip -l "MikserStudio-$VERSION-windows-x64.zip" | grep -q "MikserStudio/bin/mikser-studio.exe" \
+            || { echo "::error::The Windows zip has no MikserStudio/bin/mikser-studio.exe."; exit 1; }

@@ -11,6 +11,9 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 # The code uses no C++ modules: skip CMake's scan for them, whose GCC flags clang-tidy cannot read.
 set(CMAKE_CXX_SCAN_FOR_MODULES OFF)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+# A target `autogen` that runs Qt's moc, uic and rcc for every target, so clang-tidy can read the generated
+# files without a full build ("C++ checks" in docs/development.md).
+set(CMAKE_GLOBAL_AUTOGEN_TARGET ON)
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 include(MikserStudioCompilerOptions)

@@ -1,0 +1,42 @@
+name: E2E tests
+
+# The end-to-end tests (tests/e2e, "End-to-end tests" in docs/development.md): the built app, run as
+# the E2E instance and driven through its local API. For pushes to the two long-lived branches and for
+# pull requests, like the Checks; its job has a short, fixed name, different from the Checks jobs. Also
+# on request (Actions > E2E tests > Run workflow, on any branch), to run the tests on a branch that has
+# no pull request, or again after a run that failed for reasons outside the change. Windows only, the
+# one system with a release; Linux and macOS join when their ports land.
+on:
+  push:
+    branches: [main, dev]
+  pull_request:
+  workflow_dispatch:
+
+# A newer push to the same branch or pull request cancels the run still going for the older one.
+concurrency:
+  group: e2e-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  e2e:
+    name: Windows E2E tests
+    runs-on: windows-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v7
+      # The app starts the AI service from ai/.venv, as it does when run from source.
+      - uses: ./.github/actions/python
+        with:
+          venv: "true"
+      - uses: ./.github/actions/msys2
+      - name: Build
+        shell: msys2 {0}
+        run: |
+          cmake --preset debug
+          cmake --build --preset debug
+      - name: E2E tests
+        shell: msys2 {0}
+        run: ctest --preset e2e

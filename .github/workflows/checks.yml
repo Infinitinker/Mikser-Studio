@@ -1,0 +1,135 @@
+name: Checks
+
+# Pushes to the two long-lived branches, and pull requests, also from forks. The jobs have short,
+# fixed names, so they can be required status checks of the main branch ruleset ("Branches" in
+# docs/development.md). Windows is the only system with a release, so the build and the tests run
+# there; Linux and macOS get jobs of their own when their ports land.
+on:
+  push:
+    branches: [main, dev]
+  pull_request:
+
+# A newer push to the same branch or pull request cancels the run still going for the older one.
+concurrency:
+  group: checks-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  # Ruff's results, the AI service's import contracts and the C++ include directions are read from the
+  # source text and are the same on every system, so they run once, on the fastest runner.
+  lint:
+    name: Lint
+    runs-on: ubuntu-26.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/python
+      - name: Install
+        run: python -m pip install -e "./ai[dev]"
+      # The AI service and the scripts in tools/, both with the settings in ai/pyproject.toml.
+      - name: Lint
+        working-directory: ai
+        run: python -m ruff check . ../tools
+      - name: Format
+        working-directory: ai
+        run: python -m ruff format --check . ../tools
+      - name: Imports
+        working-directory: ai
+        run: lint-imports
+      - name: Include directions
+        run: python tools/check_includes.py
+
+  # mypy checks only the code paths of the system it runs on, so the AI service's types are checked
+  # on Windows, the system it ships on.
+  types:
+    name: Types
+    runs-on: windows-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/python
+      - name: Install
+        run: python -m pip install -e "./ai[dev]"
+      - name: Types
+        working-directory: ai
+        run: python -m mypy
+      - name: Types of tools/
+        working-directory: ai
+        run: python -m mypy ../tools
+
+  # The C++ build with the ci preset, where warnings are errors, and its tests; then the AI service's
+  # tests. The service gets its own ai/.venv first, as in docs/development.md, since the C++ tests
+  # start the real service from there too (tests/services/RealSidecarTests.cpp).
+  tests:
+    name: Tests
+    runs-on: windows-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/python
+        with:
+          venv: "true"
+      - uses: ./.github/actions/msys2
+      - name: Build
+        shell: msys2 {0}
+        run: |
+          cmake --preset ci
+          cmake --build --preset ci
+      # No sound device on the runner: MLT plays to its silent output.
+      - name: C++ tests
+        shell: msys2 {0}
+        env:
+          MIKSERSTUDIO_AUDIO_OUTPUT: silent
+        run: ctest --preset ci -j4
+      - name: Python tests
+        working-directory: ai
+        run: .venv/Scripts/python -m pytest
+
+  # What a release ships from MSYS2, read from MSYS2's package database (tools/msys2_packages.py), with
+  # MSYS2's own Python: THIRD-PARTY-NOTICES.md must be up to date, and every license on the allow list.
+  # TODO: Mikser Studio has no license yet, so there is no allow list to check the dependencies'
+  # licenses against. tools/licenses.py lists every license a release ships and fails until the
+  # license is chosen and its allow list written there (docs/releasing.md, "Licenses").
+  licenses:
+    name: Licenses
+    runs-on: windows-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/msys2
+        with:
+          packages: python:p
+      - name: Notices
+        shell: msys2 {0}
+        run: python tools/notices.py --check
+      - name: Licenses
+        shell: msys2 {0}
+        run: python tools/licenses.py
+
+  # The C++ code: clang-format and clang-tidy (.clang-format and .clang-tidy at the root). Each step
+  # fails on any finding. clang-tidy reads the compile commands of the ci preset: configuring is
+  # enough, nothing is built, but Qt's moc and uic run in the build, so the generated headers are
+  # made first.
+  cpp:
+    name: C++ checks
+    runs-on: windows-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/msys2
+        with:
+          packages: clang:p clang-tools-extra:p
+      - name: Format
+        shell: msys2 {0}
+        run: git ls-files '*.cpp' '*.h' | xargs clang-format --dry-run --Werror
+      - name: Configure
+        shell: msys2 {0}
+        run: |
+          cmake --preset ci
+          cmake --build --preset ci --target autogen
+      - name: clang-tidy
+        shell: msys2 {0}
+        run: git ls-files '*.cpp' | xargs -P 4 -n 1 clang-tidy -p build/ci --quiet

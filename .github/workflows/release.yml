@@ -1,0 +1,106 @@
+name: Release
+
+# A pushed tag v<version> on main builds the release and drafts its page, which a maintainer then
+# completes and publishes (docs/releasing.md). A run started by hand (Actions > Release > Run
+# workflow, on any branch) does the same without drafting, to try a release before tagging it; it
+# keeps the files on the run's page. Each system's build is a workflow of its own (build-windows.yml),
+# which also checks its files, and which builds every pull request on its own. Windows is the only
+# system with a release for now: Linux and macOS get build workflows when their ports land.
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+# A release's build is never cut short.
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  version:
+    name: Check the version
+    runs-on: ubuntu-26.04
+    timeout-minutes: 10
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0 # The history of main, to check that the tag is on it.
+      - name: Read the version
+        id: version
+        run: |
+          version=$(sed -nE 's/^project\(MikserStudio[[:space:]]+VERSION[[:space:]]+([0-9]+\.[0-9]+\.[0-9]+).*/\1/p' CMakeLists.txt)
+          if [ -z "$version" ]; then
+            echo "::error::CMakeLists.txt's project() has no VERSION."
+            exit 1
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "Version $version"
+      # Fails before anything is built, rather than drafting a release under the wrong name or from
+      # code that was never merged.
+      - name: Check the tag
+        if: github.ref_type == 'tag'
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          if [ "v$VERSION" != "$GITHUB_REF_NAME" ]; then
+            echo "::error::The tag is $GITHUB_REF_NAME, but the version in CMakeLists.txt is $VERSION."
+            exit 1
+          fi
+          if ! git merge-base --is-ancestor "$GITHUB_SHA" origin/main; then
+            echo "::error::$GITHUB_REF_NAME is not on main. Merge dev into main and tag the commit on main."
+            exit 1
+          fi
+
+  windows:
+    name: Windows app
+    needs: version
+    uses: ./.github/workflows/build-windows.yml
+
+  draft:
+    name: Draft the release
+    needs: [version, windows]
+    if: github.event_name == 'push'
+    runs-on: ubuntu-26.04
+    timeout-minutes: 15
+    permissions:
+      contents: write # To create the release.
+      id-token: write # To sign the provenance attestations.
+      attestations: write # To store them.
+    steps:
+      # skip-decompress keeps each file as uploaded: otherwise the zip would arrive unpacked.
+      - uses: actions/download-artifact@v8
+        with:
+          pattern: MikserStudio-*
+          merge-multiple: true
+          skip-decompress: true
+          path: release
+      # Records that these files were built by this workflow from this commit, so anyone can check a
+      # download with: gh attestation verify <file> --repo Infinitinker/Mikser-Studio
+      - uses: actions/attest-build-provenance@v4
+        with:
+          subject-path: release/*
+      - name: Draft the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ needs.version.outputs.version }}
+        run: |
+          cd release
+          {
+            echo "Describe the release here, then publish it."
+            echo
+            echo "## Checksums (SHA-256)"
+            echo
+            echo '```'
+            sha256sum -- *
+            echo '```'
+            echo
+            echo "Each file's build can be checked with the [GitHub CLI](https://cli.github.com/):"
+            echo "\`gh attestation verify <file> --repo $GITHUB_REPOSITORY\`."
+          } > "$RUNNER_TEMP/notes.md"
+          gh release create "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --draft --verify-tag \
+            --title "Mikser Studio $VERSION" --notes-file "$RUNNER_TEMP/notes.md" -- *
