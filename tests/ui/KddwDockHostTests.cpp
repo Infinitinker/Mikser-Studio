@@ -21,7 +21,6 @@ using mikserstudio::ui::PanelDescriptor;
 
 namespace {
 
-// Whether the panel shows the placeholder for a panel nobody registered.
 // Whether the panel is open in a window of its own, apart from the main window, as the user sees it.
 bool isFloating(const KddwDockHost& host, const QString& id)
 {
@@ -29,6 +28,7 @@ bool isFloating(const KddwDockHost& host, const QString& id)
     return window != nullptr && window != host.mainWindow();
 }
 
+// Whether the panel shows the placeholder for a panel nobody registered.
 bool isPlaceholder(const KddwDockHost& host, const QString& id)
 {
     return qobject_cast<mikserstudio::ui::PlaceholderPanel*>(host.panelWidget(id)) != nullptr;
