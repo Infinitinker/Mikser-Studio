@@ -26,6 +26,14 @@ new and changed code, and don't extend what they replace.
   `mikserstudio_ai`; `MikserStudio::` for CMake targets; `MIKSERSTUDIO_` for macros and environment
   variables; `mikser-studio*` for the programs people run. Projects are `.mikser` files, and plugin
   manifests `mikserstudio-plugin.json`.
+- Files and folders take hyphens, never underscores: lowercase (`interface-texts.md`,
+  `mikserstudio-plugin.json`), and uppercase for the documents at the root
+  (`THIRD-PARTY-NOTICES.md`). Code files follow their language: C++ files in PascalCase, after the
+  class or the job they hold (`KddwDockHost.cpp`, `Logging.h`), with `main.cpp` for a program; QML
+  components and CMake modules in PascalCase (`Timeline.qml`, `MikserStudioCompilerOptions.cmake`);
+  C and Python in snake_case (`plugin_api.h`, `mikserstudio_ai`, `build_release.py`). Names a
+  language, tool or GitHub fixes keep their form (`__init__.py`, `CMakeLists.txt`, and
+  `.github/ISSUE_TEMPLATE` with its forms).
 - The app id is `io.github.infinitinker.mikserstudio` (`kAppId` in
   `src/core/include/mikserstudio/core/Instance.h`); it never changes after a release. A build from
   source runs as **Mikser Studio Dev** (`io.github.infinitinker.mikserstudio.dev`), the end-to-end
