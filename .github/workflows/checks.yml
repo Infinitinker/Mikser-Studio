@@ -39,6 +39,9 @@ jobs:
       - name: Imports
         working-directory: ai
         run: lint-imports
+      - name: Tests of tools/
+        working-directory: ai
+        run: python -m pytest -c pyproject.toml ../tools/tests
       - name: Include directions
         run: python tools/check_includes.py
 

@@ -46,8 +46,12 @@ on its own. `tools/check_includes.py` checks the C++ and the import-linter contr
   and the UI controls playback through `core::Transport`.
 - `src/app/` includes every module, and nothing includes `src/app/`.
 - `plugins/` include only the plugin ABI.
-- A module's public headers are included as `<mikserstudio/<module>/...>`, its private ones in quotes,
-  and only by the module itself and its tests in `tests/<module>/`.
+- A module's public headers are included in quotes as `"mikserstudio/<module>/..."`. Its private
+  headers are included in quotes by name, and only by the module itself and its tests in
+  `tests/<module>/`. The plugin ABI is included in angle brackets, `<mikserstudio/plugin_api.h>`, as
+  a plugin built apart from Mikser Studio includes it.
+- `tests/e2e/` includes no module: the end-to-end tests run the app as a process. Every C++ file is
+  in a folder the check knows, so a new folder has to be added to it before its includes pass.
 - In `ai/`, the service (`service`, `server`, `jobs`, `registry` and the modules they use) never
   imports `backends/`: backends are found through the `mikserstudio_ai.backends` entry points.
   Backends use only the backend contract (`backend.py`) and the shared helpers (`processes.py`,

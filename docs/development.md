@@ -130,13 +130,15 @@ git ls-files '*.cpp' | xargs -P 8 -n 1 clang-tidy -p build/ci --quiet
 `clang-format -i <files>` formats files in place.
 
 **Lint** (job `Lint`): Ruff, for the AI service and the scripts in `tools/`; the AI service's import
-contracts; and the C++ include directions ("Import directions" in [architecture.md](architecture.md)).
+contracts; the C++ include directions ("Import directions" in [architecture.md](architecture.md));
+and the tests of the scripts in `tools/` (`tools/tests/`), with the AI service's pytest settings.
 
 ```sh
 cd ai
 .venv/Scripts/python -m ruff check . ../tools
 .venv/Scripts/python -m ruff format --check . ../tools
 .venv/Scripts/lint-imports
+.venv/Scripts/python -m pytest -c pyproject.toml ../tools/tests
 cd ..
 ai/.venv/Scripts/python tools/check_includes.py
 ```
