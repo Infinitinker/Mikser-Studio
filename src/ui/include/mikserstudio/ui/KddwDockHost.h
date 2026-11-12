@@ -90,6 +90,7 @@ private:
     void placeInDefaultArea(Dock* dock, DockArea area);
     void applyPreset(const WorkspacePreset& preset);
     void closeAll();
+    // The error is the reason alone, in lower case, for the caller to put in a sentence of its own.
     std::expected<void, QString> restore(const QByteArray& layout, bool keepMainWindowGeometry);
     // The file of a workspace; built-in names in any case map to the built-in workspace's file.
     [[nodiscard]] QString workspacePath(const QString& name) const;

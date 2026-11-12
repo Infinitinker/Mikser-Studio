@@ -262,7 +262,9 @@ QByteArray KddwDockHost::saveLayout() const
 
 std::expected<void, QString> KddwDockHost::restoreLayout(const QByteArray& layout)
 {
-    return restore(layout, false);
+    if (auto restored = restore(layout, false); !restored)
+        return std::unexpected(u"The panels could not be arranged as in the last session: %1."_s.arg(restored.error()));
+    return {};
 }
 
 QStringList KddwDockHost::workspaces() const
@@ -309,8 +311,13 @@ std::expected<void, QString> KddwDockHost::loadWorkspace(const QString& name)
         if (!file.open(QIODevice::ReadOnly))
             return std::unexpected(
                 u"Could not read the workspace file %1: %2"_s.arg(QDir::toNativeSeparators(path), file.errorString()));
-        if (auto restored = restore(file.readAll(), true); !restored)
-            return std::unexpected(u"The workspace “%1” could not be loaded. %2"_s.arg(name, restored.error()));
+        if (auto restored = restore(file.readAll(), true); !restored) {
+            // Reset workspace would only load the same file again: saving over it is what replaces it.
+            return std::unexpected(
+                u"The workspace “%1” could not be loaded: %2. Arrange the panels and choose "
+                u"Save workspace as… in the Workspace menu, with the name “%1”, to replace it."_s.arg(
+                    name, restored.error()));
+        }
     } else if (preset) {
         applyPreset(*preset);
     } else {
@@ -533,18 +540,14 @@ std::expected<void, QString> KddwDockHost::restore(const QByteArray& layout, boo
     if (error.error != QJsonParseError::NoError || !document.isObject()) {
         qCWarning(lcDocking).noquote() << "The saved layout is not a JSON object:" << error.errorString() << "at offset"
                                        << error.offset;
-        return std::unexpected(
-            u"The saved arrangement of the panels is damaged. Choose Reset workspace in the Workspace menu to "
-            u"put the panels back."_s);
+        return std::unexpected(u"the saved arrangement of the panels is damaged"_s);
     }
     KDDockWidgets::RestoreOptions options = KDDockWidgets::RestoreOption_CloseUnknownDockWidgets;
     if (keepMainWindowGeometry)
         options |= KDDockWidgets::RestoreOption_RelativeToMainWindow;
     KDDockWidgets::LayoutSaver saver(options);
     if (!saver.restoreLayout(layout))
-        return std::unexpected(
-            u"The saved arrangement of the panels could not be restored: it may come from another version of "
-            u"Mikser Studio. Choose Reset workspace in the Workspace menu to put the panels back."_s);
+        return std::unexpected(u"the saved arrangement of the panels does not fit this version of Mikser Studio"_s);
     // Panels the layout does not place would otherwise stay open (KDDockWidgets floats them).
     const QSet<QString> placed = placedDocks(document.object());
     for (auto it = m_docks.cbegin(); it != m_docks.cend(); ++it) {

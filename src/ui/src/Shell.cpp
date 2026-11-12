@@ -153,7 +153,7 @@ void Shell::restoreState()
             qCInfo(lcShell) << "Restored the last layout";
             return;
         }
-        qCWarning(lcShell).noquote() << "Could not restore the last layout:" << restored.error();
+        qCWarning(lcShell).noquote() << restored.error();
         m_status->showMessage(
             u"The panels could not be arranged as you left them, so the “%1” workspace is shown."_s.arg(workspace),
             true);

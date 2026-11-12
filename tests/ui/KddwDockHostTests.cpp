@@ -314,7 +314,8 @@ TEST_CASE("KddwDockHost saves, lists and loads named workspaces", "[docking]")
     corrupt.close();
     const auto broken = f.host->loadWorkspace(u"Broken"_s);
     REQUIRE_FALSE(broken);
-    CHECK(broken.error().contains(u"Broken"_s));
+    CHECK(broken.error().contains(u"“Broken” could not be loaded: the saved arrangement of the panels is damaged"_s));
+    CHECK(broken.error().contains(u"Save workspace as"_s));  // Reset would load the same file again.
 }
 
 TEST_CASE("KddwDockHost applies and resets the built-in workspaces", "[docking]")
