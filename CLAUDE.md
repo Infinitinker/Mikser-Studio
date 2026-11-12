@@ -30,7 +30,7 @@ new and changed code, and don't extend what they replace.
   `src/core/include/mikserstudio/core/Instance.h`); it never changes after a release. A build from
   source runs as **Mikser Studio Dev** (`io.github.infinitinker.mikserstudio.dev`), the end-to-end
   tests run **Mikser Studio E2E** (`io.github.infinitinker.mikserstudio.e2e`), and only the release,
-  configured with `-DMIKSERSTUDIO_INSTALLED_APP=ON`, runs as **Mikser Studio**.
+  built with the `package` preset, runs as **Mikser Studio**.
 - Per-user folders come from `core::UserFolders`, one set per instance and no organization folder: on
   Windows `%LOCALAPPDATA%\Mikser Studio` (or `… Dev`, `… E2E`) holds the settings, the API's
   `api.json` and `logs\mikser-studio.log`, with the cache in its `cache` folder.
