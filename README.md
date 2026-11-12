@@ -12,6 +12,7 @@
 <p align="center">
   <a href="https://github.com/Infinitinker/Mikser-Studio/releases/latest"><img src="https://img.shields.io/github/v/release/Infinitinker/Mikser-Studio?label=Download" alt="Latest release"></a>
   <a href="https://github.com/Infinitinker/Mikser-Studio/actions/workflows/checks.yml"><img src="https://img.shields.io/github/actions/workflow/status/Infinitinker/Mikser-Studio/checks.yml?branch=main&label=Checks" alt="Checks on main"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/License-GPL--3.0--or--later-blue" alt="License: GPL-3.0-or-later"></a>
   <img src="https://img.shields.io/badge/Platform-Windows-555" alt="Platform: Windows">
   <img src="https://img.shields.io/badge/Works-offline-2ea44f" alt="Works offline">
 </p>
@@ -78,6 +79,8 @@ Ko-fi takes cards and PayPal; buycoffee.to suits Polish supporters, with BLIK an
 
 ## License
 
-Mikser Studio's own license is still to be chosen. The licenses of the libraries a release ships with, such as Qt, MLT and FFmpeg, are in [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md), which comes with every release as `THIRD-PARTY-NOTICES.txt`.
+Copyright (c) 2026 Infinitinker. Mikser Studio is free software under the GNU General Public License, version 3 or any later version (GPL-3.0-or-later); see [LICENSE](LICENSE).
+
+The licenses of the libraries a release ships with, such as Qt, MLT and FFmpeg, are in [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md), which comes with every release as `THIRD-PARTY-NOTICES.txt`.
 
 Mikser Studio is not affiliated with or endorsed by the makers of the software it works with, such as Ollama, FFmpeg, MLT or Qt.

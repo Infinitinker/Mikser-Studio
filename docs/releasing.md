@@ -19,7 +19,8 @@ GitHub, under the tag `v<version>`:
 - `MikserStudio-<version>-windows-x64.zip`: `bin\mikser-studio.exe` with the bundled plugins in
   `bin\plugins`, everything it needs from MSYS2 (the C++ run time, Qt with its plugins and QML modules,
   KDDockWidgets, MLT with its modules in `lib\mlt` and its data in `share\mlt`, FFmpeg and the
-  libraries they need), and `THIRD-PARTY-NOTICES.txt`, the committed `THIRD-PARTY-NOTICES.md`.
+  libraries they need), `LICENSE.txt`, Mikser Studio's license, and `THIRD-PARTY-NOTICES.txt`, the
+  committed `THIRD-PARTY-NOTICES.md`.
 - `MikserStudio-<version>-third-party-notices.md`: the same notices, to read without downloading the
   app.
 
@@ -77,23 +78,27 @@ libvpx): their texts are still to be added to `tools/licenses/`.
 
 ## Licenses
 
-Every license of what a release ships must pass `tools/licenses.py`, which the `Licenses` check runs: a
-license that is not on its allow list (`ALLOWED`) needs an entry in its `EXCEPTIONS`, for that
-package, with the reason it may ship.
+Mikser Studio is under the GPL-3.0-or-later (`LICENSE`). MSYS2 builds FFmpeg under the
+GPL-3.0-or-later (with x264, x265 and xvidcore in it), Qt HttpServer under the GPL-3.0, and
+KDDockWidgets under the GPL-2.0 or the GPL-3.0; MLT is under the LGPL-2.1-or-later. A release is under
+the GPL-3.0 as a whole.
 
-TODO: Mikser Studio has no license yet, so `ALLOWED` is empty and the check fails, listing every
-license a release ships. Choosing the license decides what a release may ship and what it must
-offer:
+Every license of what a release ships must pass `tools/licenses.py`, which the `Licenses` check runs:
+one alternative of each package's license must name only licenses on its allow list (`ALLOWED`), those
+that can be combined with the GPL-3.0-or-later. A package whose metadata names no SPDX license, or
+joins alternatives with AND, needs an entry in `EXCEPTIONS`, with the license as checked by hand.
 
-- MSYS2 builds FFmpeg under the GPL-3.0-or-later (with x264, x265 and xvidcore in it), Qt HttpServer
-  under the GPL-3.0, and KDDockWidgets under the GPL-2.0 and GPL-3.0; MLT is under the
-  LGPL-2.1-or-later. A release built from these packages is under the GPL-3.0 as a whole.
-- The GPL and LGPL ask a release to offer the source of what it ships under them:
-  `MikserStudio-<version>-sources.zip`, with Mikser Studio's source at the release's commit and the
-  source of each such package at the shipped version.
+### The source of a release
 
-Once the license is chosen: add `LICENSE`, list the compatible licenses in `ALLOWED` and in CLAUDE.md's
-"Open source", and add the sources zip to the release.
+The GPL and the LGPL ask a release to offer the source of what it ships under them. Each release is
+to carry `MikserStudio-<version>-sources.zip`: Mikser Studio's source at the release's commit, and the
+source of each MSYS2 package it ships under the GPL or the LGPL, at the shipped version (MSYS2's source
+packages).
+
+TODO: the sources zip is not built yet. Mikser Studio's own source is small (`git archive`), but the
+packages' sources, FFmpeg's and Qt's among them, run to hundreds of megabytes. Next step:
+`tools/build_release.py` writes the zip from `git archive` and MSYS2's source packages, and the
+release workflows check and publish it as a fourth file.
 
 ## Building on GitHub
 

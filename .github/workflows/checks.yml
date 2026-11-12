@@ -91,10 +91,8 @@ jobs:
         run: python -m pytest
 
   # What a release ships from MSYS2, read from MSYS2's package database (tools/msys2_packages.py), with
-  # MSYS2's own Python: THIRD-PARTY-NOTICES.md must be up to date, and every license on the allow list.
-  # TODO: Mikser Studio has no license yet, so there is no allow list to check the dependencies'
-  # licenses against. tools/licenses.py lists every license a release ships and fails until the
-  # license is chosen and its allow list written there (docs/releasing.md, "Licenses").
+  # MSYS2's own Python: THIRD-PARTY-NOTICES.md must be up to date, and every license must be one that
+  # can be combined with Mikser Studio's GPL-3.0-or-later (docs/releasing.md, "Licenses").
   licenses:
     name: Licenses
     runs-on: windows-latest

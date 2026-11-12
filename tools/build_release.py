@@ -2,7 +2,7 @@
 cmake --build --preset package) into build/dist:
 
 - MikserStudio-<version>-windows-x64.zip: the program with everything it needs from MSYS2
-  (tools/msys2_packages.py) and THIRD-PARTY-NOTICES.txt, unpacked and run anywhere;
+  (tools/msys2_packages.py), LICENSE.txt and THIRD-PARTY-NOTICES.txt, unpacked and run anywhere;
 - MikserStudio-<version>-windows-x64-setup.exe: the same files in an installer (tools/installer.iss),
   built with Inno Setup 7's ISCC.exe, found through ISCC or in Program Files;
 - MikserStudio-<version>-third-party-notices.md: THIRD-PARTY-NOTICES.md, to read without the app.
@@ -103,7 +103,8 @@ def add_runtime() -> None:
 
 
 def add_texts() -> None:
-    """The notices, under the name a release ships them with."""
+    """Mikser Studio's license and the notices, under the names a release ships them with."""
+    shutil.copy2("LICENSE", STAGE / "LICENSE.txt")
     shutil.copy2("THIRD-PARTY-NOTICES.md", STAGE / "THIRD-PARTY-NOTICES.txt")
 
 

@@ -167,14 +167,13 @@ cd ai
 ```
 
 **Licenses** (job `Licenses`): `THIRD-PARTY-NOTICES.md` is up to date, and every license a release
-ships is allowed ([releasing.md](releasing.md#licenses)). Both read MSYS2's package database.
+ships can be combined with Mikser Studio's GPL-3.0-or-later ([releasing.md](releasing.md#licenses)).
+Both read MSYS2's package database.
 
 ```sh
 python tools/notices.py --check
 python tools/licenses.py
 ```
-
-TODO: `tools/licenses.py` fails until Mikser Studio has a license and its allow list is written.
 
 ## End-to-end tests
 
