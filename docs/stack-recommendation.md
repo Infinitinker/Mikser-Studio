@@ -10,7 +10,7 @@ All the multiplatform media apps you listed as references ship on this foundatio
 
 | Layer | Choice |
 |---|---|
-| Toolchain | C++20, CMake, vcpkg manifest with a pinned baseline. MSVC / Apple Clang / GCC 14+. clang-tidy and ASan/TSan/UBSan required in CI. Python side uses ruff, mypy and pytest (the ReflektorTTS conventions). |
+| Toolchain | C++23, CMake presets and Ninja. Free compilers only: MSYS2's GCC or Clang in its UCRT64 environment on Windows, with the dependencies from MSYS2's packages; GCC or Clang on Linux; Apple's toolchain on macOS. clang-tidy and ASan/TSan/UBSan required in CI. Python side uses ruff, mypy and pytest (the ReflektorTTS conventions). |
 | UI | Qt 6.12. Qt Widgets for the shell, menus and property forms. QML for the timeline, node graph and AI panels (the same split Kdenlive uses). One set of design tokens shared by the QSS and QML themes. |
 | Docking | KDDockWidgets 2.5.x (GPL or commercial; Widgets and QML frontends; can save and restore individual windows). It sits behind a small `mikserstudio::ui::DockHost` interface. Qt Advanced Docking System 5.1.1 (LGPL-2.1, full Wayland support since 5.0) is the drop-in fallback. |
 | GPU views | QRhi. The **program and source monitors use a QRhi-backed QWindow inside `createWindowContainer`**, not QRhiWidget. QRhiWidget draws into an extra texture first, which costs performance. QRhiWidget and QML are kept for secondary panels. OpenColorIO 2.x handles color, and scopes run as compute shaders on the full-resolution frame. |
@@ -20,7 +20,7 @@ All the multiplatform media apps you listed as references ship on this foundatio
 | Scripting | Embedded CPython 3.13 with nanobind, for trusted macros only. |
 | AI | (1) Python 3.13 sidecar in its own virtual environment, running PyTorch (CUDA/ROCm/XPU/MPS chosen at first run) and a pinned headless ComfyUI. Frames move through shared memory via a `mikserstudio_bridge` custom-node pack. (2) Ollama on :11434. (3) whisper.cpp and ONNX Runtime run in-process for small, latency-critical models. |
 | Other domains | Raster: own tiled QRhi canvas. Vector: lib2geom + resvg. 3D: Blender via bpy as a sidecar. Documents: LibreOfficeKit as a sidecar. Archives: libarchive plus a 7-Zip sidecar. |
-| Packaging | GitHub Actions on Windows, macOS arm64 and Ubuntu, with vcpkg binary cache and sccache. Windows: windeployqt + Inno Setup. macOS: macdeployqt, notarization, DMG. Linux: Flatpak on the KDE runtime, plus AppImage. AI components download on demand. |
+| Packaging | GitHub Actions. Windows builds run in MSYS2's UCRT64 environment, whose packages setup-msys2 caches, with ccache through the CMake presets and pip's download cache for the Python side; macOS arm64 and Ubuntu builds come later. Windows: `tools/build_release.py` copies the program with the MSYS2 libraries it imports, MLT's modules and Qt's plugins and QML modules, then makes a zip and an Inno Setup 7 installer. macOS: macdeployqt, notarization, DMG. Linux: Flatpak on the KDE runtime, plus AppImage. AI components download on demand. |
 
 ## Process model
 
@@ -56,7 +56,7 @@ Possible later addition: WASM components (wasmtime) as a sandboxed tier for non-
 - **App:** GPL-3.0-or-later, matching ReflektorTTS. KDDockWidgets, QtHttpServer, GPL FFmpeg encoders, the ASIO SDK (now GPLv3) and borrowed Kdenlive/Shotcut code all point there anyway.
 - **SDK:** the C header, Protocol package and manifest schema under MIT/Apache-2.0.
 - **Plugin exception:** you can add one for your own code, but it cannot cover third-party GPL parts like KDDockWidgets. Closed-source plugins should therefore talk to Mikser Studio over /v1 or run as sidecars.
-- **License gating in CI:** REUSE/SPDX or ScanCode over the vcpkg and Python dependency trees, so no AGPL or GPL-only dependency slips in unnoticed.
+- **License gating in CI:** `tools/licenses.py` checks the licenses of the MSYS2 packages a release ships against an allow list, and `tools/notices.py` writes their notices, so no AGPL or GPL-only dependency slips in unnoticed. The Python dependencies get the same check once the AI service ships.
 - **FFmpeg build switch:** choose per channel between LGPL FFmpeg with OS/hardware encoders and a GPL build with x264/x265. Codec patents are a separate distribution question.
 - **Model weights:** show each model's license in the model manager.
 - **Permissive escape hatch if ever needed:** Qt ADS instead of KDDockWidgets, cpp-httplib instead of QtHttpServer, LGPL FFmpeg.
@@ -72,7 +72,7 @@ Possible later addition: WASM components (wasmtime) as a sandboxed tier for non-
 | Docking on Wayland and macOS: Wayland apps cannot place their own windows, and macOS Spaces have quirks | Accept approximate position restore on Wayland and offer XWayland as an opt-in. Test docking on every OS for every release. |
 | QRhi can change between Qt minor releases. Qt's 5-year LTS patches go to commercial licensees only | Track Qt minor releases twice a year, or budget for a commercial license. |
 | AI packaging and VRAM contention | A virtual environment per sidecar, ComfyUI pinned to a tag, VRAM scheduler, custom nodes treated as untrusted code. |
-| Build complexity across three OSes | vcpkg binary cache from day one. Shotcut's build scripts as the reference recipe. |
+| Build complexity across three OSes | Prebuilt packages (MSYS2's on Windows), so no dependency is built from source, and one set of CMake presets. Shotcut's build scripts as the reference recipe. |
 | Scope (an "everything studio") | Video, audio and AI form the core. 3D and documents start as sidecar bridges. |
 
 ## Build first: a thin vertical slice
