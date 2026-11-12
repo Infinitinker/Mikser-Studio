@@ -15,4 +15,5 @@ endif()
 # src/app exists only when every module is on.
 if(MIKSERSTUDIO_WITH_UI AND MIKSERSTUDIO_WITH_ENGINE AND MIKSERSTUDIO_WITH_API AND MIKSERSTUDIO_WITH_SERVICES)
     add_subdirectory(app)
+    add_subdirectory(e2e)
 endif()

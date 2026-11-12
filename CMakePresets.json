@@ -40,7 +40,24 @@
     { "name": "ci", "configurePreset": "ci" }
   ],
   "testPresets": [
-    { "name": "debug", "configurePreset": "debug", "output": { "outputOnFailure": true } },
-    { "name": "ci", "configurePreset": "ci", "output": { "outputOnFailure": true } }
+    {
+      "name": "debug",
+      "configurePreset": "debug",
+      "output": { "outputOnFailure": true },
+      "filter": { "exclude": { "label": "e2e" } }
+    },
+    {
+      "name": "ci",
+      "configurePreset": "ci",
+      "output": { "outputOnFailure": true },
+      "filter": { "exclude": { "label": "e2e" } }
+    },
+    {
+      "name": "e2e",
+      "displayName": "End-to-end tests",
+      "configurePreset": "debug",
+      "output": { "outputOnFailure": true },
+      "filter": { "include": { "label": "e2e" } }
+    }
   ]
 }
