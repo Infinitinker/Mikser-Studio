@@ -28,10 +28,32 @@ separate Python processes. Why this stack was chosen is in `stack-recommendation
 | `src/api/` | `MikserStudio::api` | core, Qt HttpServer/WebSockets | Versioned local API on 127.0.0.1: `/v1` HTTP + WebSocket events. |
 | `src/services/` | `MikserStudio::services` | core, Qt Network | Sidecar process manager and the AI bridge (talks to `ai/`). |
 | `src/ui/` | `MikserStudio::ui` | core, Qt Widgets/Quick, KDDockWidgets | Main window, docking, workspaces, panels (media bin, timeline, AI, palette, properties, log). |
-| `src/app/` | `mikserstudio` | all | Wires the modules together; `mikserstudio --headless` runs without UI. |
+| `src/app/` | `mikser-studio` | all | Wires the modules together; `mikser-studio --headless` runs without UI. |
 | `plugins/` | plugin libraries | sdk | Bundled example plugins. |
 | `ai/` | Python package `mikserstudio-ai` | — | AI sidecar service, run from its own virtual environment (`ai/.venv`). |
 | `tests/` | `*-tests` | Catch2 | Tests mirroring `src/`. |
+
+## Import directions
+
+Code includes and imports only in these directions, so each module can be built, tested and replaced
+on its own. `tools/check_includes.py` checks the C++ and the import-linter contracts in
+`ai/pyproject.toml` the Python; the `Checks` workflow runs both.
+
+- `sdk/` includes nothing of Mikser Studio: it is the plugin ABI, a plain C header.
+- `src/core/` includes only itself and the plugin ABI.
+- `src/engine/`, `src/api/`, `src/services/` and `src/ui/` include only themselves and `core`. The UI
+  never includes the engine: the app creates the engine's monitor panels and hands them to the UI,
+  and the UI controls playback through `core::Transport`.
+- `src/app/` includes every module, and nothing includes `src/app/`.
+- `plugins/` include only the plugin ABI.
+- A module's public headers are included as `<mikserstudio/<module>/...>`, its private ones in quotes,
+  and only by the module itself and its tests in `tests/<module>/`.
+- In `ai/`, the service (`service`, `server`, `jobs`, `registry` and the modules they use) never
+  imports `backends/`: backends are found through the `mikserstudio_ai.backends` entry points.
+  Backends use only the backend contract (`backend.py`) and the shared helpers (`processes.py`,
+  `provenance.py`, `logs.py`), and never each other. The service is layered: `__main__`, `service`,
+  `server`, then `jobs`, `registry`, `auth` and `params`, then `backend`; each imports only from the
+  layers below it.
 
 ## Threads and processes
 

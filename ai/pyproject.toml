@@ -26,7 +26,7 @@ builtin = "mikserstudio_ai.backends.builtin:create"
 ollama = "mikserstudio_ai.backends.ollama:create"
 
 [project.optional-dependencies]
-dev = ["mypy>=2.4", "pytest>=9.2", "pytest-aiohttp>=1.1", "ruff>=0.17"]
+dev = ["import-linter>=2.16", "mypy>=2.4", "pytest>=9.2", "pytest-aiohttp>=1.1", "ruff>=0.17"]
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/mikserstudio_ai"]
@@ -45,3 +45,62 @@ select = ["E", "F", "I", "UP", "B"]
 [tool.mypy]
 strict = true
 files = ["src", "tests"]
+
+# The directions imports may run in, as "Import directions" in docs/architecture.md writes them
+# down. Checked with lint-imports, run from ai/.
+[tool.importlinter]
+root_package = "mikserstudio_ai"
+
+[[tool.importlinter.contracts]]
+name = "The service finds its backends through entry points, never by importing them"
+type = "forbidden"
+source_modules = [
+    "mikserstudio_ai.__main__",
+    "mikserstudio_ai.arguments",
+    "mikserstudio_ai.auth",
+    "mikserstudio_ai.backend",
+    "mikserstudio_ai.errors",
+    "mikserstudio_ai.jobs",
+    "mikserstudio_ai.logs",
+    "mikserstudio_ai.params",
+    "mikserstudio_ai.processes",
+    "mikserstudio_ai.provenance",
+    "mikserstudio_ai.registry",
+    "mikserstudio_ai.server",
+    "mikserstudio_ai.service",
+    "mikserstudio_ai.stop_signals",
+]
+forbidden_modules = ["mikserstudio_ai.backends"]
+
+[[tool.importlinter.contracts]]
+name = "Backends use only the backend contract and the shared helpers, never the service"
+type = "forbidden"
+source_modules = ["mikserstudio_ai.backends"]
+forbidden_modules = [
+    "mikserstudio_ai.__main__",
+    "mikserstudio_ai.arguments",
+    "mikserstudio_ai.auth",
+    "mikserstudio_ai.errors",
+    "mikserstudio_ai.jobs",
+    "mikserstudio_ai.params",
+    "mikserstudio_ai.registry",
+    "mikserstudio_ai.server",
+    "mikserstudio_ai.service",
+    "mikserstudio_ai.stop_signals",
+]
+
+[[tool.importlinter.contracts]]
+name = "Backends are independent of each other"
+type = "independence"
+modules = ["mikserstudio_ai.backends.builtin", "mikserstudio_ai.backends.ollama"]
+
+[[tool.importlinter.contracts]]
+name = "The service is layered: entry point, service, server, its parts, the backend contract"
+type = "layers"
+layers = [
+    "mikserstudio_ai.__main__",
+    "mikserstudio_ai.service",
+    "mikserstudio_ai.server",
+    "mikserstudio_ai.jobs | mikserstudio_ai.registry | mikserstudio_ai.auth | mikserstudio_ai.params",
+    "mikserstudio_ai.backend",
+]
