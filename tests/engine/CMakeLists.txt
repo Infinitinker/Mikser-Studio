@@ -28,3 +28,18 @@ target_compile_definitions(mikserstudio-engine-tests PRIVATE MIKSERSTUDIO_SAMPLE
 mikserstudio_target_defaults(mikserstudio-engine-tests)
 
 catch_discover_tests(mikserstudio-engine-tests DISCOVERY_MODE PRE_TEST)
+
+# The GPU test: the monitor on the machine's own platform and GPU, with the sample video. Labeled gpu,
+# which the debug and ci test presets leave out; the gpu preset runs it (docs/development.md, "GPU test").
+add_executable(mikserstudio-engine-gpu-tests
+    EngineTestSupport.cpp
+    EngineTestSupport.h
+    gpu/MonitorGpuTests.cpp
+    gpu/main.cpp
+)
+target_link_libraries(mikserstudio-engine-gpu-tests PRIVATE MikserStudio::engine Qt6::Widgets Catch2::Catch2)
+target_include_directories(mikserstudio-engine-gpu-tests PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}")
+target_compile_definitions(mikserstudio-engine-gpu-tests PRIVATE MIKSERSTUDIO_SAMPLE_VIDEO="${MIKSERSTUDIO_SAMPLE_VIDEO}")
+mikserstudio_target_defaults(mikserstudio-engine-gpu-tests)
+
+catch_discover_tests(mikserstudio-engine-gpu-tests DISCOVERY_MODE PRE_TEST PROPERTIES LABELS gpu TIMEOUT 120)

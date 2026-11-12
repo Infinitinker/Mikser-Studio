@@ -1,7 +1,7 @@
 name: E2E tests
 
 # The end-to-end tests (tests/e2e, "End-to-end tests" in docs/development.md): the built app, run as
-# the E2E instance and driven through its local API. For pushes to the two long-lived branches and for
+# the E2E instance and driven through its local API, and the real AI service with ffmpeg. For pushes to the two long-lived branches and for
 # pull requests, like the Checks; its job has a short, fixed name, different from the Checks jobs. Also
 # on request (Actions > E2E tests > Run workflow, on any branch), to run the tests on a branch that has
 # no pull request, or again after a run that failed for reasons outside the change. Windows only, the
@@ -27,7 +27,7 @@ jobs:
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@v7
-      # The app starts the AI service from ai/.venv, as it does when run from source.
+      # The app and the AI service's tests start the service from ai/.venv, as a run from source does.
       - uses: ./.github/actions/python
         with:
           venv: "true"

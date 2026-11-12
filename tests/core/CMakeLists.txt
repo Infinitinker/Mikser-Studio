@@ -48,12 +48,6 @@ target_compile_definitions(mikserstudio-core-tests PRIVATE
     MIKSERSTUDIO_TEST_WRONGAPI_PLUGIN="$<TARGET_FILE:mikserstudio-test-plugin-wrongapi>")
 add_dependencies(mikserstudio-core-tests
     mikserstudio-test-plugin-fixture mikserstudio-test-plugin-noentry mikserstudio-test-plugin-wrongapi)
-if(TARGET mikserstudio-plugin-hello)
-    target_sources(mikserstudio-core-tests PRIVATE HelloPluginTests.cpp)
-    target_compile_definitions(mikserstudio-core-tests PRIVATE
-        MIKSERSTUDIO_HELLO_PLUGIN_ROOT="$<TARGET_FILE_DIR:mikserstudio-plugin-hello>/..")
-    add_dependencies(mikserstudio-core-tests mikserstudio-plugin-hello)
-endif()
 mikserstudio_target_defaults(mikserstudio-core-tests)
 
 catch_discover_tests(mikserstudio-core-tests DISCOVERY_MODE PRE_TEST)

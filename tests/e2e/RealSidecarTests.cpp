@@ -1,6 +1,6 @@
-// Starts the real Python sidecar from ai/.venv, the way the app does. Skipped when that environment
-// is not set up (docs/development.md) or MIKSERSTUDIO_SKIP_REAL_SIDECAR is set; the upscale test
-// also needs ffmpeg on PATH.
+// Starts the real Python AI service from ai/.venv, the way the app does, through the services module.
+// Skipped when that environment is not set up (docs/development.md) or MIKSERSTUDIO_SKIP_REAL_SIDECAR
+// is set; the upscale test also needs ffmpeg on PATH.
 
 #include "ServicesTestSupport.h"
 #include "mikserstudio/core/CommandBus.h"

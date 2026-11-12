@@ -1,5 +1,5 @@
-# Services tests: the AI client against an in-process HTTP server, the sidecar manager and the AI
-# commands against a fake sidecar process, and (when ai/.venv is set up) the real Python sidecar.
+# Services tests: the AI client against an in-process HTTP server, and the sidecar manager and the AI
+# commands against a fake sidecar process. The real Python service is tested in tests/e2e.
 find_package(Qt6 6.8 REQUIRED COMPONENTS HttpServer Network)
 
 # Stands in for the Python sidecar: same command line, READY line and /v1 API, plus misbehaviors.
@@ -12,7 +12,6 @@ add_executable(mikserstudio-services-tests
     AiClientTests.cpp
     AiCommandsTests.cpp
     AiJsonTests.cpp
-    RealSidecarTests.cpp
     ServicesTestSupport.cpp
     ServicesTestSupport.h
     SidecarLaunchTests.cpp
@@ -23,8 +22,7 @@ target_link_libraries(mikserstudio-services-tests PRIVATE MikserStudio::services
 # The JSON and launch tests exercise private helpers of the services module.
 target_include_directories(mikserstudio-services-tests PRIVATE "${PROJECT_SOURCE_DIR}/src/services/src")
 target_compile_definitions(mikserstudio-services-tests PRIVATE
-    MIKSERSTUDIO_FAKE_SIDECAR="$<TARGET_FILE:mikserstudio-fake-sidecar>"
-    MIKSERSTUDIO_AI_PROJECT_DIR="${PROJECT_SOURCE_DIR}/ai")
+    MIKSERSTUDIO_FAKE_SIDECAR="$<TARGET_FILE:mikserstudio-fake-sidecar>")
 add_dependencies(mikserstudio-services-tests mikserstudio-fake-sidecar)
 mikserstudio_target_defaults(mikserstudio-services-tests)
 

@@ -113,7 +113,7 @@ Other environment overrides: `MIKSERSTUDIO_AI_DIR`,
 
 Demo programs, for working on one module without the others:
 
-- `mikser-studio-monitor-demo <file> [--self-test <s> <png>]`: the GPU monitor and MLT playback alone.
+- `mikser-studio-monitor-demo <file>`: the GPU monitor and MLT playback alone.
 - `mikser-studio-ui-demo [--screenshot <png>]`: the shell with fake media, transport and AI.
 
 ## Checks
@@ -179,7 +179,9 @@ TODO: `tools/licenses.py` fails until Mikser Studio has a license and its allow 
 
 `tests/e2e/` starts the built `mikser-studio.exe` headless, as the E2E instance with its settings and
 cache in a temporary folder, finds it through its discovery file, drives it through the local API,
-asks it to close, and checks that it shut down cleanly and removed the file. The tests carry the
+asks it to close, and checks that it shut down cleanly and removed the file. It also starts the real
+AI service from `ai/.venv` through the services module and upscales a clip with it; those tests skip
+when `ai/.venv` is not set up, and the upscale also needs `ffmpeg` on `PATH`. The tests carry the
 `e2e` label, which the `debug` and `ci` test presets leave out; the `e2e` preset runs them, on the
 `debug` build:
 
@@ -189,6 +191,19 @@ ctest --preset e2e
 ```
 
 The `E2E tests` workflow runs them for every push to `main` and `dev` and every pull request.
+
+## GPU test
+
+`tests/engine/gpu/` plays the sample video (`MIKSERSTUDIO_SAMPLE_VIDEO`) in a docked monitor on the
+machine's own GPU, floats and re-docks it, and checks the picture the monitor drew. The other engine
+tests draw with Qt's offscreen Null backend, so this is the one that needs a GPU and a desktop; no
+workflow runs it. It carries the `gpu` label, which the `debug` and `ci` test presets leave out; the
+`gpu` preset runs it:
+
+```sh
+cmake --build --preset debug
+ctest --preset gpu
+```
 
 ## The icon
 

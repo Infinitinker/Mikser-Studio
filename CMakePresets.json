@@ -44,13 +44,13 @@
       "name": "debug",
       "configurePreset": "debug",
       "output": { "outputOnFailure": true },
-      "filter": { "exclude": { "label": "e2e" } }
+      "filter": { "exclude": { "label": "e2e|gpu" } }
     },
     {
       "name": "ci",
       "configurePreset": "ci",
       "output": { "outputOnFailure": true },
-      "filter": { "exclude": { "label": "e2e" } }
+      "filter": { "exclude": { "label": "e2e|gpu" } }
     },
     {
       "name": "e2e",
@@ -58,6 +58,13 @@
       "configurePreset": "debug",
       "output": { "outputOnFailure": true },
       "filter": { "include": { "label": "e2e" } }
+    },
+    {
+      "name": "gpu",
+      "displayName": "GPU test",
+      "configurePreset": "debug",
+      "output": { "outputOnFailure": true },
+      "filter": { "include": { "label": "gpu" } }
     }
   ]
 }

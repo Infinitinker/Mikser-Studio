@@ -50,10 +50,29 @@ def test_a_private_header_is_found_in_the_module() -> None:
     ]
 
 
-def test_the_end_to_end_tests_include_no_module() -> None:
-    assert problems("tests/e2e/HeadlessTests.cpp", "#include <QProcess>\n") == []
-    assert problems("tests/e2e/HeadlessTests.cpp", '#include "mikserstudio/core/CommandBus.h"\n') == [
-        'tests/e2e/HeadlessTests.cpp:1: "mikserstudio/core/CommandBus.h" goes from e2e to core'
+def test_the_end_to_end_tests_include_only_the_modules_they_name() -> None:
+    tracked = ("tests/services/ServicesTestSupport.h", "tests/ui/TestCommands.h")
+    path = "tests/e2e/RealSidecarTests.cpp"
+    assert problems(path, "#include <QProcess>\n") == []
+    assert problems(path, '#include "mikserstudio/services/AiClient.h"\n') == []
+    assert problems(path, '#include "ServicesTestSupport.h"\n', tracked) == []
+    assert problems(path, '#include "mikserstudio/ui/Shell.h"\n') == [
+        f'{path}:1: "mikserstudio/ui/Shell.h" goes from e2e to ui'
+    ]
+    assert problems(path, '#include "TestCommands.h"\n', tracked) == [
+        f'{path}:1: "TestCommands.h" is not one of e2e\'s own headers'
+    ]
+
+
+def test_the_plugins_tests_include_the_core_but_the_plugins_only_the_abi() -> None:
+    tracked = ("tests/core/TestSupport.h",)
+    test = "tests/plugins/hello/HelloPluginTests.cpp"
+    assert problems(test, '#include "mikserstudio/core/PluginManager.h"\n') == []
+    assert problems(test, '#include "TestSupport.h"\n', tracked) == []
+    plugin = "plugins/hello/src/HelloPlugin.cpp"
+    assert problems(plugin, "#include <mikserstudio/plugin_api.h>\n") == []
+    assert problems(plugin, '#include "mikserstudio/core/PluginManager.h"\n') == [
+        f'{plugin}:1: "mikserstudio/core/PluginManager.h" goes from plugins to core'
     ]
 
 

@@ -31,7 +31,7 @@ separate Python processes. Why this stack was chosen is in `stack-recommendation
 | `src/app/` | `mikser-studio` | all | Wires the modules together; `mikser-studio --headless` runs without UI. |
 | `plugins/` | plugin libraries | sdk | Bundled example plugins. |
 | `ai/` | Python package `mikserstudio-ai` | — | AI sidecar service, run from its own virtual environment (`ai/.venv`). |
-| `tests/` | `*-tests` | Catch2 | Tests mirroring `src/`. |
+| `tests/` | `*-tests` | Catch2 | Tests mirroring `src/` and `plugins/`, and the end-to-end tests. |
 
 ## Import directions
 
@@ -50,8 +50,11 @@ on its own. `tools/check_includes.py` checks the C++ and the import-linter contr
   headers are included in quotes by name, and only by the module itself and its tests in
   `tests/<module>/`. The plugin ABI is included in angle brackets, `<mikserstudio/plugin_api.h>`, as
   a plugin built apart from Mikser Studio includes it.
-- `tests/e2e/` includes no module: the end-to-end tests run the app as a process. Every C++ file is
-  in a folder the check knows, so a new folder has to be added to it before its includes pass.
+- `tests/e2e/` includes only the core and the services: the end-to-end tests run the app as a
+  process, and the real AI service through the services module. `tests/plugins/` includes only the
+  core, whose PluginManager loads the bundled plugins as the app does. Both may use the support files
+  of those modules' tests. Every C++ file is in a folder the check knows, so a new folder has to be
+  added to it before its includes pass.
 - In `ai/`, the service (`service`, `server`, `jobs`, `registry` and the modules they use) never
   imports `backends/`: backends are found through the `mikserstudio_ai.backends` entry points.
   Backends use only the backend contract (`backend.py`) and the shared helpers (`processes.py`,

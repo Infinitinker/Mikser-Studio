@@ -8,7 +8,8 @@ in docs/architecture.md writes down:
 - any other header in quotes ("Logging.h") is the module's own: it is found next to the including
   file, in the module's src/ or in its public include folder. A module's tests may include the
   private headers of the module they test, and the tests' shared support files;
-- the tests in a folder of TEST_FOLDERS include only the modules it names;
+- the tests in a folder of TEST_FOLDERS include only the modules it names, and the shared support
+  files of those modules' tests;
 - every C++ file is in a folder the check knows: sdk/, plugins/, src/<module>/, tests/<module>/ or a
   folder of TEST_FOLDERS. A file anywhere else is a problem, so a new folder is never skipped.
 
@@ -39,10 +40,12 @@ ALLOWED = {
 """The modules each module may include from, besides itself. plugins/ holds the bundled plugins, which
 see only the plugin ABI."""
 TEST_FOLDERS: dict[str, set[str]] = {
-    "e2e": set(),
+    "e2e": {"core", "services"},
+    "plugins": {"core"},
 }
 """The folders of tests/ that test no single module, with the modules they may include. The end-to-end
-tests run the app as a process and include none."""
+tests run the app as a process, and the real AI service through the services module; the bundled
+plugins' tests load them through the core's PluginManager."""
 SOURCES = (".cpp", ".h", ".hpp")
 UNKNOWN_FOLDER = "is in a folder check_includes.py does not know: add it to MODULES or TEST_FOLDERS"
 INCLUDE = re.compile(r'^\s*#\s*include\s*([<"])([^>"]+)[>"]')
@@ -83,7 +86,9 @@ def own_folders(module: str, is_test: bool, path: PurePosixPath) -> list[PurePos
     """Where a quoted include of this file may be found."""
     if module == "sdk":
         return [path.parent, PurePosixPath("sdk/include")]
-    if module in ("plugins", *TEST_FOLDERS):
+    if is_test and module in TEST_FOLDERS:
+        return [path.parent, *(PurePosixPath(f"tests/{named}") for named in sorted(TEST_FOLDERS[module]))]
+    if module == "plugins":
         return [path.parent]
     folders = [path.parent, PurePosixPath(f"src/{module}/src"), PurePosixPath(f"src/{module}")]
     if is_test:
@@ -96,7 +101,7 @@ def check_file(path: PurePosixPath, text: str, tracked: set[PurePosixPath]) -> l
     if found is None:
         return [Problem(path, 0, "", UNKNOWN_FOLDER)]
     module, is_test = found
-    allowed = TEST_FOLDERS[module] if module in TEST_FOLDERS else ALLOWED[module] | {module}
+    allowed = TEST_FOLDERS[module] if is_test and module in TEST_FOLDERS else ALLOWED[module] | {module}
     problems = []
     for number, line in enumerate(text.splitlines(), start=1):
         match = INCLUDE.match(line)
