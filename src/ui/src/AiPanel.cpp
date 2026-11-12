@@ -68,10 +68,12 @@ AiPanel::AiPanel(core::CommandBus& bus, const core::ProjectModel& project, const
     auto* upscaleRow = new QHBoxLayout;
     upscaleRow->setSpacing(8);
     m_scale = new QComboBox(upscaleCard);
+    m_scale->setObjectName(u"scale"_s);
     for (const int factor : {2, 3, 4})
         m_scale->addItem(u"%1×"_s.arg(factor), factor);
     m_scale->setToolTip(u"Scale factor of the upscaled clip."_s);
     m_upscale = new QPushButton(u"Upscale"_s, upscaleCard);
+    m_upscale->setObjectName(u"upscale"_s);
     m_upscale->setProperty("role", u"primary"_s);
     upscaleRow->addWidget(m_scale);
     upscaleRow->addStretch();
@@ -101,6 +103,7 @@ AiPanel::AiPanel(core::CommandBus& bus, const core::ProjectModel& project, const
     layout->addWidget(textCard);
 
     m_error = makeLabel({}, u"error"_s, this);
+    m_error->setObjectName(u"error"_s);
     m_error->setWordWrap(true);
     m_error->hide();
     layout->addWidget(m_error);
@@ -132,11 +135,6 @@ AiPanel::AiPanel(core::CommandBus& bus, const core::ProjectModel& project, const
     m_poll->setInterval(kPollIntervalMs);
     connect(m_poll, &QTimer::timeout, this, &AiPanel::refreshJobs);
     updateAvailability();
-}
-
-QString AiPanel::errorText() const
-{
-    return m_error->isHidden() ? QString() : m_error->text();
 }
 
 void AiPanel::upscaleSelected()

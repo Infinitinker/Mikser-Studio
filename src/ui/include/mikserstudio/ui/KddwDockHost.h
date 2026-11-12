@@ -72,7 +72,6 @@ public:
     [[nodiscard]] QString workspaceDirectory() const { return m_workspaceDirectory; }
 
     std::expected<void, QString> setPanelFloating(const QString& id, bool floating) override;
-    [[nodiscard]] bool isPanelFloating(const QString& id) const;
     [[nodiscard]] QWidget* panelWindow(const QString& id) const override;
     // The content widget of the first instance (null when the panel was never opened).
     [[nodiscard]] QWidget* panelWidget(const QString& id) const;

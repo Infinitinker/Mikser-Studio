@@ -363,12 +363,6 @@ std::expected<void, QString> KddwDockHost::setPanelFloating(const QString& id, b
     return {};
 }
 
-bool KddwDockHost::isPanelFloating(const QString& id) const
-{
-    const auto docks = docksOf(id);
-    return std::ranges::any_of(docks, [](const Dock* dock) { return dock->isOpen() && dock->isFloating(); });
-}
-
 QWidget* KddwDockHost::panelWindow(const QString& id) const
 {
     for (Dock* dock : docksOf(id)) {

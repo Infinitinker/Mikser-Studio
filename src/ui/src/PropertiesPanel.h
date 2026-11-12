@@ -29,9 +29,6 @@ public:
     PropertiesPanel(core::CommandBus& bus, const core::ProjectModel& project, const ClipSelection& selection,
                     QWidget* parent = nullptr);
 
-    [[nodiscard]] QString shownClipId() const { return m_clipId; }
-    [[nodiscard]] QString errorText() const;
-
     void commitPosition();
     void commitIn();  // After the In field was edited.
     void commitOut();  // After the Out field was edited.

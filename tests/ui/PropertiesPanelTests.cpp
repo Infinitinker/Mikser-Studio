@@ -2,6 +2,7 @@
 #include "PropertiesPanel.h"
 #include "TimelineFixture.h"
 
+#include <QLabel>
 #include <QSpinBox>
 
 using namespace Qt::StringLiterals;
@@ -16,6 +17,14 @@ QSpinBox* editor(const PropertiesPanel& panel, const QString& name)
     auto* spinBox = panel.findChild<QSpinBox*>(name);
     REQUIRE(spinBox);
     return spinBox;
+}
+
+// The error the panel shows, or an empty string while it shows none.
+QString errorText(const PropertiesPanel& panel)
+{
+    const auto* label = panel.findChild<QLabel*>(u"error"_s);
+    REQUIRE(label);
+    return label->isHidden() ? QString() : label->text();
 }
 
 struct PanelFixture : TimelineFixture {
@@ -36,12 +45,14 @@ TEST_CASE("Properties: an In past the Out slides the trim window in one undo ste
     PanelFixture f;
     f.addClip(u"clip-a"_s, u"V1"_s, 0, 10, 50);
     f.selection.select(u"clip-a"_s);
-    REQUIRE(f.panel.shownClipId() == u"clip-a"_s);
+    // The panel shows the selected clip's trim.
+    REQUIRE(editor(f.panel, u"in"_s)->value() == 10);
+    REQUIRE(editor(f.panel, u"out"_s)->value() == 50);
 
     editor(f.panel, u"in"_s)->setValue(60);
     f.panel.commitIn();
     CHECK(f.trim() == std::pair<qint64, qint64>{60, 100});
-    CHECK(f.panel.errorText().isEmpty());
+    CHECK(errorText(f.panel).isEmpty());
     CHECK(editor(f.panel, u"in"_s)->value() == 60);
     CHECK(editor(f.panel, u"out"_s)->value() == 100);
 

@@ -37,10 +37,6 @@ public:
     AiPanel(core::CommandBus& bus, const core::ProjectModel& project, const ClipSelection& selection,
             QWidget* parent = nullptr);
 
-    [[nodiscard]] QString errorText() const;
-    [[nodiscard]] QPushButton* upscaleButton() const { return m_upscale; }
-    [[nodiscard]] QComboBox* scaleEditor() const { return m_scale; }
-
     void upscaleSelected();
     void generateText();
     void refreshJobs();  // One poll of "ai.jobs".

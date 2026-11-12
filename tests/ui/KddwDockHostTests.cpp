@@ -22,6 +22,13 @@ using mikserstudio::ui::PanelDescriptor;
 namespace {
 
 // Whether the panel shows the placeholder for a panel nobody registered.
+// Whether the panel is open in a window of its own, apart from the main window, as the user sees it.
+bool isFloating(const KddwDockHost& host, const QString& id)
+{
+    const QWidget* window = host.panelWindow(id);
+    return window != nullptr && window != host.mainWindow();
+}
+
 bool isPlaceholder(const KddwDockHost& host, const QString& id)
 {
     return qobject_cast<mikserstudio::ui::PlaceholderPanel*>(host.panelWidget(id)) != nullptr;
@@ -125,11 +132,11 @@ TEST_CASE("KddwDockHost floats panels", "[docking]")
     REQUIRE(f.host->openPanel(u"test/b"_s));
     REQUIRE(f.host->openPanel(u"test/float"_s));
     f.settle();
-    CHECK(f.host->isPanelFloating(u"test/float"_s));
+    CHECK(isFloating(*f.host, u"test/float"_s));
 
     REQUIRE(f.host->setPanelFloating(u"test/b"_s, true));
     f.settle();
-    CHECK(f.host->isPanelFloating(u"test/b"_s));
+    CHECK(isFloating(*f.host, u"test/b"_s));
     QWidget* window = f.host->panelWindow(u"test/b"_s);
     REQUIRE(window != nullptr);
     CHECK(window != f.host->mainWindow());
@@ -137,7 +144,7 @@ TEST_CASE("KddwDockHost floats panels", "[docking]")
 
     REQUIRE(f.host->setPanelFloating(u"test/b"_s, false));
     f.settle();
-    CHECK_FALSE(f.host->isPanelFloating(u"test/b"_s));
+    CHECK_FALSE(isFloating(*f.host, u"test/b"_s));
     CHECK_FALSE(f.host->setPanelFloating(u"test/never-opened"_s, true));
 }
 
@@ -168,7 +175,7 @@ TEST_CASE("KddwDockHost saves and restores layouts", "[docking]")
     CHECK(layoutChanges == 1);
     CHECK(f.host->isPanelOpen(u"test/a"_s));
     CHECK(f.host->isPanelOpen(u"test/b"_s));
-    CHECK(f.host->isPanelFloating(u"test/b"_s));
+    CHECK(isFloating(*f.host, u"test/b"_s));
     CHECK_FALSE(f.host->isPanelOpen(u"test/c"_s));
 
     const auto broken = f.host->restoreLayout("{not json");

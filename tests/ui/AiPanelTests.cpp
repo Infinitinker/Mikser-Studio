@@ -44,6 +44,23 @@ QPushButton* generateButton(const AiPanel& panel)
     return panel.findChild<QPushButton*>(u"generate"_s);
 }
 
+QPushButton* upscaleButton(const AiPanel& panel)
+{
+    return panel.findChild<QPushButton*>(u"upscale"_s);
+}
+
+QComboBox* scaleEditor(const AiPanel& panel)
+{
+    return panel.findChild<QComboBox*>(u"scale"_s);
+}
+
+// The error the panel shows, or an empty string while it shows none.
+QString errorText(const AiPanel& panel)
+{
+    const auto* label = panel.findChild<QLabel*>(u"error"_s);
+    return label->isHidden() ? QString() : label->text();
+}
+
 bool isPolling(const AiPanel& panel)
 {
     return panel.findChild<QTimer*>(u"jobPoll"_s)->isActive();
@@ -157,10 +174,10 @@ TEST_CASE("AiPanel is disabled while the AI commands are missing", "[ai-panel]")
     f.selection.select(u"clip-1"_s);
 
     CHECK_FALSE(isAvailable(panel));
-    CHECK_FALSE(panel.upscaleButton()->isEnabled());
+    CHECK_FALSE(upscaleButton(panel)->isEnabled());
     CHECK_FALSE(generateButton(panel)->isEnabled());
     CHECK_FALSE(promptEditor(panel)->isEnabled());
-    CHECK_FALSE(panel.scaleEditor()->isEnabled());
+    CHECK_FALSE(scaleEditor(panel)->isEnabled());
 
     // Showing the panel does not poll a service that is not there.
     panel.show();
@@ -179,11 +196,11 @@ TEST_CASE("AiPanel enables itself when the AI commands are registered and disabl
     f.ai.registerAll();
     CHECK(isAvailable(panel));
     CHECK(promptEditor(panel)->isEnabled());
-    CHECK_FALSE(panel.upscaleButton()->isEnabled());  // Nothing selected.
+    CHECK_FALSE(upscaleButton(panel)->isEnabled());  // Nothing selected.
     CHECK_FALSE(generateButton(panel)->isEnabled());  // No prompt.
 
     f.selection.select(u"clip-1"_s);
-    CHECK(panel.upscaleButton()->isEnabled());
+    CHECK(upscaleButton(panel)->isEnabled());
     promptEditor(panel)->setPlainText(u"Shot ideas"_s);
     CHECK(generateButton(panel)->isEnabled());
 
@@ -193,7 +210,7 @@ TEST_CASE("AiPanel enables itself when the AI commands are registered and disabl
     f.ai.unregisterAll();
     CHECK_FALSE(isAvailable(panel));
     CHECK_FALSE(isPolling(panel));
-    CHECK_FALSE(panel.upscaleButton()->isEnabled());
+    CHECK_FALSE(upscaleButton(panel)->isEnabled());
     CHECK_FALSE(generateButton(panel)->isEnabled());
     panel.hide();
 }
@@ -207,8 +224,8 @@ TEST_CASE("AiPanel sends upscale and text jobs and lists them", "[ai-panel]")
     CHECK(jobCount(panel) == 0);
 
     f.selection.select(u"clip-1"_s);
-    panel.scaleEditor()->setCurrentIndex(panel.scaleEditor()->findData(3));
-    panel.upscaleButton()->click();
+    scaleEditor(panel)->setCurrentIndex(scaleEditor(panel)->findData(3));
+    upscaleButton(panel)->click();
     REQUIRE(f.ai.calls.size() == 1);
     CHECK(f.ai.calls.at(0).first == u"ai.upscale_clip"_s);
     CHECK(f.ai.calls.at(0).second == QJsonObject{{u"clipId"_s, u"clip-1"_s}, {u"scale"_s, 3}});
@@ -220,7 +237,7 @@ TEST_CASE("AiPanel sends upscale and text jobs and lists them", "[ai-panel]")
     CHECK(f.ai.calls.at(1).second == QJsonObject{{u"prompt"_s, u"Shot ideas for the opening"_s}});
     CHECK(promptEditor(panel)->toPlainText().isEmpty());
     CHECK(jobCount(panel) == 2);
-    CHECK(panel.errorText().isEmpty());
+    CHECK(errorText(panel).isEmpty());
 
     // Jobs that disappear from ai.jobs leave the list.
     f.ai.jobs.removeFirst();
@@ -248,6 +265,6 @@ TEST_CASE("AiPanel shows a failed request inline", "[ai-panel]")
     AiPanel panel(f.bus, f.project, f.selection);
     promptEditor(panel)->setPlainText(u"Hello"_s);
     panel.generateText();
-    CHECK(panel.errorText() == u"No language model is installed."_s);
+    CHECK(errorText(panel) == u"No language model is installed."_s);
     CHECK(promptEditor(panel)->toPlainText() == u"Hello"_s);  // Kept for another try.
 }

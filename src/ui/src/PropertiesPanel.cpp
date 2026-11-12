@@ -116,6 +116,7 @@ PropertiesPanel::PropertiesPanel(core::CommandBus& bus, const core::ProjectModel
     form->addRow(u"Duration"_s, m_duration);
 
     m_error = makeLabel({}, u"error"_s, details);
+    m_error->setObjectName(u"error"_s);
     m_error->setWordWrap(true);
     m_error->hide();
     form->addRow(m_error);
@@ -137,11 +138,6 @@ PropertiesPanel::PropertiesPanel(core::CommandBus& bus, const core::ProjectModel
     });
     connect(&project, &core::ProjectModel::projectReset, this, &PropertiesPanel::refresh);
     refresh();
-}
-
-QString PropertiesPanel::errorText() const
-{
-    return m_error->isHidden() ? QString() : m_error->text();
 }
 
 void PropertiesPanel::commitPosition()
