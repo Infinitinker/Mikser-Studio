@@ -18,15 +18,34 @@ plugins alike, settings, whose form Mikser Studio draws from a JSON Schema, and 
 [docs/plugins.md](docs/plugins.md) explains the manifest, the C interface, settings and panels, and
 `plugins/hello/` is a complete example.
 
-1. Copy `plugins/hello/` to `plugins/<name>/`, add it to `plugins/CMakeLists.txt`, and give its
-   manifest an id of your own.
-2. Build Mikser Studio as [docs/development.md](docs/development.md) describes: the plugin is built
-   with it, into `bin/plugins/<name>/`, where Mikser Studio finds it.
-3. Start Mikser Studio and try the plugin's commands from the command palette. A plugin with a
-   mistake is listed as failed, with the reason, and never takes the app down.
-4. Share it: open a pull request that adds it to `plugins/`, or link it from a plugin request issue.
+The steps below make a plugin by copying the example. Its name is used in three places, so choose it
+first: lowercase letters, digits and underscores, after what the plugin does, like `word_count`. Below,
+`word_count` stands for your plugin's name and `yourname` for your GitHub name, also in lowercase letters,
+digits and underscores. You need a text editor; nothing else in Mikser Studio changes.
 
-Name the folder after what the plugin does, in lowercase with dashes, like `scene-detect`.
+1. **Copy the example.** Copy the folder `plugins/hello` to `plugins/word_count`. The folder's name is
+   the plugin's name: the build makes `word_count.dll` from it and puts it in
+   `bin/plugins/word_count/`, so there is nothing to change in any `CMakeLists.txt`.
+2. **Give it its own id.** In `plugins/word_count/mikserstudio-plugin.json`, change three lines:
+   - `"id": "mikserstudio.examples.hello"` to `"id": "yourname.word_count"`;
+   - `"name": "Hello"` to the name people see, such as `"name": "Word count"`, and the
+     `"description"` line below it to a sentence saying what the plugin does;
+   - `"entry": "hello"` to `"entry": "word_count"`, the folder's name.
+3. **Give its command the same id.** In `plugins/word_count/src/HelloPlugin.cpp`, near the top,
+   change `"id": "mikserstudio.examples.hello.greet"` to `"id": "yourname.word_count.greet"`: every
+   command's id starts with its plugin's id. Change its `"title"` and `"description"` too; the title is
+   what the command palette and the menus show. The panel, `hello.qml`, finds the command through the
+   plugin's id, so it needs no change.
+4. **Build and try it.** Build Mikser Studio as [docs/development.md](docs/development.md) describes,
+   then start it with `start.bat`. Open the command palette (Ctrl+K), type your command's title and
+   run it; the panel is in the Window menu. A plugin with a mistake, such as a wrong id, is listed in
+   the Plugins panel as failed, with the reason, and never takes the app down.
+5. **Make it yours.** Now change what the command does (the `greet` function in `HelloPlugin.cpp`),
+   its settings (`settingsSchema` in the manifest) and the panel. [docs/plugins.md](docs/plugins.md)
+   explains each of them; rename `HelloPlugin.cpp` and `hello.qml` if you like (the panel's file name
+   is `"qml"` in the manifest's `panels`).
+6. **Share it.** Open a pull request that adds `plugins/word_count` to Mikser Studio, or link it from
+   a plugin request issue.
 
 ## Code
 

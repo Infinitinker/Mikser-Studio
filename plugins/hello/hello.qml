@@ -15,7 +15,8 @@ Pane {
 
     function greet() {
         const params = nameField.text.trim().length > 0 ? { name: nameField.text.trim() } : {}
-        const reply = mikserstudio.execute("mikserstudio.examples.hello.greet", params)
+        // Under the plugin's own id, as the host requires: mikserstudio.examples.hello.greet here.
+        const reply = mikserstudio.execute(mikserstudio.pluginId + ".greet", params)
         root.lastCallFailed = !reply.ok
         resultLabel.text = reply.ok ? reply.result.message : reply.error.message
     }

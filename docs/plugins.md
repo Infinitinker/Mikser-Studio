@@ -118,15 +118,11 @@ access for free. See `plugins/hello/hello.qml`.
 
 ## Building
 
-```cmake
-add_library(my-plugin MODULE src/MyPlugin.cpp)
-target_link_libraries(my-plugin PRIVATE MikserStudio::sdk)
-set_target_properties(my-plugin PROPERTIES
-    OUTPUT_NAME my_plugin PREFIX "" CXX_VISIBILITY_PRESET hidden
-    LIBRARY_OUTPUT_DIRECTORY "${MIKSERSTUDIO_PLUGIN_OUTPUT_DIRECTORY}/my_plugin"
-    RUNTIME_OUTPUT_DIRECTORY "${MIKSERSTUDIO_PLUGIN_OUTPUT_DIRECTORY}/my_plugin")
-```
+A bundled plugin is a folder in `plugins/` with a `CMakeLists.txt`; `plugins/CMakeLists.txt` builds every
+such folder, so adding one changes nothing outside it. `plugins/hello/CMakeLists.txt` takes every name
+from the folder's name, so a copy of the folder builds as a plugin of its own: the library
+`<folder>.dll` (the manifest's `entry`), from every `.cpp` in `src/`, built into `bin/plugins/<folder>/`
+with the manifest and every `.qml` file next to it, and installed there. CONTRIBUTING.md walks through
+making a plugin from it.
 
-Then copy `mikserstudio-plugin.json` (and any QML) next to the library, as `plugins/hello/CMakeLists.txt`
-does with a `POST_BUILD` step. The plugin does not need Qt; the hello example has no dependencies
-beyond the C++ runtime.
+The plugin does not need Qt; the hello example has no dependencies beyond the C++ runtime.
