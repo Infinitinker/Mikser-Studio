@@ -65,11 +65,15 @@ class Ffmpeg:
             "-of", "json", str(path),
         )  # fmt: skip
         if completed.returncode != 0:
-            raise BackendError(f'"{path.name}" cannot be read as a video: {_last_line(completed.stderr)}')
+            logger.error("ffprobe could not read %s: %s", path, completed.stderr.strip())
+            raise BackendError(
+                f"“{path.name}” cannot be read as a video. Check that it plays in a media player; Mikser Studio’s "
+                "log has FFmpeg’s message."
+            )
         data = json.loads(completed.stdout or "{}")
         streams = data.get("streams") or []
         if not streams:
-            raise BackendError(f'"{path.name}" has no video stream.')
+            raise BackendError(f"“{path.name}” has no video in it. Choose a clip with a picture.")
         duration = data.get("format", {}).get("duration")
         return VideoInfo(
             width=int(streams[0]["width"]),
@@ -102,7 +106,13 @@ class Ffmpeg:
             await kill(process)
             raise
         if returncode != 0:
-            raise BackendError(f"ffmpeg failed (exit code {returncode}): {_last_line('\n'.join(stderr_tail))}")
+            # The detail is for the log, which the app keeps; the message says what to do.
+            logger.error("ffmpeg exited with code %d. Its last output:\n%s", returncode, "\n".join(stderr_tail))
+            raise BackendError(
+                "FFmpeg could not convert the video. Check that the "
+                "video plays in a media player and that the drive has free space, then try again; Mikser Studio’s "
+                "log has FFmpeg’s full output."
+            )
 
     def _require(self) -> str:
         executable = self.executable()
@@ -136,8 +146,3 @@ async def _collect_lines(stream: asyncio.StreamReader, tail: deque[str]) -> None
         line = raw.decode(errors="replace").rstrip()
         if line:
             tail.append(line)
-
-
-def _last_line(text: str) -> str:
-    lines = [line.strip() for line in text.splitlines() if line.strip()]
-    return lines[-1] if lines else "no error message"

@@ -170,7 +170,7 @@ async def test_models_that_cannot_generate_text_are_skipped(aiohttp_server: Aioh
     outcome = await backend.run("text.generate", {"prompt": "x"}, job_context(tmp_path, Recorder()))
     assert outcome.data["model"] == "chat:latest"
 
-    with pytest.raises(BackendError, match=r'"vision:latest" cannot generate text \(it offers: vision\)'):
+    with pytest.raises(BackendError, match=r"“vision:latest” cannot generate text \(it offers: vision\)"):
         await backend.run("text.generate", {"prompt": "x", "model": "vision"}, job_context(tmp_path, Recorder()))
     await backend.close()
 

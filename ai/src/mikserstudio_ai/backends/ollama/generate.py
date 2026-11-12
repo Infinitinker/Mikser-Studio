@@ -1,10 +1,13 @@
 """text.generate: one prompt, one answer, streamed from Ollama and saved as a text file."""
 
+import logging
 from collections.abc import Mapping
 from typing import Any
 
 from mikserstudio_ai.backend import BackendError, JobContext, Operation, Outcome, Output
 from mikserstudio_ai.backends.ollama.client import Model, OllamaClient, OllamaError
+
+logger = logging.getLogger(__name__)
 
 THINK_END = "</think>"
 
@@ -46,7 +49,11 @@ async def generate(client: OllamaClient, params: Mapping[str, Any], context: Job
             what = "Thinking" if chunk.thinking and not chunk.response else "Writing"
             context.report(0.0, f"{what} with {model.name} ({chunks} tokens)")
     except OllamaError as error:
-        raise BackendError(f"Ollama could not answer with {model.name}: {error}") from error
+        logger.error("Ollama failed while answering with %s: %s", model.name, error)
+        raise BackendError(
+            f"Ollama stopped answering with {model.name}. Check that Ollama is still running and that the "
+            "model works in Ollama itself, then try again; Mikser Studio’s log has Ollama’s message."
+        ) from error
 
     text = strip_reasoning("".join(answer))
     output = context.output_dir / "response.txt"
@@ -91,7 +98,7 @@ async def _can_generate(client: OllamaClient, model: Model) -> str | None:
     if capabilities is None or "completion" in capabilities:
         return None
     offers = ", ".join(capabilities) or "nothing"
-    return f'The Ollama model "{model.name}" cannot generate text (it offers: {offers}). Choose another model.'
+    return f"The Ollama model “{model.name}” cannot generate text (it offers: {offers}). Choose another model."
 
 
 def strip_reasoning(text: str) -> str:
