@@ -66,7 +66,6 @@ EXCEPTIONS: dict[str, str] = {
     "twolame": "LGPL-2.1-or-later (its COPYING).",
     "libplacebo": "LGPL-2.1-or-later (its LICENSE).",
     "pango": "LGPL-2.0-or-later: its COPYING is the GNU Library General Public License, version 2.",
-    "libtasn1": "The library is LGPL-2.1-or-later (its COPYING.LESSERv2); the GPL-3.0 covers its tools.",
     "flac": (
         "libFLAC is BSD-3-Clause (its COPYING.Xiph); MSYS2's LGPL, GPL and FDL are for its tools and manual, "
         "under the LGPL-2.1-or-later, the GPL-2.0-or-later and the GFDL."

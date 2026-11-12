@@ -12562,7 +12562,7 @@ The same text as libgcc/COPYING.RUNTIME under libgcc.
 
 The same text as lcms2/LICENSE-fast_float under lcms2.
 
-## libtasn1 (GPL3, LGPL)
+## libtasn1 (GPL-3.0-or-later AND LGPL-2.1-or-later)
 
 Source: https://www.gnu.org/software/libtasn1/
 
