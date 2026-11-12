@@ -6,9 +6,9 @@ namespace mikserstudio::engine {
 
 class MltRuntime;
 
-// core::MediaProbe on top of MLT. Accepts absolute local file paths and colour resources such as
+// core::MediaProbe on top of MLT. Accepts absolute local file paths and color resources such as
 // "color:#ff0000"; nothing else reaches MLT (see openProducer). Durations are expressed in the requested project frame rate; still images
-// (and colour producers) are reported as MediaKind::Image with MLT's default length.
+// (and color producers) are reported as MediaKind::Image with MLT's default length.
 // Main thread only.
 class MltMediaProbe final : public core::MediaProbe {
 public:

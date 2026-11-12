@@ -68,8 +68,8 @@ FakeAiService::FakeAiService(core::CommandBus& bus, const core::ProjectModel& pr
                 if (job.id != id)
                     continue;
                 if (job.state == u"queued" || job.state == u"running") {
-                    job.state = u"cancelled"_s;
-                    job.message = u"Cancelled"_s;
+                    job.state = u"canceled"_s;
+                    job.message = u"Canceled"_s;
                 }
                 return ok(QJsonObject{{u"jobId"_s, id}, {u"state"_s, job.state}});
             }

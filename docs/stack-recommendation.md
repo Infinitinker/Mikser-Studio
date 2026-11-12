@@ -13,7 +13,7 @@ All the multiplatform media apps you listed as references ship on this foundatio
 | Toolchain | C++20, CMake, vcpkg manifest with a pinned baseline. MSVC / Apple Clang / GCC 14+. clang-tidy and ASan/TSan/UBSan required in CI. Python side uses ruff, mypy and pytest (the ReflektorTTS conventions). |
 | UI | Qt 6.12. Qt Widgets for the shell, menus and property forms. QML for the timeline, node graph and AI panels (the same split Kdenlive uses). One set of design tokens shared by the QSS and QML themes. |
 | Docking | KDDockWidgets 2.5.x (GPL or commercial; Widgets and QML frontends; can save and restore individual windows). It sits behind a small `mikserstudio::ui::DockHost` interface. Qt Advanced Docking System 5.1.1 (LGPL-2.1, full Wayland support since 5.0) is the drop-in fallback. |
-| GPU views | QRhi. The **program and source monitors use a QRhi-backed QWindow inside `createWindowContainer`**, not QRhiWidget. QRhiWidget draws into an extra texture first, which costs performance. QRhiWidget and QML are kept for secondary panels. OpenColorIO 2.x handles colour, and scopes run as compute shaders on the full-resolution frame. |
+| GPU views | QRhi. The **program and source monitors use a QRhi-backed QWindow inside `createWindowContainer`**, not QRhiWidget. QRhiWidget draws into an extra texture first, which costs performance. QRhiWidget and QML are kept for secondary panels. OpenColorIO 2.x handles color, and scopes run as compute shaders on the full-resolution frame. |
 | Video engine | MLT 7.42 on FFmpeg 9, with hardware decoding (D3D11VA/D3D12VA, VideoToolbox, VAAPI/Vulkan). A custom MLT consumer feeds a lock-free ring buffer. OpenTimelineIO handles project interchange. The libplacebo module only covers scaling and tonemapping for now. A **GPU compositor sits behind an engine interface from day one** so MLT's CPU compositing can be replaced step by step. |
 | Audio engine | Our own C++ real-time graph. Device I/O through RtAudio 6 (WASAPI/ASIO, CoreAudio, PipeWire/JACK/ALSA). Hosts CLAP, VST3 SDK 3.8 (MIT) and LV2 via lilv. MIDI through libremidi. **The audio device clock is the master clock** for all playback. |
 | Core / API | `mikserstudio-core` is a C++ library with a command bus: every action is a typed, undoable command described in JSON Schema. That one registry feeds undo, the command palette, macros, shortcuts, the /v1 HTTP+WebSocket API on 127.0.0.1 (with a session token) and an MCP server. `mikserstudio --headless` runs the core with no UI. |
@@ -56,9 +56,9 @@ Possible later addition: WASM components (wasmtime) as a sandboxed tier for non-
 - **App:** GPL-3.0-or-later, matching ReflektorTTS. KDDockWidgets, QtHttpServer, GPL FFmpeg encoders, the ASIO SDK (now GPLv3) and borrowed Kdenlive/Shotcut code all point there anyway.
 - **SDK:** the C header, Protocol package and manifest schema under MIT/Apache-2.0.
 - **Plugin exception:** you can add one for your own code, but it cannot cover third-party GPL parts like KDDockWidgets. Closed-source plugins should therefore talk to Mikser Studio over /v1 or run as sidecars.
-- **Licence gating in CI:** REUSE/SPDX or ScanCode over the vcpkg and Python dependency trees, so no AGPL or GPL-only dependency slips in unnoticed.
+- **License gating in CI:** REUSE/SPDX or ScanCode over the vcpkg and Python dependency trees, so no AGPL or GPL-only dependency slips in unnoticed.
 - **FFmpeg build switch:** choose per channel between LGPL FFmpeg with OS/hardware encoders and a GPL build with x264/x265. Codec patents are a separate distribution question.
-- **Model weights:** show each model's licence in the model manager.
+- **Model weights:** show each model's license in the model manager.
 - **Permissive escape hatch if ever needed:** Qt ADS instead of KDDockWidgets, cpp-httplib instead of QtHttpServer, LGPL FFmpeg.
 
 ## Top risks and mitigations
@@ -70,7 +70,7 @@ Possible later addition: WASM components (wasmtime) as a sandboxed tier for non-
 | Zero-copy hardware decode into QRhi is hand-written per OS (D3D11 / IOSurface-Metal / DMA-BUF-Vulkan) | Create FFmpeg's hardware device on the same GPU device QRhi uses. Keep a CPU-upload fallback at all times. |
 | Two engines (MLT and the audio graph) staying in sync | Audio clock is the master as a hard rule. A/V drift tests in CI. |
 | Docking on Wayland and macOS: Wayland apps cannot place their own windows, and macOS Spaces have quirks | Accept approximate position restore on Wayland and offer XWayland as an opt-in. Test docking on every OS for every release. |
-| QRhi can change between Qt minor releases. Qt's 5-year LTS patches go to commercial licensees only | Track Qt minor releases twice a year, or budget for a commercial licence. |
+| QRhi can change between Qt minor releases. Qt's 5-year LTS patches go to commercial licensees only | Track Qt minor releases twice a year, or budget for a commercial license. |
 | AI packaging and VRAM contention | A virtual environment per sidecar, ComfyUI pinned to a tag, VRAM scheduler, custom nodes treated as untrusted code. |
 | Build complexity across three OSes | vcpkg binary cache from day one. Shotcut's build scripts as the reference recipe. |
 | Scope (an "everything studio") | Video, audio and AI form the core. 3D and documents start as sidecar bridges. |

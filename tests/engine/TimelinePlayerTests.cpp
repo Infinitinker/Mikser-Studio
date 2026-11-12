@@ -20,7 +20,7 @@ using mikserstudio::core::Rational;
 using mikserstudio::core::Transport;
 using mikserstudio::engine::AudioOutput;
 using mikserstudio::engine::TimelinePlayer;
-using mikserstudio::tests::centreColour;
+using mikserstudio::tests::centerColor;
 using mikserstudio::tests::closeTo;
 using mikserstudio::tests::RecordingSink;
 using mikserstudio::tests::waitForFrameAt;
@@ -31,17 +31,17 @@ namespace {
 constexpr int kWidth = 320;
 constexpr int kHeight = 180;
 
-// A small 25 fps project built from MLT colour producers, played silently.
+// A small 25 fps project built from MLT color producers, played silently.
 class TimelineFixture {
 public:
     TimelineFixture() { project.reset(Rational{25, 1}, kWidth, kHeight); }
 
-    QString addColour(const QString& colour)
+    QString addColor(const QString& color)
     {
         MediaItem item{
             .id = ProjectModel::newId(u"media"_s),
-            .path = u"color:"_s + colour,
-            .name = colour,
+            .path = u"color:"_s + color,
+            .name = color,
             .info = {.kind = MediaKind::Image, .durationFrames = 125, .width = 0, .height = 0,
                      .frameRate = Rational{25, 1}, .hasVideo = true, .hasAudio = false, .audioSampleRate = 0,
                      .audioChannels = 0},
@@ -81,23 +81,23 @@ public:
     std::shared_ptr<RecordingSink> sink = std::make_shared<RecordingSink>();
 };
 
-QColor colourAt(const RecordingSink& sink, FramePos position)
+QColor colorAt(const RecordingSink& sink, FramePos position)
 {
     const auto frame = waitForFrameAt(sink, position);
     if (!frame)
         FAIL("No frame was shown at position " << position);
     CHECK(frame->image.size() == QSize(kWidth, kHeight));
     CHECK(frame->image.format() == QImage::Format_RGBA8888);
-    return centreColour(frame->image);
+    return centerColor(frame->image);
 }
 
-// Waits until the newest frame shown at `position` has `colour`. Frames rendered before a change
+// Waits until the newest frame shown at `position` has `color`. Frames rendered before a change
 // can still arrive just after it, so the first frame seen at a position proves nothing.
-bool showsColourAt(const RecordingSink& sink, FramePos position, const QColor& colour)
+bool showsColorAt(const RecordingSink& sink, FramePos position, const QColor& color)
 {
     return waitUntil([&] {
         const auto frame = sink.lastAt(position);
-        return frame && closeTo(centreColour(frame->image), colour);
+        return frame && closeTo(centerColor(frame->image), color);
     });
 }
 
@@ -111,11 +111,11 @@ std::vector<FramePos> values(const QSignalSpy& positions)
 
 }  // namespace
 
-TEST_CASE("TimelinePlayer builds from colour clips and reports the timeline duration", "[timeline]")
+TEST_CASE("TimelinePlayer builds from color clips and reports the timeline duration", "[timeline]")
 {
     TimelineFixture fixture;
-    const QString red = fixture.addColour(u"#ff0000"_s);
-    const QString blue = fixture.addColour(u"#0000ff"_s);
+    const QString red = fixture.addColor(u"#ff0000"_s);
+    const QString blue = fixture.addColor(u"#0000ff"_s);
     fixture.addClip(u"V1"_s, red, 0, 50);
     fixture.addClip(u"V1"_s, blue, 50, 25);
 
@@ -125,14 +125,14 @@ TEST_CASE("TimelinePlayer builds from colour clips and reports the timeline dura
     CHECK(player->state() == Transport::State::Paused);
     CHECK(player->position() == 0);
     CHECK(player->audioOutputName() == u"silent"_s);
-    CHECK(closeTo(colourAt(*fixture.sink, 0), QColor(255, 0, 0)));
+    CHECK(closeTo(colorAt(*fixture.sink, 0), QColor(255, 0, 0)));
 }
 
 TEST_CASE("Seeking a paused timeline shows the frame at the new position", "[timeline]")
 {
     TimelineFixture fixture;
-    const QString red = fixture.addColour(u"#ff0000"_s);
-    const QString blue = fixture.addColour(u"#0000ff"_s);
+    const QString red = fixture.addColor(u"#ff0000"_s);
+    const QString blue = fixture.addColor(u"#0000ff"_s);
     fixture.addClip(u"V1"_s, red, 0, 50);
     fixture.addClip(u"V1"_s, blue, 50, 25);
     auto player = fixture.makePlayer();
@@ -142,22 +142,22 @@ TEST_CASE("Seeking a paused timeline shows the frame at the new position", "[tim
     player->seek(60);
     CHECK(player->position() == 60);
     CHECK(positions.count() == 1);
-    CHECK(closeTo(colourAt(*fixture.sink, 60), QColor(0, 0, 255)));
+    CHECK(closeTo(colorAt(*fixture.sink, 60), QColor(0, 0, 255)));
 
     player->seek(10);
-    CHECK(closeTo(colourAt(*fixture.sink, 10), QColor(255, 0, 0)));
+    CHECK(closeTo(colorAt(*fixture.sink, 10), QColor(255, 0, 0)));
 
     player->seek(500);  // Clamped to the last frame.
     CHECK(player->position() == 74);
-    CHECK(closeTo(colourAt(*fixture.sink, 74), QColor(0, 0, 255)));
+    CHECK(closeTo(colorAt(*fixture.sink, 74), QColor(0, 0, 255)));
     CHECK(player->state() == Transport::State::Paused);
 }
 
 TEST_CASE("Upper video tracks are composited over lower ones; gaps are black", "[timeline]")
 {
     TimelineFixture fixture;
-    const QString red = fixture.addColour(u"#ff0000"_s);
-    const QString green = fixture.addColour(u"#00ff00"_s);
+    const QString red = fixture.addColor(u"#ff0000"_s);
+    const QString green = fixture.addColor(u"#00ff00"_s);
     fixture.addClip(u"V1"_s, red, 0, 40);
     fixture.addClip(u"V2"_s, green, 20, 10);
     fixture.addClip(u"V1"_s, red, 50, 10);
@@ -165,11 +165,11 @@ TEST_CASE("Upper video tracks are composited over lower ones; gaps are black", "
     CHECK(player->duration() == 60);
 
     player->seek(25);
-    CHECK(closeTo(colourAt(*fixture.sink, 25), QColor(0, 255, 0)));
+    CHECK(closeTo(colorAt(*fixture.sink, 25), QColor(0, 255, 0)));
     player->seek(35);
-    CHECK(closeTo(colourAt(*fixture.sink, 35), QColor(255, 0, 0)));
+    CHECK(closeTo(colorAt(*fixture.sink, 35), QColor(255, 0, 0)));
     player->seek(45);
-    CHECK(closeTo(colourAt(*fixture.sink, 45), QColor(0, 0, 0)));
+    CHECK(closeTo(colorAt(*fixture.sink, 45), QColor(0, 0, 0)));
 
     SECTION("a hidden upper track shows the track below")
     {
@@ -177,21 +177,21 @@ TEST_CASE("Upper video tracks are composited over lower ones; gaps are black", "
         fixture.setTrackHidden(u"V2"_s, true);
         REQUIRE(waitUntil([&] { return rebuilt.count() > 0; }));
         player->seek(25);
-        CHECK(showsColourAt(*fixture.sink, 25, QColor(255, 0, 0)));
+        CHECK(showsColorAt(*fixture.sink, 25, QColor(255, 0, 0)));
     }
 }
 
 TEST_CASE("Rebuilding after a model change keeps the position and play state", "[timeline]")
 {
     TimelineFixture fixture;
-    const QString red = fixture.addColour(u"#ff0000"_s);
-    const QString green = fixture.addColour(u"#00ff00"_s);
+    const QString red = fixture.addColor(u"#ff0000"_s);
+    const QString green = fixture.addColor(u"#00ff00"_s);
     fixture.addClip(u"V1"_s, red, 0, 250);  // Long enough never to reach the end, even under load.
     auto player = fixture.makePlayer();
     QSignalSpy rebuilt(player.get(), &TimelinePlayer::rebuilt);
 
     player->seek(40);
-    REQUIRE(closeTo(colourAt(*fixture.sink, 40), QColor(255, 0, 0)));
+    REQUIRE(closeTo(colorAt(*fixture.sink, 40), QColor(255, 0, 0)));
 
     SECTION("paused")
     {
@@ -202,7 +202,7 @@ TEST_CASE("Rebuilding after a model change keeps the position and play state", "
         CHECK(player->duration() == 270);
         CHECK(player->position() == 40);
         CHECK(player->state() == Transport::State::Paused);
-        CHECK(showsColourAt(*fixture.sink, 40, QColor(0, 255, 0)));
+        CHECK(showsColorAt(*fixture.sink, 40, QColor(0, 255, 0)));
     }
 
     SECTION("playing")
@@ -227,7 +227,7 @@ TEST_CASE("Rebuilding after a model change keeps the position and play state", "
 TEST_CASE("Many rebuilds while playing keep playback going", "[timeline]")
 {
     TimelineFixture fixture;
-    fixture.addClip(u"V1"_s, fixture.addColour(u"#ff0000"_s), 0, 1000);
+    fixture.addClip(u"V1"_s, fixture.addColor(u"#ff0000"_s), 0, 1000);
     auto player = fixture.makePlayer();
     player->play();
     REQUIRE(waitUntil([&] { return player->position() > 5; }));
@@ -247,7 +247,7 @@ TEST_CASE("Many rebuilds while playing keep playback going", "[timeline]")
 TEST_CASE("Seeking while playing never reports frames from before the seek", "[timeline]")
 {
     TimelineFixture fixture;
-    fixture.addClip(u"V1"_s, fixture.addColour(u"#ff0000"_s), 0, 1000);
+    fixture.addClip(u"V1"_s, fixture.addColor(u"#ff0000"_s), 0, 1000);
     auto player = fixture.makePlayer();
     player->play();
 
@@ -272,7 +272,7 @@ TEST_CASE("Seeking while playing never reports frames from before the seek", "[t
 TEST_CASE("Playing a clip again after it ended starts over", "[timeline]")
 {
     TimelineFixture fixture;
-    fixture.addClip(u"V1"_s, fixture.addColour(u"#ffffff"_s), 0, 10);
+    fixture.addClip(u"V1"_s, fixture.addColor(u"#ffffff"_s), 0, 10);
     auto player = fixture.makePlayer();
 
     for (int round = 0; round < 3; ++round) {
@@ -325,13 +325,13 @@ TEST_CASE("Project media naming an MLT service plays as a gap", "[timeline]")
     REQUIRE(errors.count() == 1);
     CHECK(errors.first().first().toString().contains(u"not a file on this computer"_s));
     player->seek(10);
-    CHECK(closeTo(colourAt(*fixture.sink, 10), QColor(0, 0, 0)));
+    CHECK(closeTo(colorAt(*fixture.sink, 10), QColor(0, 0, 0)));
 }
 
 TEST_CASE("Playback runs in real time and pauses on the last frame", "[timeline]")
 {
     TimelineFixture fixture;
-    fixture.addClip(u"V1"_s, fixture.addColour(u"#ffffff"_s), 0, 20);
+    fixture.addClip(u"V1"_s, fixture.addColor(u"#ffffff"_s), 0, 20);
     auto player = fixture.makePlayer();
 
     QSignalSpy states(player.get(), &Transport::stateChanged);
@@ -357,7 +357,7 @@ TEST_CASE("An empty timeline shows black and cannot play", "[timeline]")
     auto player = fixture.makePlayer();
     CHECK(player->duration() == 0);
     CHECK(player->state() == Transport::State::Paused);
-    CHECK(closeTo(colourAt(*fixture.sink, 0), QColor(0, 0, 0)));
+    CHECK(closeTo(colorAt(*fixture.sink, 0), QColor(0, 0, 0)));
     player->play();
     CHECK(player->state() == Transport::State::Paused);
 }
@@ -376,7 +376,7 @@ TEST_CASE("Media that cannot be opened plays as a gap and is reported", "[timeli
     };
     REQUIRE(fixture.project.addMedia(missing).has_value());
     fixture.addClip(u"V1"_s, missing.id, 0, 30);
-    fixture.addClip(u"V1"_s, fixture.addColour(u"#ff0000"_s), 30, 10);
+    fixture.addClip(u"V1"_s, fixture.addColor(u"#ff0000"_s), 30, 10);
 
     auto player = std::make_unique<TimelinePlayer>(mikserstudio::tests::mltRuntime(), fixture.project, AudioOutput::Silent);
     player->setFrameSink(fixture.sink);
@@ -386,9 +386,9 @@ TEST_CASE("Media that cannot be opened plays as a gap and is reported", "[timeli
     CHECK(errors.first().first().toString().contains(u"does not exist"_s));
     CHECK(player->duration() == 40);
     player->seek(10);
-    CHECK(closeTo(colourAt(*fixture.sink, 10), QColor(0, 0, 0)));
+    CHECK(closeTo(colorAt(*fixture.sink, 10), QColor(0, 0, 0)));
     player->seek(35);
-    CHECK(closeTo(colourAt(*fixture.sink, 35), QColor(255, 0, 0)));
+    CHECK(closeTo(colorAt(*fixture.sink, 35), QColor(255, 0, 0)));
 }
 
 TEST_CASE("The sample video plays on the timeline", "[timeline][sample]")
@@ -422,7 +422,7 @@ TEST_CASE("The sample video plays on the timeline", "[timeline][sample]")
     const auto frame = waitForFrameAt(*fixture.sink, 60, 30s);
     REQUIRE(frame.has_value());
     CHECK(frame->image.size() == QSize(kWidth, kHeight));
-    CHECK_FALSE(closeTo(centreColour(frame->image), QColor(0, 0, 0), 8));
+    CHECK_FALSE(closeTo(centerColor(frame->image), QColor(0, 0, 0), 8));
 
     player->play();
     CHECK(waitUntil([&] { return player->position() > 70; }, 30s));

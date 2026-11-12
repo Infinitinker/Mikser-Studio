@@ -2,7 +2,7 @@
 # commands against a fake sidecar process, and (when ai/.venv is set up) the real Python sidecar.
 find_package(Qt6 6.8 REQUIRED COMPONENTS HttpServer Network)
 
-# Stands in for the Python sidecar: same command line, READY line and /v1 API, plus misbehaviours.
+# Stands in for the Python sidecar: same command line, READY line and /v1 API, plus misbehaviors.
 add_executable(mikserstudio-fake-sidecar fake/FakeSidecar.cpp)
 target_link_libraries(mikserstudio-fake-sidecar PRIVATE Qt6::Core Qt6::HttpServer Qt6::Network)
 set_target_properties(mikserstudio-fake-sidecar PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/fake")

@@ -66,7 +66,7 @@ QString SelfTest::checkImage(const QImage& image) const
             colors.insert(image.pixel(x * image.width() / kSampleGrid, y * image.height() / kSampleGrid));
     }
     if (colors.size() < kMinDistinctColors)
-        return u"the read-back image is nearly uniform (%1 distinct colours in %2 samples), so no video frame is shown"_s
+        return u"the read-back image is nearly uniform (%1 distinct colors in %2 samples), so no video frame is shown"_s
             .arg(colors.size())
             .arg(kSampleGrid * kSampleGrid);
     return {};

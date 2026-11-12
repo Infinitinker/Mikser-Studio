@@ -89,9 +89,9 @@ QString overlapProblem(const Clip& other)
 
 bool isAllowedMediaPath(const QString& path)
 {
-    static const QRegularExpression colour(
+    static const QRegularExpression color(
         uR"(^color:(#[0-9A-Fa-f]{6}|#[0-9A-Fa-f]{8}|0x[0-9A-Fa-f]{8}|[A-Za-z]+)$)"_s);
-    if (colour.match(path).hasMatch())
+    if (color.match(path).hasMatch())
         return true;
     const QString normalized = QDir::fromNativeSeparators(path);
     return !normalized.startsWith(u"//"_s) && QDir::isAbsolutePath(normalized);

@@ -33,7 +33,7 @@ QVariantMap PluginPanelBridge::execute(const QString& commandId, const QVariantM
     if (!run) {
         return {
             {u"ok"_s, false},
-            {u"error"_s, QVariantMap{{u"code"_s, u"cancelled"_s}, {u"message"_s, u"You cancelled the command."_s}}},
+            {u"error"_s, QVariantMap{{u"code"_s, u"canceled"_s}, {u"message"_s, u"You canceled the command."_s}}},
         };
     }
     const auto& result = *run;

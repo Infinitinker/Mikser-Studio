@@ -19,7 +19,7 @@ TEST_CASE("The silent pacer spaces frames one frame period apart", "[pacer]")
     CHECK(elapsed < std::chrono::milliseconds(600));
 }
 
-TEST_CASE("The silent pacer waits for a refresh while paused and can be cancelled", "[pacer]")
+TEST_CASE("The silent pacer waits for a refresh while paused and can be canceled", "[pacer]")
 {
     SilentPacer pacer(Rational{25, 1});
 
@@ -32,12 +32,12 @@ TEST_CASE("The silent pacer waits for a refresh while paused and can be cancelle
     CHECK(Clock::now() - start >= std::chrono::milliseconds(40));
     refresher.join();
 
-    std::thread canceller([&pacer] {
+    std::thread canceler([&pacer] {
         std::this_thread::sleep_for(std::chrono::milliseconds(20));
         pacer.cancel();
     });
     CHECK_FALSE(pacer.waitForRefresh());
-    canceller.join();
+    canceler.join();
     CHECK_FALSE(pacer.waitUntilDue(1.0));
 
     pacer.reset();

@@ -77,14 +77,14 @@ std::expected<QString, QString> localFileResource(const QString& path)
 
 }  // namespace
 
-bool isColourResource(const QString& path)
+bool isColorResource(const QString& path)
 {
     return path.startsWith(u"color:"_s) && core::isAllowedMediaPath(path);
 }
 
 std::expected<std::unique_ptr<Mlt::Producer>, QString> openProducer(Mlt::Profile& profile, const QString& path)
 {
-    const auto resource = isColourResource(path) ? std::expected<QString, QString>(path) : localFileResource(path);
+    const auto resource = isColorResource(path) ? std::expected<QString, QString>(path) : localFileResource(path);
     if (!resource)
         return std::unexpected(resource.error());
 

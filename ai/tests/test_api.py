@@ -89,7 +89,7 @@ async def test_job_runs_to_success_with_outputs_and_provenance(client: Client) -
     assert job["op"] == "test.echo"
     assert job["backend"] == "fake"
     assert job["error"] is None
-    assert job["params"] == {"text": "hi", "times": 2, "behaviour": "succeed"}
+    assert job["params"] == {"text": "hi", "times": 2, "behavior": "succeed"}
     result = job["result"]
     assert result["text"] == "hi"
     [output] = result["outputs"]
@@ -111,7 +111,7 @@ async def test_jobs_lists_every_job(client: Client) -> None:
     assert [job["id"] for job in await response.json()] == [first, second]
 
 
-async def test_running_job_reports_progress_and_can_be_cancelled(client: Client, backend: FakeBackend) -> None:
+async def test_running_job_reports_progress_and_can_be_canceled(client: Client, backend: FakeBackend) -> None:
     backend.gate = asyncio.Event()
     job_id = await submit(client, {"op": "test.echo", "params": {"text": "slow"}})
     await asyncio.wait_for(backend.started.wait(), 5)
@@ -122,8 +122,8 @@ async def test_running_job_reports_progress_and_can_be_cancelled(client: Client,
 
     response = await client.delete(f"/v1/jobs/{job_id}", headers=AUTH)
     assert response.status == 200
-    assert (await response.json())["state"] == "cancelled"
-    assert backend.cancelled == 1
+    assert (await response.json())["state"] == "canceled"
+    assert backend.canceled == 1
 
     again = await client.delete(f"/v1/jobs/{job_id}", headers=AUTH)
     assert again.status == 409
@@ -131,7 +131,7 @@ async def test_running_job_reports_progress_and_can_be_cancelled(client: Client,
 
 
 async def test_failed_job_carries_the_backend_message(client: Client) -> None:
-    job_id = await submit(client, {"op": "test.echo", "params": {"text": "x", "behaviour": "fail"}})
+    job_id = await submit(client, {"op": "test.echo", "params": {"text": "x", "behavior": "fail"}})
     job = await finished_job(client, job_id)
     assert job["state"] == "failed"
     assert job["error"] == "The fake backend was told to fail."
@@ -146,7 +146,7 @@ async def test_failed_job_carries_the_backend_message(client: Client) -> None:
         ({"op": "no.such_op"}, 404, "unknown_op"),
         ({"op": "test.echo", "backend": "other", "params": {"text": "x"}}, 404, "unknown_op"),
         ({"op": "test.echo", "params": {"text": ""}}, 400, "invalid_params"),
-        ({"op": "test.echo", "params": {"text": "x", "colour": "red"}}, 400, "invalid_params"),
+        ({"op": "test.echo", "params": {"text": "x", "color": "red"}}, 400, "invalid_params"),
     ],
 )
 async def test_bad_job_requests_are_refused(client: Client, body: dict[str, Any], status: int, code: str) -> None:

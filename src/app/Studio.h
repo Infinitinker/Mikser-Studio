@@ -45,7 +45,7 @@ public:
     [[nodiscard]] core::PluginManager& plugins() { return m_plugins; }
     [[nodiscard]] services::SidecarManager& sidecar() { return m_sidecar; }
 
-    // Null when MLT could not be initialised; engineError() then says why.
+    // Null when MLT could not be initialized; engineError() then says why.
     [[nodiscard]] engine::ClipPlayer* sourcePlayer() const { return m_source.get(); }
     [[nodiscard]] engine::TimelinePlayer* programPlayer() const { return m_program.get(); }
     [[nodiscard]] QString engineError() const { return m_engineError; }

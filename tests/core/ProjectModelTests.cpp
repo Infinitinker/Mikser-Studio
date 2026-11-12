@@ -405,7 +405,7 @@ TEST_CASE("Loading rejects frame and size values outside the supported range", "
     CHECK(project.toJson() == before);
 }
 
-TEST_CASE("Loading accepts only local media paths and colour resources", "[project]")
+TEST_CASE("Loading accepts only local media paths and color resources", "[project]")
 {
     ProjectModel source;
     REQUIRE(source.addMedia(imageItem(u"m1"_s)));
@@ -446,7 +446,7 @@ TEST_CASE("Loading accepts only local media paths and colour resources", "[proje
     }
 }
 
-TEST_CASE("isAllowedMediaPath accepts local files and colours only", "[project]")
+TEST_CASE("isAllowedMediaPath accepts local files and colors only", "[project]")
 {
     CHECK(isAllowedMediaPath(mediaPath(u"a.mp4"_s)));
     CHECK(isAllowedMediaPath(QDir::toNativeSeparators(mediaPath(u"a.mp4"_s))));

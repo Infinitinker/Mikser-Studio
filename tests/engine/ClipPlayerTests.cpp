@@ -13,26 +13,26 @@ using mikserstudio::core::Rational;
 using mikserstudio::core::Transport;
 using mikserstudio::engine::AudioOutput;
 using mikserstudio::engine::ClipPlayer;
-using mikserstudio::tests::centreColour;
+using mikserstudio::tests::centerColor;
 using mikserstudio::tests::RecordingSink;
 using mikserstudio::tests::waitForFrameAt;
 using mikserstudio::tests::waitUntil;
 
 namespace {
 
-qsizetype distinctColours(const QImage& image)
+qsizetype distinctColors(const QImage& image)
 {
-    QSet<QRgb> colours;
+    QSet<QRgb> colors;
     for (int y = 0; y < image.height(); y += image.height() / 16) {
         for (int x = 0; x < image.width(); x += image.width() / 16)
-            colours.insert(image.pixel(x, y));
+            colors.insert(image.pixel(x, y));
     }
-    return colours.size();
+    return colors.size();
 }
 
 }  // namespace
 
-TEST_CASE("ClipPlayer opens an MLT colour resource paused on its first frame", "[clip]")
+TEST_CASE("ClipPlayer opens an MLT color resource paused on its first frame", "[clip]")
 {
     ClipPlayer player(mikserstudio::tests::mltRuntime(), AudioOutput::Silent);
     auto sink = std::make_shared<RecordingSink>();
@@ -47,7 +47,7 @@ TEST_CASE("ClipPlayer opens an MLT colour resource paused on its first frame", "
     const auto frame = waitForFrameAt(*sink, 0);
     REQUIRE(frame.has_value());
     CHECK(frame->image.size() == QSize(ClipPlayer::kFallbackWidth, ClipPlayer::kFallbackHeight));
-    CHECK(centreColour(frame->image) == QColor(0, 255, 0));
+    CHECK(centerColor(frame->image) == QColor(0, 255, 0));
 
     player.close();
     CHECK(player.state() == Transport::State::Stopped);
@@ -72,7 +72,7 @@ TEST_CASE("ClipPlayer gives stills a finite length", "[clip]")
     const auto frame = waitForFrameAt(*sink, 14999);
     REQUIRE(frame.has_value());
     // avformat decodes the picture through YUV, so allow a little rounding.
-    CHECK(mikserstudio::tests::closeTo(centreColour(frame->image), QColor(255, 255, 0), 12));
+    CHECK(mikserstudio::tests::closeTo(centerColor(frame->image), QColor(255, 255, 0), 12));
 }
 
 TEST_CASE("ClipPlayer keeps the current file when another cannot be opened", "[clip]")
@@ -109,7 +109,7 @@ TEST_CASE("ClipPlayer scrubs, plays and shuttles the sample video", "[clip][samp
     const auto frame = waitForFrameAt(*sink, 450, 30s);
     REQUIRE(frame.has_value());
     CHECK(frame->image.size() == QSize(1920, 1080));
-    CHECK(distinctColours(frame->image) > 16);
+    CHECK(distinctColors(frame->image) > 16);
 
     player.play();
     REQUIRE(waitUntil([&] { return player.position() > 460; }, 30s));

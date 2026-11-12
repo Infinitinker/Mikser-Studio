@@ -39,7 +39,7 @@ void writeWav(const QString& path, int sampleRate, int channels, int seconds)
 
 }  // namespace
 
-TEST_CASE("Probing an MLT colour resource gives a still image", "[probe]")
+TEST_CASE("Probing an MLT color resource gives a still image", "[probe]")
 {
     MltMediaProbe probe(mikserstudio::tests::mltRuntime());
     const auto info = probe.probe(u"color:#ff0000"_s, Rational{25, 1});

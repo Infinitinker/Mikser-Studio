@@ -76,19 +76,19 @@ std::expected<AiJobState, core::CommandError> AiJobTracker::cancel(const QString
                                     u"The AI job \"%1\" has already finished."_s.arg(job->title));
     }
     if (job->remoteId.isEmpty()) {
-        // Not in the sidecar yet; a submission still on its way is cancelled when it arrives.
-        finish(*job, AiJobState::Cancelled, u"Cancelled"_s);
+        // Not in the sidecar yet; a submission still on its way is canceled when it arrives.
+        finish(*job, AiJobState::Canceled, u"Canceled"_s);
         Q_EMIT jobsChanged();
         return job->state;
     }
 
-    job->message = u"Cancelling"_s;
+    job->message = u"Canceling"_s;
     m_client.cancelJob(job->remoteId, this, [this, jobId, generation = m_generation](std::expected<AiJobInfo, QString> answer) {
-        Job* cancelled = find(jobId);
-        if (!cancelled || generation != m_generation || isFinished(cancelled->state))
+        Job* canceled = find(jobId);
+        if (!canceled || generation != m_generation || isFinished(canceled->state))
             return;
         if (answer)
-            apply(*cancelled, *answer);
+            apply(*canceled, *answer);
         else
             qCWarning(lcAi).noquote() << "Could not cancel" << jobId << "-" << answer.error();
         Q_EMIT jobsChanged();
@@ -197,7 +197,7 @@ void AiJobTracker::sendToSidecar(Job& job)
             return;
         }
         sent->remoteId = *answer;
-        if (sent->state == AiJobState::Cancelled) {
+        if (sent->state == AiJobState::Canceled) {
             m_client.cancelJob(sent->remoteId, this, [](std::expected<AiJobInfo, QString>) {});
             return;
         }
@@ -252,8 +252,8 @@ void AiJobTracker::apply(Job& job, const AiJobInfo& remote)
     case AiJobState::Failed:
         finish(job, AiJobState::Failed, u"Failed"_s, remote.error);
         return;
-    case AiJobState::Cancelled:
-        finish(job, AiJobState::Cancelled, u"Cancelled"_s);
+    case AiJobState::Canceled:
+        finish(job, AiJobState::Canceled, u"Canceled"_s);
         return;
     case AiJobState::Succeeded:
         break;

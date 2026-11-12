@@ -75,11 +75,11 @@ TEST_CASE("Jobs are parsed with outputs, provenance and a clamped progress", "[s
 TEST_CASE("Job states round-trip through their names", "[services][json]")
 {
     for (AiJobState state : {AiJobState::Queued, AiJobState::Running, AiJobState::Succeeded, AiJobState::Failed,
-                             AiJobState::Cancelled}) {
+                             AiJobState::Canceled}) {
         CHECK(aiJobStateFromString(toString(state)) == state);
     }
     CHECK_FALSE(aiJobStateFromString(u"paused"));
-    CHECK(isFinished(AiJobState::Cancelled));
+    CHECK(isFinished(AiJobState::Canceled));
     CHECK_FALSE(isFinished(AiJobState::Running));
     CHECK(parseJob(parse(R"({"id": "j", "state": "paused"})").object()).error() ==
           u"job j has the unknown state \"paused\""_s);

@@ -8,7 +8,7 @@
 using namespace Qt::StringLiterals;
 using mikserstudio::engine::MltRuntime;
 
-TEST_CASE("MLT initialises once with the services playback needs", "[mlt]")
+TEST_CASE("MLT initializes once with the services playback needs", "[mlt]")
 {
     const auto first = MltRuntime::initialize();
     REQUIRE(first.has_value());

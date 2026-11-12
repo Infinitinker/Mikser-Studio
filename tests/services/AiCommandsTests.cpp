@@ -95,7 +95,7 @@ struct AiFixture {
     {
         REQUIRE(waitFor([&] {
             const QString state = job(id).value(u"state").toString();
-            return state == u"succeeded" || state == u"failed" || state == u"cancelled";
+            return state == u"succeeded" || state == u"failed" || state == u"canceled";
         }));
         return job(id);
     }
@@ -327,22 +327,22 @@ TEST_CASE("A job the sidecar refuses fails with the sidecar's reason", "[service
     CHECK(job.value(u"error").toString() == u"Ollama is not running."_s);
 }
 
-TEST_CASE("Jobs can be cancelled before and after they reach the sidecar", "[services][commands]")
+TEST_CASE("Jobs can be canceled before and after they reach the sidecar", "[services][commands]")
 {
     AiFixture fixture;
     SECTION("waiting for the service")
     {
         const QString jobId = fixture.run(u"ai.generate_text"_s, {{u"prompt"_s, u"hold"_s}}).value(u"jobId").toString();
-        const QJsonObject cancelled = fixture.run(u"ai.cancel_job"_s, {{u"jobId"_s, jobId}});
-        CHECK(cancelled.value(u"state").toString() == u"cancelled"_s);
-        CHECK(fixture.job(jobId).value(u"state").toString() == u"cancelled"_s);
+        const QJsonObject canceled = fixture.run(u"ai.cancel_job"_s, {{u"jobId"_s, jobId}});
+        CHECK(canceled.value(u"state").toString() == u"canceled"_s);
+        CHECK(fixture.job(jobId).value(u"state").toString() == u"canceled"_s);
     }
     SECTION("running in the sidecar")
     {
         const QString jobId = fixture.run(u"ai.generate_text"_s, {{u"prompt"_s, u"hold"_s}}).value(u"jobId").toString();
         REQUIRE(waitFor([&] { return !fixture.job(jobId).value(u"remoteId").toString().isEmpty(); }));
         fixture.run(u"ai.cancel_job"_s, {{u"jobId"_s, jobId}});
-        CHECK(fixture.waitFinished(jobId).value(u"state").toString() == u"cancelled"_s);
+        CHECK(fixture.waitFinished(jobId).value(u"state").toString() == u"canceled"_s);
 
         auto again = fixture.bus.execute(u"ai.cancel_job"_s, {{u"jobId"_s, jobId}});
         REQUIRE_FALSE(again);

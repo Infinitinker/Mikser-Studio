@@ -80,7 +80,7 @@ class Ffmpeg:
     async def run(self, arguments: Sequence[str], duration: float | None, report: Callable[[float], None]) -> None:
         """Runs ffmpeg with arguments, calling report(fraction) as it goes.
 
-        Raises BackendError with ffmpeg's last error line when it fails. Cancelling kills ffmpeg."""
+        Raises BackendError with ffmpeg's last error line when it fails. Canceling kills ffmpeg."""
         command = [self._require(), "-hide_banner", "-nostdin", "-nostats", "-progress", "pipe:1", *arguments]
         logger.debug("Running %s", command)
         process = await asyncio.create_subprocess_exec(

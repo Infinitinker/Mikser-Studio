@@ -180,7 +180,7 @@ async def test_no_model_that_can_generate_text_is_explained(aiohttp_server: Aioh
     await backend.close()
 
 
-async def test_cancelling_closes_the_stream(aiohttp_server: AiohttpServer, tmp_path: Path) -> None:
+async def test_canceling_closes_the_stream(aiohttp_server: AiohttpServer, tmp_path: Path) -> None:
     fake = FakeOllama(MODELS)
     fake.hold = asyncio.Event()
     backend = await start(aiohttp_server, fake, tmp_path)

@@ -44,7 +44,7 @@ std::optional<Options> parse(const QStringList& arguments)
             options.output = arguments[i + 2];
             i += 2;
         } else if (options.file.isEmpty()) {
-            // The player takes only absolute paths (and colours); a relative one is meant from here.
+            // The player takes only absolute paths (and colors); a relative one is meant from here.
             const QString& file = arguments[i];
             options.file = mikserstudio::core::isAllowedMediaPath(file) ? file : QFileInfo(file).absoluteFilePath();
         } else {

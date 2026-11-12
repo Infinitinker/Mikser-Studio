@@ -28,19 +28,19 @@ bool SilentPacer::waitUntilDue(double speed)
     if (now > due + m_period * kMaxLateFrames) {
         m_anchor = now;
         m_framesSinceAnchor = 1;
-        return !m_cancelled;
+        return !m_canceled;
     }
-    m_wake.wait_until(lock, due, [this] { return m_cancelled; });
-    return !m_cancelled;
+    m_wake.wait_until(lock, due, [this] { return m_canceled; });
+    return !m_canceled;
 }
 
 bool SilentPacer::waitForRefresh()
 {
     std::unique_lock lock(m_mutex);
-    m_wake.wait(lock, [this] { return m_refreshRequested || m_cancelled; });
+    m_wake.wait(lock, [this] { return m_refreshRequested || m_canceled; });
     m_refreshRequested = false;
     m_anchor.reset();
-    return !m_cancelled;
+    return !m_canceled;
 }
 
 void SilentPacer::refresh()
@@ -57,7 +57,7 @@ void SilentPacer::cancel()
 {
     {
         const std::scoped_lock lock(m_mutex);
-        m_cancelled = true;
+        m_canceled = true;
     }
     m_wake.notify_all();
 }
@@ -65,7 +65,7 @@ void SilentPacer::cancel()
 void SilentPacer::reset()
 {
     const std::scoped_lock lock(m_mutex);
-    m_cancelled = false;
+    m_canceled = false;
     m_refreshRequested = false;
     m_anchor.reset();
 }

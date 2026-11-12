@@ -38,7 +38,7 @@ class Completed:
 
 
 async def run_captured(*command: str) -> Completed:
-    """Runs command to the end. Cancelling the caller kills the process."""
+    """Runs command to the end. Canceling the caller kills the process."""
     process = await asyncio.create_subprocess_exec(
         *command,
         stdin=asyncio.subprocess.DEVNULL,

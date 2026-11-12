@@ -75,14 +75,14 @@ TEST_CASE("Requests carry the bearer token and parse the backends", "[services][
     CHECK(request.authorization == "Bearer tok");
 }
 
-TEST_CASE("Jobs are submitted, listed, read and cancelled", "[services][client]")
+TEST_CASE("Jobs are submitted, listed, read and canceled", "[services][client]")
 {
     ClientFixture fixture;
     fixture.server.setHandler([](const RecordedRequest& request) {
         if (request.method == "POST")
             return jsonResponse(R"({"jobId": "job-1"})", QHttpServerResponse::StatusCode::Accepted);
         if (request.method == "DELETE")
-            return jsonResponse(R"({"id": "job 1/x", "op": "text.generate", "state": "cancelled"})");
+            return jsonResponse(R"({"id": "job 1/x", "op": "text.generate", "state": "canceled"})");
         if (request.path == u"/v1/jobs"_s)
             return jsonResponse(R"([{"id": "job-1", "op": "video.upscale", "state": "running", "progress": 0.25}])");
         return jsonResponse(R"({"id": "job-1", "op": "video.upscale", "state": "queued"})");
@@ -109,9 +109,9 @@ TEST_CASE("Jobs are submitted, listed, read and cancelled", "[services][client]"
     CHECK(job->state == AiJobState::Queued);
     CHECK(fixture.server.requests().last().path == u"/v1/jobs/job-1"_s);
 
-    const auto cancelled = await<AiJobInfo>(
+    const auto canceled = await<AiJobInfo>(
         [&](const QObject* context, auto done) { fixture.client.cancelJob(u"job 1/x"_s, context, std::move(done)); });
-    CHECK(cancelled->state == AiJobState::Cancelled);
+    CHECK(canceled->state == AiJobState::Canceled);
     CHECK(fixture.server.requests().last().method == "DELETE");
     CHECK(fixture.server.requests().last().path == u"/v1/jobs/job%201%2Fx"_s);
 }

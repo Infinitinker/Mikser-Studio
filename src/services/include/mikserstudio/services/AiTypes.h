@@ -11,9 +11,9 @@ namespace mikserstudio::services {
 
 // The data of the AI sidecar API (see docs/ai.md).
 
-enum class AiJobState { Queued, Running, Succeeded, Failed, Cancelled };
+enum class AiJobState { Queued, Running, Succeeded, Failed, Canceled };
 
-// "queued", "running", "succeeded", "failed", "cancelled".
+// "queued", "running", "succeeded", "failed", "canceled".
 [[nodiscard]] QString toString(AiJobState state);
 [[nodiscard]] std::optional<AiJobState> aiJobStateFromString(QStringView text);
 [[nodiscard]] bool isFinished(AiJobState state);

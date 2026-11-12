@@ -25,7 +25,7 @@ namespace mikserstudio::ui {
 [[nodiscard]] bool confirmCommand(const core::CommandBus& bus, const QString& id, QWidget* parent);
 
 // Asks for confirmation (see confirmCommand) and runs the command. std::nullopt when the user
-// cancelled, otherwise the command's result. The bus also reports errors through failed(), which
+// canceled, otherwise the command's result. The bus also reports errors through failed(), which
 // feeds the status bar and the log.
 std::optional<std::expected<QJsonObject, core::CommandError>> executeInteractive(core::CommandBus& bus,
                                                                                  const QString& id,
@@ -43,7 +43,7 @@ void executeReported(core::CommandBus& bus, const QString& id, const QJsonObject
 
 // Runs a command picked in a menu, by its shortcut or in the palette: asks for confirmation, then
 // commands with required params get a dialog with a form generated from their schema. Returns
-// std::nullopt when the user cancelled (or the command is gone), otherwise the command's result.
+// std::nullopt when the user canceled (or the command is gone), otherwise the command's result.
 std::optional<std::expected<QJsonObject, core::CommandError>> invokeCommand(core::CommandBus& bus, const QString& id,
                                                                             QWidget* parent);
 

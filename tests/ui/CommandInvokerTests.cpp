@@ -96,7 +96,7 @@ TEST_CASE("Menu actions and their shortcuts ask before running a command with a 
     CHECK(f.guardedRuns == 1);
 }
 
-TEST_CASE("Plugin panels get a cancelled error when the user declines the confirmation", "[invoker][plugin-panels]")
+TEST_CASE("Plugin panels get a canceled error when the user declines the confirmation", "[invoker][plugin-panels]")
 {
     BusFixture f;
     QTemporaryDir dir;
@@ -104,9 +104,9 @@ TEST_CASE("Plugin panels get a cancelled error when the user declines the confir
     mikserstudio::ui::PluginPanelBridge bridge(f.bus, plugins, u"com.example.demo"_s);
 
     answerNextMessageBox(QMessageBox::RejectRole);
-    const QVariantMap cancelled = bridge.execute(u"project.new"_s);
-    CHECK(cancelled.value(u"ok"_s) == false);
-    CHECK(cancelled.value(u"error"_s).toMap().value(u"code"_s) == u"cancelled"_s);
+    const QVariantMap canceled = bridge.execute(u"project.new"_s);
+    CHECK(canceled.value(u"ok"_s) == false);
+    CHECK(canceled.value(u"error"_s).toMap().value(u"code"_s) == u"canceled"_s);
     CHECK(f.guardedRuns == 0);
 
     answerNextMessageBox(QMessageBox::AcceptRole);

@@ -111,9 +111,9 @@ TEST_CASE("JsonSchema checks object properties, required and additionalPropertie
     CHECK(check(json(R"({"name": "a", "size": 2})"), schema).isEmpty());
     CHECK(check(json(R"({"size": 2})"), schema) == QStringList{u"/name: is required"_s});
     CHECK(check(json(R"({"name": 1})"), schema) == QStringList{u"/name: must be a string"_s});
-    const QStringList extra = check(json(R"({"name": "a", "colour": "red"})"), schema);
+    const QStringList extra = check(json(R"({"name": "a", "color": "red"})"), schema);
     REQUIRE(extra.size() == 1);
-    CHECK(extra[0].startsWith(u"/colour: is not allowed"_s));
+    CHECK(extra[0].startsWith(u"/color: is not allowed"_s));
     CHECK(extra[0].contains(u"name, size"_s));
 
     CHECK(check(json(R"({"x": 1})"), R"({"type": "object", "additionalProperties": false})")

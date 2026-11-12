@@ -32,7 +32,7 @@ QColor stateColor(const QString& state)
 
 bool isFinished(const QString& state)
 {
-    return state == u"succeeded" || state == u"failed" || state == u"cancelled";
+    return state == u"succeeded" || state == u"failed" || state == u"canceled";
 }
 
 }  // namespace

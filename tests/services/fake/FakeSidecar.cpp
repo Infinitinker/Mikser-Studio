@@ -2,7 +2,7 @@
 //
 // It accepts the sidecar's command line (--host, --port, --cache-dir, --exit-with-stdin, ...) and
 // serves the same /v1 API from memory. Jobs advance by half on every poll of /v1/jobs, so a job
-// finishes after two polls. Extra options choose a misbehaviour:
+// finishes after two polls. Extra options choose a misbehavior:
 //   --mode serve               behave (default)
 //   --mode exit                print an error on stderr and exit with code 3 at once
 //   --mode silent              never print the READY line
@@ -228,7 +228,7 @@ private:
         Job& job = it->second;
         if (job.state != u"running")
             return error(QHttpServerResponse::StatusCode::Conflict, u"already_finished"_s, u"finished"_s);
-        job.state = u"cancelled"_s;
+        job.state = u"canceled"_s;
         return QHttpServerResponse(toJson(job));
     }
 

@@ -19,7 +19,7 @@ class SilentPacer {
 public:
     explicit SilentPacer(core::Rational frameRate);
 
-    // MLT thread. Both return false when cancelled.
+    // MLT thread. Both return false when canceled.
     bool waitUntilDue(double speed);
     bool waitForRefresh();
 
@@ -38,7 +38,7 @@ private:
     std::int64_t m_framesSinceAnchor = 0;
     double m_speed = 0.0;
     bool m_refreshRequested = false;
-    bool m_cancelled = false;
+    bool m_canceled = false;
 };
 
 }  // namespace mikserstudio::engine

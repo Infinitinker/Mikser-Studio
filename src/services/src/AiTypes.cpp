@@ -14,7 +14,7 @@ constexpr std::array kStates{
     std::pair{AiJobState::Running, u"running"},
     std::pair{AiJobState::Succeeded, u"succeeded"},
     std::pair{AiJobState::Failed, u"failed"},
-    std::pair{AiJobState::Cancelled, u"cancelled"},
+    std::pair{AiJobState::Canceled, u"canceled"},
 };
 
 }  // namespace
@@ -39,7 +39,7 @@ std::optional<AiJobState> aiJobStateFromString(QStringView text)
 
 bool isFinished(AiJobState state)
 {
-    return state == AiJobState::Succeeded || state == AiJobState::Failed || state == AiJobState::Cancelled;
+    return state == AiJobState::Succeeded || state == AiJobState::Failed || state == AiJobState::Canceled;
 }
 
 }  // namespace mikserstudio::services

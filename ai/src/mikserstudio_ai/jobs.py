@@ -23,15 +23,15 @@ class JobState(StrEnum):
     RUNNING = "running"
     SUCCEEDED = "succeeded"
     FAILED = "failed"
-    CANCELLED = "cancelled"
+    CANCELED = "canceled"
 
     @property
     def finished(self) -> bool:
-        return self in (JobState.SUCCEEDED, JobState.FAILED, JobState.CANCELLED)
+        return self in (JobState.SUCCEEDED, JobState.FAILED, JobState.CANCELED)
 
 
 class JobFinishedError(Exception):
-    """The job has already finished, so it cannot be cancelled."""
+    """The job has already finished, so it cannot be canceled."""
 
 
 @dataclass(slots=True)
@@ -112,8 +112,8 @@ class JobManager:
             async with self._locks.setdefault(backend.id, asyncio.Lock()):
                 await self._execute(job, backend)
         except asyncio.CancelledError:
-            self._finish(job, JobState.CANCELLED, "Cancelled")
-            logger.info("Cancelled %s", job.id)
+            self._finish(job, JobState.CANCELED, "Canceled")
+            logger.info("Canceled %s", job.id)
         except BackendError as error:
             self._finish(job, JobState.FAILED, "Failed", error=str(error))
             logger.warning("%s failed: %s", job.id, error)

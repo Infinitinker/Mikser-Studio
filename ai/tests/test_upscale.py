@@ -104,7 +104,7 @@ async def test_upscale_refuses_outputs_larger_than_8k(tmp_path: Path) -> None:
         await backend.run("video.upscale", {"input": str(large), "scale": 4}, context(tmp_path, Recorder()))
 
 
-async def test_cancelling_stops_ffmpeg_and_removes_the_partial_output(tmp_path: Path) -> None:
+async def test_canceling_stops_ffmpeg_and_removes_the_partial_output(tmp_path: Path) -> None:
     long_clip = make_clip(tmp_path / "long.mp4", "320x180", 20, rate=30)
     recorder = Recorder()
     job_context = context(tmp_path, recorder)
@@ -112,7 +112,7 @@ async def test_cancelling_stops_ffmpeg_and_removes_the_partial_output(tmp_path: 
     task = asyncio.create_task(backend.run("video.upscale", {"input": str(long_clip), "scale": 4}, job_context))
     async with asyncio.timeout(30):
         while not any(0.0 < fraction < 1.0 for fraction, _ in recorder.reports):
-            assert not task.done(), "the upscale finished before it could be cancelled"
+            assert not task.done(), "the upscale finished before it could be canceled"
             await asyncio.sleep(0.02)
     task.cancel()
     with pytest.raises(asyncio.CancelledError):

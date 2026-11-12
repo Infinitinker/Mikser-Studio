@@ -1,6 +1,6 @@
 # Core tests.
 
-# A native plugin used by the PluginManager tests. Its behaviour is chosen by its "mode" setting.
+# A native plugin used by the PluginManager tests. Its behavior is chosen by its "mode" setting.
 add_library(mikserstudio-test-plugin-fixture MODULE fixture/FixturePlugin.cpp)
 target_link_libraries(mikserstudio-test-plugin-fixture PRIVATE MikserStudio::sdk Qt6::Core)
 set_target_properties(mikserstudio-test-plugin-fixture PROPERTIES

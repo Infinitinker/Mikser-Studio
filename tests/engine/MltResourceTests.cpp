@@ -15,19 +15,19 @@
 
 using namespace Qt::StringLiterals;
 using mikserstudio::core::Rational;
-using mikserstudio::engine::isColourResource;
+using mikserstudio::engine::isColorResource;
 using mikserstudio::engine::makeProfile;
 using mikserstudio::engine::MltMediaProbe;
 using mikserstudio::engine::openProducer;
 
-TEST_CASE("Only colour resources are taken as MLT service strings", "[resource]")
+TEST_CASE("Only color resources are taken as MLT service strings", "[resource]")
 {
-    CHECK(isColourResource(u"color:#ff0000"_s));
-    CHECK(isColourResource(u"color:red"_s));
-    CHECK_FALSE(isColourResource(u"colour:#ff0000"_s));
-    CHECK_FALSE(isColourResource(u"color:#ff0000 and more"_s));
-    CHECK_FALSE(isColourResource(u"xml-string:<mlt/>"_s));
-    CHECK_FALSE(isColourResource(u"D:/clips/color:red.mp4"_s));
+    CHECK(isColorResource(u"color:#ff0000"_s));
+    CHECK(isColorResource(u"color:red"_s));
+    CHECK_FALSE(isColorResource(u"colour:#ff0000"_s));  // MLT's British alias of "color:"
+    CHECK_FALSE(isColorResource(u"color:#ff0000 and more"_s));
+    CHECK_FALSE(isColorResource(u"xml-string:<mlt/>"_s));
+    CHECK_FALSE(isColorResource(u"D:/clips/color:red.mp4"_s));
 }
 
 TEST_CASE("Media paths that are not local files never reach MLT", "[resource]")
@@ -51,7 +51,7 @@ TEST_CASE("Media paths that are not local files never reach MLT", "[resource]")
     CHECK_FALSE(probe.probe(refused, Rational{25, 1}).has_value());
 }
 
-TEST_CASE("Local MLT documents are refused, local media and colours open", "[resource]")
+TEST_CASE("Local MLT documents are refused, local media and colors open", "[resource]")
 {
     mikserstudio::tests::mltRuntime();
     auto profile = makeProfile(Rational{25, 1}, 320, 180);

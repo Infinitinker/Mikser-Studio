@@ -167,7 +167,7 @@ private:
 };
 
 // True for an absolute path to a file on this computer (not a URL or a network share such as
-// "//server/share") and for MLT colour resources ("color:#ff0000", "color:red"). Project files
+// "//server/share") and for MLT color resources ("color:#ff0000", "color:red"). Project files
 // and imports accept only these, so a shared project cannot make Mikser Studio open other resources.
 [[nodiscard]] bool isAllowedMediaPath(const QString& path);
 

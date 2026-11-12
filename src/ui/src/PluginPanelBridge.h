@@ -12,7 +12,7 @@ namespace mikserstudio::ui {
 
 // The context property "mikserstudio" of plugin QML panels (docs/plugins.md, "Panels (QML contract)"):
 //   mikserstudio.execute(commandId, params) -> {ok: true, result} | {ok: false, error: {code, message}}
-//       A command with a confirmation asks the user first; "Cancel" gives error code "cancelled".
+//       A command with a confirmation asks the user first; "Cancel" gives error code "canceled".
 //   mikserstudio.settings   the plugin's settings with defaults applied, updated live
 //   mikserstudio.pluginId
 class PluginPanelBridge final : public QObject {

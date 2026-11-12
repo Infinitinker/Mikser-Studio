@@ -98,7 +98,7 @@ A job:
 {
   "id": "job-0f…", "op": "video.upscale", "backend": "builtin",
   "params": {"input": "D:/media/clip.mp4", "scale": 2},
-  "state": "succeeded",            // queued | running | succeeded | failed | cancelled
+  "state": "succeeded",            // queued | running | succeeded | failed | canceled
   "progress": 1.0,                 // 0..1
   "message": "Done",               // short status for the UI
   "createdAt": "2026-11-11T01:08:19Z", "startedAt": "…", "finishedAt": "…",

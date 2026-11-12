@@ -38,7 +38,7 @@ std::optional<QString> sampleVideo()
     return path;
 }
 
-QColor centreColour(const QImage& image)
+QColor centerColor(const QImage& image)
 {
     return image.pixelColor(image.width() / 2, image.height() / 2);
 }

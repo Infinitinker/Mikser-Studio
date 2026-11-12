@@ -127,7 +127,7 @@ TEST_CASE("ai.upscale_clip runs on the real sidecar and lands on the timeline", 
         [&] {
             job = bus.execute(u"ai.jobs"_s)->value(u"jobs").toArray().at(0).toObject();
             const QString state = job.value(u"state").toString();
-            return state == u"succeeded" || state == u"failed" || state == u"cancelled";
+            return state == u"succeeded" || state == u"failed" || state == u"canceled";
         },
         300s));
     INFO(QJsonDocument(job).toJson().toStdString());

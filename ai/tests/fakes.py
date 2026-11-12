@@ -15,7 +15,7 @@ ECHO = Operation(
         "properties": {
             "text": {"type": "string", "minLength": 1},
             "times": {"type": "integer", "minimum": 1, "default": 1},
-            "behaviour": {"type": "string", "enum": ["succeed", "fail", "crash"], "default": "succeed"},
+            "behavior": {"type": "string", "enum": ["succeed", "fail", "crash"], "default": "succeed"},
         },
         "required": ["text"],
         "additionalProperties": False,
@@ -31,7 +31,7 @@ class FakeBackend:
         self.state = Availability(available, reason)
         self.gate: asyncio.Event | None = None
         self.started = asyncio.Event()
-        self.cancelled = 0
+        self.canceled = 0
         self.closed = False
 
     @property
@@ -55,11 +55,11 @@ class FakeBackend:
             if self.gate is not None:
                 await self.gate.wait()
         except asyncio.CancelledError:
-            self.cancelled += 1
+            self.canceled += 1
             raise
-        if params["behaviour"] == "fail":
+        if params["behavior"] == "fail":
             raise BackendError("The fake backend was told to fail.")
-        if params["behaviour"] == "crash":
+        if params["behavior"] == "crash":
             raise RuntimeError("boom")
         output = context.output_dir / "echo.txt"
         output.write_text(params["text"] * params["times"], encoding="utf-8")

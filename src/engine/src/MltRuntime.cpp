@@ -54,7 +54,7 @@ std::expected<const MltRuntime*, QString> MltRuntime::create()
     if (!data)
         return std::unexpected(data.error());
 
-    // MLT reads MLT_DATA once, during factory initialisation.
+    // MLT reads MLT_DATA once, during factory initialization.
     if (!data->path.isEmpty())
         qputenv("MLT_DATA", QDir::toNativeSeparators(data->path).toUtf8());
 
