@@ -1,4 +1,4 @@
-# MikserStudio: recommended cross-platform stack
+# Mikser Studio: recommended cross-platform stack
 
 ## Recommendation
 

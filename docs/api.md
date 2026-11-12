@@ -197,7 +197,7 @@ Each text message is one JSON object with a `type`:
 {"type": "command.failed", "id": "edit.undo", "params": {}, "error": {"code": "not_available", "message": "There is nothing to undo."}}
 {"type": "command.registered", "id": "hello.greet"}
 {"type": "command.unregistered", "id": "hello.greet"}
-{"type": "undo.changed", "canUndo": true, "canRedo": false, "undoText": "Import \"sample-30s.mp4\"", "redoText": ""}
+{"type": "undo.changed", "canUndo": true, "canRedo": false, "undoText": "Import “sample-30s.mp4”", "redoText": ""}
 ```
 
 - Events cover **every** command run, whether it came from the API, the UI, a shortcut or a plugin.

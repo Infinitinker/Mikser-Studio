@@ -1,4 +1,4 @@
-# AI in MikserStudio: the sidecar and the AI bridge
+# AI in Mikser Studio: the sidecar and the AI bridge
 
 AI runs outside the app, in a Python process called the **sidecar** (`ai/`, package `mikserstudio-ai`).
 The app talks to it over a small HTTP API on `127.0.0.1`. The C++ side lives in `src/services`
