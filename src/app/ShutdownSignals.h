@@ -14,7 +14,8 @@ namespace mikserstudio::app {
 // second signal while Mikser Studio is quitting ends the process at once.
 //
 // On Windows it also turns a close request from another program (`taskkill` without /F posts
-// WM_CLOSE to a hidden window of the process) into quit(). Qt's hidden event-loop windows would
+// WM_CLOSE to one window of the process) into quit(), whichever window of the main thread or of a
+// thread with a Qt event loop it reaches. The window stays: Qt's hidden event-loop windows would
 // otherwise destroy themselves and leave the app hanging.
 //
 // Create one after the QCoreApplication and destroy it after everything that must be torn down

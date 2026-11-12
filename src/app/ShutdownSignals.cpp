@@ -7,13 +7,18 @@
 #include <QCoreApplication>
 
 #ifdef Q_OS_WIN
+#include <QGuiApplication>
+#include <QWindow>
+
 #include <windows.h>
 
+#include <algorithm>
 #include <atomic>
 #include <chrono>
 #include <condition_variable>
 #include <mutex>
 #include <string_view>
+#include <utility>
 #else
 #include <QSocketNotifier>
 
@@ -70,27 +75,67 @@ BOOL WINAPI onConsoleEvent(DWORD event)
     return TRUE;
 }
 
-// `taskkill` without /F posts WM_CLOSE to one window of the process: the newest top-level window
-// or, when there is none (headless), the newest hidden message-only window. Those hidden windows
-// are the ones Qt's event dispatchers create, one per thread with an event loop (the main thread,
-// Qt's network thread, ...), all of one window class. Their default handling destroys the window,
-// which stops that thread's event loop for good, so the app hangs. Replacing the procedure of
-// that class turns WM_CLOSE into a clean quit for every such window, including those of threads
-// started later. The class name is a Qt implementation detail; tests/app checks it still matches.
+// `taskkill` without /F posts WM_CLOSE to one window of the process: the newest top-level window,
+// hidden ones included, or, when there is none, the newest message-only window. Which one that is
+// depends on what the process has created, Mikser Studio's libraries included, so every kind of
+// window is covered:
+// - Windows of the main thread: a hook on its message queue takes the request before it reaches
+//   the window, whatever its class, except the windows Qt shows for the interface, which close as
+//   Qt closes them.
+// - Windows of other threads with a Qt event loop (Qt's network thread, ...): Qt's event
+//   dispatchers each have a hidden message-only window, all of one class. Their default handling
+//   destroys the window, which stops that thread's event loop for good, so the app hangs.
+//   Replacing the procedure of that class turns WM_CLOSE into a clean quit for every such window,
+//   including those of threads started later. The class name is a Qt implementation detail;
+//   tests/app checks it still matches.
 constexpr std::wstring_view kQtDispatcherClassPrefix = L"QEventDispatcherWin32_Internal_Widget";
 
 std::atomic<WNDPROC> g_qtDispatcherProc{nullptr};
 std::atomic<bool> g_closeGuardActive{false};
 std::atomic<bool> g_closeRequested{false};
+HHOOK g_mainThreadHook = nullptr;
+
+// A close request reached `window`: the first one quits, the window stays.
+void onCloseRequest(HWND window)
+{
+    if (g_closeRequested.exchange(true))
+        return;
+    wchar_t name[128] = {};
+    GetClassNameW(window, name, 128);
+    qCInfo(lcApp).noquote() << "Another program asked Mikser Studio to close; shutting down. The request reached"
+                            << "a window of class" << QString::fromWCharArray(name);
+    requestQuit();
+}
+
+// Whether `window` is one Qt shows for the interface (the main window, a floating panel), which handles
+// a close request itself: the main window asks to save first. Its hidden helper windows are not.
+bool isInterfaceWindow(HWND window)
+{
+    if (qobject_cast<QGuiApplication*>(QCoreApplication::instance()) == nullptr)
+        return false;
+    const QWindowList windows = QGuiApplication::allWindows();
+    return std::ranges::any_of(windows, [window](const QWindow* shown) {
+        return shown->handle() != nullptr && reinterpret_cast<HWND>(shown->winId()) == window;
+    });
+}
+
+// Runs on the main thread for every message its event loop takes from the queue.
+LRESULT CALLBACK onMainThreadMessage(int code, WPARAM removal, LPARAM data)
+{
+    auto* message = reinterpret_cast<MSG*>(data);
+    if (code == HC_ACTION && removal == PM_REMOVE && message->message == WM_CLOSE && message->hwnd != nullptr &&
+        g_closeGuardActive.load() && !isInterfaceWindow(message->hwnd)) {
+        onCloseRequest(message->hwnd);
+        message->message = WM_NULL;  // Never let the window destroy itself.
+    }
+    return CallNextHookEx(nullptr, code, removal, data);
+}
 
 // Runs on the thread that owns the window. Once ShutdownSignals is gone it only forwards.
 LRESULT CALLBACK guardedDispatcherProc(HWND window, UINT message, WPARAM wParam, LPARAM lParam)
 {
     if (message == WM_CLOSE && g_closeGuardActive.load()) {
-        if (!g_closeRequested.exchange(true)) {
-            qCInfo(lcApp) << "Another program asked Mikser Studio to close; shutting down.";
-            requestQuit();
-        }
+        onCloseRequest(window);
         return 0;  // Never let the window destroy itself.
     }
     return CallWindowProcW(g_qtDispatcherProc.load(), window, message, wParam, lParam);
@@ -142,6 +187,16 @@ void installCloseGuard()
     g_closeGuardActive = true;
 }
 
+void installMainThreadHook()
+{
+    g_mainThreadHook = SetWindowsHookExW(WH_GETMESSAGE, onMainThreadMessage, nullptr, GetCurrentThreadId());
+    if (!g_mainThreadHook) {
+        qCWarning(lcApp) << "Closing Mikser Studio from another program (taskkill) may hang it: no hook on the main "
+                            "thread's messages (error"
+                         << GetLastError() << ")";
+    }
+}
+
 }  // namespace
 
 ShutdownSignals::ShutdownSignals()
@@ -153,6 +208,7 @@ ShutdownSignals::ShutdownSignals()
         state.quitting = false;
     }
     installCloseGuard();
+    installMainThreadHook();
     if (!SetConsoleCtrlHandler(onConsoleEvent, TRUE))
         qCWarning(lcApp) << "Ctrl+C will end Mikser Studio without a clean shutdown: no console handler (error"
                          << GetLastError() << ")";
@@ -161,6 +217,8 @@ ShutdownSignals::ShutdownSignals()
 ShutdownSignals::~ShutdownSignals()
 {
     g_closeGuardActive = false;
+    if (g_mainThreadHook)
+        UnhookWindowsHookEx(std::exchange(g_mainThreadHook, nullptr));
     ConsoleState& state = consoleState();
     {
         const std::scoped_lock lock(state.mutex);

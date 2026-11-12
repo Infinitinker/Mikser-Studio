@@ -1,5 +1,6 @@
-// Shutdown signals: a close request from another program quits the app cleanly, whichever thread's
-// event-loop window it reaches, and the handlers install and uninstall.
+// Shutdown signals: a close request from another program quits the app cleanly, whichever window it
+// reaches (an event-loop window of any thread, or another window of the main thread), and the
+// handlers install and uninstall.
 #include "ShutdownSignals.h"
 
 #include <catch2/catch_test_macros.hpp>
@@ -93,7 +94,7 @@ bool closeRequestQuits(HWND window)
 
 }  // namespace
 
-TEST_CASE("A close request from another program quits cleanly on any thread's event-loop window", "[app][shutdown]")
+TEST_CASE("A close request from another program quits cleanly, whichever window it reaches", "[app][shutdown]")
 {
     // Sections rerun this from the top; the first one is the run where `before` really predates
     // the guard, so it comes first.
@@ -131,6 +132,16 @@ TEST_CASE("A close request from another program quits cleanly on any thread's ev
         QTimer::singleShot(50, [] { QCoreApplication::exit(7); });
         CHECK(QCoreApplication::exec() == 7);
         CHECK(IsWindow(window));
+    }
+    SECTION("another window of the main thread")
+    {
+        // A hidden top-level window, such as a library makes: `taskkill` prefers it to Qt's
+        // message-only one. A STATIC control would destroy itself on WM_CLOSE.
+        HWND window = CreateWindowExW(0, L"STATIC", L"", 0, 0, 0, 0, 0, nullptr, nullptr, nullptr, nullptr);
+        REQUIRE(window != nullptr);
+        CHECK(closeRequestQuits(window));
+        CHECK(IsWindow(window));
+        DestroyWindow(window);
     }
 }
 
