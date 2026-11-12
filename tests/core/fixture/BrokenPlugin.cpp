@@ -18,12 +18,12 @@ constexpr MikserStudioPluginV1 kPlugin{sizeof(MikserStudioPluginV1), MIKSERSTUDI
 
 }  // namespace
 
-#if defined(MIKSERSTUDIO_FIXTURE_NO_ENTRY)
+#ifdef MIKSERSTUDIO_FIXTURE_NO_ENTRY
 extern "C" MIKSERSTUDIO_PLUGIN_EXPORT const MikserStudioPluginV1* not_a_mikserstudio_plugin(void)
 {
     return &kPlugin;
 }
-#elif defined(MIKSERSTUDIO_FIXTURE_WRONG_API)
+#elifdef MIKSERSTUDIO_FIXTURE_WRONG_API
 extern "C" MIKSERSTUDIO_PLUGIN_EXPORT const MikserStudioPluginV1* mikserstudio_plugin_v1(void)
 {
     return &kPlugin;

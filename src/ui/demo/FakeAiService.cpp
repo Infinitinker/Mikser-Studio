@@ -23,7 +23,7 @@ QJsonObject stringParam(const QString& description)
 }
 
 core::CommandSpec aiSpec(const QString& id, const QString& title, const QString& description,
-                         QJsonObject properties = {}, QStringList required = {})
+                         QJsonObject properties = {}, const QStringList& required = {})
 {
     return core::CommandSpec{
         .id = id,

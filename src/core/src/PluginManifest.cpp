@@ -123,7 +123,7 @@ std::expected<PluginManifest, QString> parsePluginManifest(const QJsonObject& js
         return std::unexpected(panels.error());
 
     QStringList capabilities;
-    for (const QJsonValue& capability : manifest.value(u"capabilities").toArray())
+    for (const QJsonValue capability : manifest.value(u"capabilities").toArray())
         capabilities.append(capability.toString());
 
     return PluginManifest{

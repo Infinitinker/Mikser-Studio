@@ -73,7 +73,7 @@ TEST_CASE("GET /v1/commands lists every spec and GET /v1/commands/<id> returns o
     const auto list = fixture.get(u"/v1/commands"_s);
     REQUIRE(list.status == 200);
     QStringList ids;
-    for (const QJsonValue& spec : list.array())
+    for (const QJsonValue spec : list.array())
         ids.append(spec.toObject().value(u"id"_s).toString());
     CHECK(ids == QStringList{u"edit.redo"_s, u"edit.undo"_s, u"test.busy"_s, u"test.echo"_s, u"test.fail"_s,
                              u"test.increment"_s, u"test.noop"_s});

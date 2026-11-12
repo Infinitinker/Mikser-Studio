@@ -28,7 +28,7 @@ public:
 
     [[nodiscard]] SchemaForm* form() const { return m_form; }
     // The successful result, set when the dialog was accepted.
-    [[nodiscard]] std::expected<QJsonObject, core::CommandError> result() const { return m_result; }
+    [[nodiscard]] std::expected<QJsonObject, core::CommandError> outcome() const { return m_result; }
 
     void run();  // What the Run button does.
 

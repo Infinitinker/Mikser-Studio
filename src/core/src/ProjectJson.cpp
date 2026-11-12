@@ -191,7 +191,7 @@ std::expected<ProjectDocument, QString> projectFromJson(const QJsonObject& json)
     document.frameRate = rationalFromJson(json.value(u"frameRate").toObject());
     document.width = json.value(u"width").toInt();
     document.height = json.value(u"height").toInt();
-    for (const QJsonValue& value : json.value(u"media").toArray()) {
+    for (const QJsonValue value : json.value(u"media").toArray()) {
         const QJsonObject object = value.toObject();
         const QString path = object.value(u"path").toString();
         if (!isAllowedMediaPath(path)) {
@@ -208,7 +208,7 @@ std::expected<ProjectDocument, QString> projectFromJson(const QJsonObject& json)
             .provenance = object.value(u"provenance").toObject(),
         });
     }
-    for (const QJsonValue& value : json.value(u"tracks").toArray()) {
+    for (const QJsonValue value : json.value(u"tracks").toArray()) {
         const QJsonObject object = value.toObject();
         document.tracks.append(Track{
             .id = object.value(u"id").toString(),
@@ -218,7 +218,7 @@ std::expected<ProjectDocument, QString> projectFromJson(const QJsonObject& json)
             .hidden = object.value(u"hidden").toBool(),
         });
     }
-    for (const QJsonValue& value : json.value(u"clips").toArray()) {
+    for (const QJsonValue value : json.value(u"clips").toArray()) {
         const QJsonObject object = value.toObject();
         document.clips.append(Clip{
             .id = object.value(u"id").toString(),

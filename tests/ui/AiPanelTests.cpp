@@ -64,16 +64,20 @@ struct FakeAi {
 private:
     void add(const QString& id, std::function<QJsonObject(const QJsonObject&)> handler)
     {
-        REQUIRE(bus.registerCommand(CommandSpec{.id = id,
-                                                .title = id,
-                                                .description = id + u"."_s,
-                                                .category = u"AI"_s,
-                                                .paramsSchema = QJsonObject{{u"type"_s, u"object"_s}},
-                                                .shortcut = {},
-                                                .undoable = false},
-                                    [handler = std::move(handler)](const QJsonObject& params) -> CommandResult {
-                                        return CommandOutcome{.result = handler(params), .edit = nullptr};
-                                    }));
+        // Registered outside REQUIRE, whose expansion repeats the expression, which clang-tidy
+        // takes for a second move of the handler.
+        const bool registered = bus.registerCommand(
+            CommandSpec{.id = id,
+                        .title = id,
+                        .description = id + u"."_s,
+                        .category = u"AI"_s,
+                        .paramsSchema = QJsonObject{{u"type"_s, u"object"_s}},
+                        .shortcut = {},
+                        .undoable = false},
+            [run = std::move(handler)](const QJsonObject& params) -> CommandResult {
+                return CommandOutcome{.result = run(params), .edit = nullptr};
+            });
+        REQUIRE(registered);
     }
 
     QJsonObject addJob(const QString& title)

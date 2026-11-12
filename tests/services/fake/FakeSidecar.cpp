@@ -173,7 +173,8 @@ public:
     }
 
 private:
-    template <typename Handler> QHttpServerResponse authorized(const QHttpServerRequest& request, Handler handler)
+    template <typename Handler>
+    QHttpServerResponse authorized(const QHttpServerRequest& request, const Handler& handler)
     {
         const QByteArray expected = "Bearer " + qgetenv("MIKSERSTUDIO_AI_TOKEN");
         if (request.headers().value(QHttpHeaders::WellKnownHeader::Authorization) != expected)
@@ -242,7 +243,7 @@ private:
             complete(job);
     }
 
-    void complete(Job& job)
+    void complete(Job& job) const
     {
         const QString input = job.params.value(u"input").toString();
         if (input.contains(u"fail")) {

@@ -8,6 +8,8 @@
 #include <QStyleFactory>
 #include <QStyleHints>
 
+#include <utility>
+
 using namespace Qt::StringLiterals;
 
 namespace mikserstudio::ui {
@@ -123,9 +125,9 @@ void applyTheme(QApplication& app, const ThemeTokens& tokens)
     QQuickStyle::setStyle(u"Fusion"_s);
 }
 
-ThemeObject::ThemeObject(const ThemeTokens& tokens, QObject* parent)
+ThemeObject::ThemeObject(ThemeTokens tokens, QObject* parent)
     : QObject(parent)
-    , m_tokens(tokens)
+    , m_tokens(std::move(tokens))
 {
 }
 

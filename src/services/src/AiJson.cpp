@@ -34,7 +34,7 @@ std::expected<AiBackendInfo, QString> parseBackend(const QJsonValue& value)
     };
     if (backend.id.isEmpty())
         return std::unexpected(u"a backend has no \"id\""_s);
-    for (const QJsonValue& op : object.value(u"ops").toArray()) {
+    for (const QJsonValue op : object.value(u"ops").toArray()) {
         auto operation = parseOperation(op);
         if (!operation)
             return std::unexpected(u"backend \"%1\": %2"_s.arg(backend.id, operation.error()));
@@ -50,7 +50,7 @@ std::expected<QList<AiBackendInfo>, QString> parseBackends(const QJsonDocument& 
     if (!document.isArray())
         return std::unexpected(u"the backend list is not a JSON array"_s);
     QList<AiBackendInfo> backends;
-    for (const QJsonValue& value : document.array()) {
+    for (const QJsonValue value : document.array()) {
         auto backend = parseBackend(value);
         if (!backend)
             return std::unexpected(backend.error());
@@ -82,7 +82,7 @@ std::expected<AiJobInfo, QString> parseJob(const QJsonObject& object)
         .error = object.value(u"error").toString(),
     };
     job.provenance = job.result.value(u"provenance").toObject();
-    for (const QJsonValue& value : job.result.value(u"outputs").toArray()) {
+    for (const QJsonValue value : job.result.value(u"outputs").toArray()) {
         const QJsonObject output = value.toObject();
         job.outputs.append(AiJobOutput{output.value(u"path").toString(), output.value(u"kind").toString()});
     }
@@ -94,7 +94,7 @@ std::expected<QList<AiJobInfo>, QString> parseJobs(const QJsonDocument& document
     if (!document.isArray())
         return std::unexpected(u"the job list is not a JSON array"_s);
     QList<AiJobInfo> jobs;
-    for (const QJsonValue& value : document.array()) {
+    for (const QJsonValue value : document.array()) {
         auto job = parseJob(value.toObject());
         if (!job)
             return std::unexpected(job.error());

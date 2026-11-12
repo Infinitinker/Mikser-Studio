@@ -25,7 +25,7 @@ extern "C" {
 
 #define MIKSERSTUDIO_PLUGIN_API_VERSION 1u
 
-#if defined(_WIN32)
+#ifdef _WIN32
 #define MIKSERSTUDIO_PLUGIN_EXPORT __declspec(dllexport)
 #else
 #define MIKSERSTUDIO_PLUGIN_EXPORT __attribute__((visibility("default")))
@@ -100,7 +100,8 @@ typedef struct MikserStudioPluginV1 {
     void (*deactivate)(void* plugin_state);
 } MikserStudioPluginV1;
 
-typedef const MikserStudioPluginV1* (*MikserStudioPluginEntryFn)(void);
+// (void): in C, () would mean any arguments.
+typedef const MikserStudioPluginV1* (*MikserStudioPluginEntryFn)(void);  // NOLINT(modernize-redundant-void-arg)
 
 #define MIKSERSTUDIO_PLUGIN_ENTRY_SYMBOL "mikserstudio_plugin_v1"
 

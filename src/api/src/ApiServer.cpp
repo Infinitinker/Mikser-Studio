@@ -72,7 +72,7 @@ std::expected<quint16, QString> ApiServer::start()
 
     auto ipv4 = listenOn(*m_http, QHostAddress(QHostAddress::LocalHost), m_requestedPort);
     if (!ipv4) {
-        const QString reason = ipv4.error();
+        const QString& reason = ipv4.error();
         stop();
         return std::unexpected(u"The API server could not listen on 127.0.0.1:%1: %2. Choose another port or "
                                "use 0 for a free one."_s.arg(m_requestedPort)

@@ -51,7 +51,7 @@ CommandResult removeClip(ProjectModel& project, const QJsonObject& params)
     if (!removed)
         return commandFailure(CommandErrorCode::Failed, removed.error());
 
-    const Clip clip = *removed;
+    const Clip& clip = *removed;
     return CommandOutcome{
         QJsonObject{},
         makeEdit(
@@ -112,16 +112,16 @@ CommandResult addTrack(ProjectModel& project, const QJsonObject& params)
     if (!added)
         return commandFailure(CommandErrorCode::Failed, added.error());
 
-    const QString id = *added;
+    const QString& id = *added;
     return CommandOutcome{
         QJsonObject{{u"trackId"_s, id}},
         makeEdit(
             kind == TrackKind::Video ? u"Add Video Track"_s : u"Add Audio Track"_s,
-            [&project, id]() -> std::expected<void, QString> {
+            [&project, id] -> std::expected<void, QString> {
                 auto removed = project.removeTrack(id);
                 return removed ? std::expected<void, QString>{} : std::unexpected(removed.error());
             },
-            [&project, id, kind]() -> std::expected<void, QString> {
+            [&project, id, kind] -> std::expected<void, QString> {
                 auto again = project.addTrack(kind);
                 if (!again)
                     return std::unexpected(again.error());

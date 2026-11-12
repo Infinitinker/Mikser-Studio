@@ -7,6 +7,7 @@
 #include <QThread>
 
 #include <cstdlib>
+#include <ranges>
 
 namespace mikserstudio::tests {
 
@@ -32,7 +33,7 @@ bool waitUntil(const std::function<bool()>& done, std::chrono::milliseconds time
 
 std::optional<QString> sampleVideo()
 {
-    const QString path = QStringLiteral(MIKSERSTUDIO_SAMPLE_VIDEO);
+    QString path = QStringLiteral(MIKSERSTUDIO_SAMPLE_VIDEO);
     if (path.isEmpty() || !QFileInfo::exists(path))
         return std::nullopt;
     return path;
@@ -77,9 +78,9 @@ std::optional<engine::VideoFrame> RecordingSink::last() const
 std::optional<engine::VideoFrame> RecordingSink::lastAt(core::FramePos position) const
 {
     const std::scoped_lock lock(m_mutex);
-    for (auto it = m_frames.rbegin(); it != m_frames.rend(); ++it) {
-        if (it->position == position)
-            return *it;
+    for (const auto& frame : std::views::reverse(m_frames)) {
+        if (frame.position == position)
+            return frame;
     }
     return std::nullopt;
 }

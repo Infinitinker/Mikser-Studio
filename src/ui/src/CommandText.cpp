@@ -32,7 +32,7 @@ QString compactJson(const QJsonObject& object, qsizetype maxChars)
 
 QString resultSummary(const QJsonObject& result, qsizetype maxChars)
 {
-    for (const auto key : {u"text", u"message"}) {
+    for (const auto* const key : {u"text", u"message"}) {
         const QString text = result.value(QStringView(key)).toString();
         if (!text.isEmpty())
             return elide(text, maxChars);

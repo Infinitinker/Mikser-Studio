@@ -72,7 +72,7 @@ class PluginManager final : public QObject {
     Q_OBJECT
 
 public:
-    PluginManager(CommandBus& bus, QString settingsDirectory, QObject* parent = nullptr);
+    PluginManager(CommandBus& bus, const QString& settingsDirectory, QObject* parent = nullptr);
     ~PluginManager() override;  // Deactivates every active plugin.
 
     void addSearchPath(const QString& directory);  // Each subdirectory with a manifest is a plugin.

@@ -82,7 +82,7 @@ public:
             m_combo->addItem(kNotSet);
             m_values.append(std::nullopt);
         }
-        for (const QJsonValue& option : options) {
+        for (const QJsonValue option : options) {
             m_combo->addItem(display(option));
             m_values.append(option);
         }
@@ -291,7 +291,8 @@ QString singleSchemaType(const QJsonObject& schema)
     return {};
 }
 
-std::unique_ptr<FieldEditor> createFieldEditor(const QJsonObject& schema, bool optional, std::function<void()> changed)
+std::unique_ptr<FieldEditor> createFieldEditor(const QJsonObject& schema, bool optional,
+                                               const std::function<void()>& changed)
 {
     if (schema.value(u"enum").isArray())
         return std::make_unique<EnumEditor>(schema.value(u"enum").toArray(), optional, changed);

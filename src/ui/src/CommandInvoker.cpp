@@ -68,7 +68,7 @@ std::optional<std::expected<QJsonObject, core::CommandError>> invokeCommand(core
     ParamsDialog dialog(bus, *spec, parent);
     if (dialog.exec() != QDialog::Accepted)
         return std::nullopt;
-    return dialog.result();
+    return dialog.outcome();
 }
 
 }  // namespace mikserstudio::ui

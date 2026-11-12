@@ -63,7 +63,7 @@ struct AiFixture {
         return *result;
     }
 
-    QString writeFile(const QString& name)
+    QString writeFile(const QString& name) const
     {
         const QString path = dir.filePath(name);
         QFile file(path);
@@ -87,7 +87,7 @@ struct AiFixture {
 
     QJsonObject job(const QString& id)
     {
-        for (const QJsonValue& value : run(u"ai.jobs"_s).value(u"jobs").toArray()) {
+        for (const QJsonValue value : run(u"ai.jobs"_s).value(u"jobs").toArray()) {
             if (value.toObject().value(u"id").toString() == id)
                 return value.toObject();
         }

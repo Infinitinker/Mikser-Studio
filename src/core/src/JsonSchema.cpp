@@ -150,7 +150,7 @@ private:
         if (typeValue.isString()) {
             types.append(typeValue.toString());
         } else if (typeValue.isArray()) {
-            for (const QJsonValue& entry : typeValue.toArray())
+            for (const QJsonValue entry : typeValue.toArray())
                 types.append(entry.toString());
         } else {
             return true;
@@ -175,12 +175,12 @@ private:
         if (!enumValue.isArray())
             return;
         const QJsonArray options = enumValue.toArray();
-        for (const QJsonValue& option : options) {
+        for (const QJsonValue option : options) {
             if (jsonEqual(value, option))
                 return;
         }
         QStringList described;
-        for (const QJsonValue& option : options)
+        for (const QJsonValue option : options)
             described.append(toDisplay(option));
         add(pointer, u"must be one of: "_s + described.join(u", "_s));
     }
@@ -226,7 +226,7 @@ private:
 
     void checkObject(const QJsonObject& object, const QJsonObject& schema, const QString& pointer)
     {
-        for (const QJsonValue& name : schema.value(u"required").toArray()) {
+        for (const QJsonValue name : schema.value(u"required").toArray()) {
             if (name.isString() && !object.contains(name.toString()))
                 add(childPointer(pointer, name.toString()), u"is required"_s);
         }

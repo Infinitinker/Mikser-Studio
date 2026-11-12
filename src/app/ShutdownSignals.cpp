@@ -127,7 +127,8 @@ void installCloseGuard()
         return;
     }
     const auto guarded = reinterpret_cast<LONG_PTR>(&guardedDispatcherProc);
-    if (const ULONG_PTR classProc = GetClassLongPtrW(own, GCLP_WNDPROC); classProc != static_cast<ULONG_PTR>(guarded)) {
+    if (const ULONG_PTR classProc = GetClassLongPtrW(own, GCLP_WNDPROC);
+        classProc != reinterpret_cast<ULONG_PTR>(&guardedDispatcherProc)) {
         g_qtDispatcherProc = reinterpret_cast<WNDPROC>(classProc);
         SetClassLongPtrW(own, GCLP_WNDPROC, guarded);  // Windows created from now on.
     }
@@ -145,7 +146,7 @@ ShutdownSignals::ShutdownSignals()
 {
     ConsoleState& state = consoleState();
     {
-        const std::lock_guard lock(state.mutex);
+        const std::scoped_lock lock(state.mutex);
         state.installed = true;
         state.quitting = false;
     }
@@ -160,7 +161,7 @@ ShutdownSignals::~ShutdownSignals()
     g_closeGuardActive = false;
     ConsoleState& state = consoleState();
     {
-        const std::lock_guard lock(state.mutex);
+        const std::scoped_lock lock(state.mutex);
         state.installed = false;
     }
     state.tornDown.notify_all();

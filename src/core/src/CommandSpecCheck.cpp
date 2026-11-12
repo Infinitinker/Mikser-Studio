@@ -33,7 +33,7 @@ std::expected<void, QString> checkParamsSchema(const QJsonObject& schema)
         const QJsonValue required = schema.value(u"required");
         if (!required.isArray())
             return std::unexpected(u"paramsSchema \"required\" must be an array of property names"_s);
-        for (const QJsonValue& name : required.toArray()) {
+        for (const QJsonValue name : required.toArray()) {
             if (!name.isString())
                 return std::unexpected(u"paramsSchema \"required\" must contain only strings"_s);
         }

@@ -122,7 +122,7 @@ class ThemeObject final : public QObject {
     Q_PROPERTY(int fontSizeTitle READ fontSizeTitle CONSTANT)
 
 public:
-    explicit ThemeObject(const ThemeTokens& tokens = darkTheme(), QObject* parent = nullptr);
+    explicit ThemeObject(ThemeTokens tokens = darkTheme(), QObject* parent = nullptr);
 
     [[nodiscard]] const ThemeTokens& tokens() const { return m_tokens; }
 

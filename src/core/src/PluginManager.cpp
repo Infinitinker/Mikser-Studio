@@ -125,7 +125,7 @@ void PluginManager::Impl::fail(const QString& id, const QString& message)
     Q_EMIT q.pluginsChanged();
 }
 
-PluginManager::PluginManager(CommandBus& bus, QString settingsDirectory, QObject* parent)
+PluginManager::PluginManager(CommandBus& bus, const QString& settingsDirectory, QObject* parent)
     : QObject(parent)
     , d(std::make_unique<Impl>(*this, bus, settingsDirectory))
 {

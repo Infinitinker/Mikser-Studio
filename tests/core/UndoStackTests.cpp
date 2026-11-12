@@ -199,12 +199,13 @@ TEST_CASE("UndoStack handles empty, unbalanced and interrupted groups", "[undo]"
     }
     SECTION("the RAII group closes when an exception leaves the scope")
     {
-        try {
-            mikserstudio::core::UndoGroup group(stack, u"Failing"_s);
-            apply(stack, value, 5);
-            throw std::runtime_error("stop");
-        } catch (const std::runtime_error&) {
-        }
+        CHECK_THROWS_AS(
+            [&] {
+                const mikserstudio::core::UndoGroup group(stack, u"Failing"_s);
+                apply(stack, value, 5);
+                throw std::runtime_error("stop");
+            }(),
+            std::runtime_error);
         CHECK_FALSE(stack.isGrouping());
         CHECK(stack.undoText() == u"Failing"_s);
     }

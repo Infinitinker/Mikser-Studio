@@ -280,7 +280,7 @@ std::expected<QString, QString> ProjectModel::addTrack(TrackKind kind)
         const auto lastVideo = std::ranges::find_last(m_tracks, TrackKind::Video, &Track::kind);
         index = lastVideo.empty() ? 0 : (lastVideo.begin() - m_tracks.begin()) + 1;
     }
-    const QString id = track.id;
+    QString id = track.id;
     m_tracks.insert(index, std::move(track));
     Q_EMIT trackAdded(id);
     Q_EMIT timelineChanged();

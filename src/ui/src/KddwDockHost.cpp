@@ -46,7 +46,7 @@ void configureKddw(KDDockWidgets::DockWidgetFactoryFunc factory)
 
     KDDockWidgets::initFrontend(KDDockWidgets::FrontendType::QtWidgets);
     auto& config = KDDockWidgets::Config::self();
-    using Config = KDDockWidgets::Config;
+    using KDDockWidgets::Config;
     config.setFlags(Config::Flags(Config::Flag_Default) | Config::Flag_HideTitleBarWhenTabsVisible |
                     Config::Flag_AlwaysShowTabs | Config::Flag_AllowReorderTabs | Config::Flag_TabsHaveCloseButton |
                     Config::Flag_ShowButtonsOnTabBarIfTitleBarHidden | Config::Flag_AlwaysTitleBarWhenFloating |
@@ -99,14 +99,14 @@ KDDockWidgets::InitialOption sizeOption(Placement placement, int size)
 void collectPlacedDocks(const QJsonValue& value, QSet<QString>& names)
 {
     if (value.isArray()) {
-        for (const QJsonValue& item : value.toArray())
+        for (const QJsonValue item : value.toArray())
             collectPlacedDocks(item, names);
         return;
     }
     const QJsonObject object = value.toObject();
     for (auto it = object.constBegin(); it != object.constEnd(); ++it) {
         if (it.key() == u"dockWidgets"_s) {
-            for (const QJsonValue& name : it.value().toArray())
+            for (const QJsonValue name : it.value().toArray())
                 names.insert(name.toString());
         } else {
             collectPlacedDocks(it.value(), names);

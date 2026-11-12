@@ -24,7 +24,7 @@ constexpr int kKillWaitMs = 1000;
 
 int toMs(std::chrono::milliseconds duration)
 {
-    return static_cast<int>(std::clamp<std::chrono::milliseconds::rep>(duration.count(), 0, 24 * 3600 * 1000));
+    return static_cast<int>(std::clamp<std::chrono::milliseconds::rep>(duration.count(), 0, 24LL * 3600 * 1000));
 }
 
 }  // namespace

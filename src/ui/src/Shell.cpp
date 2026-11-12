@@ -156,7 +156,7 @@ void Shell::restoreState()
             u"The last window layout could not be restored; using the \"%1\" workspace."_s.arg(workspace), true);
     }
     // Workspaces are laid out in proportion to the window, so wait until it has its real size.
-    m_pendingWorkspace = workspace;
+    m_pendingWorkspace = std::move(workspace);
     if (mainWindow()->isVisible())
         applyPendingWorkspace();
 }

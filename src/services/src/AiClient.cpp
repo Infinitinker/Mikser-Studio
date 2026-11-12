@@ -91,7 +91,7 @@ void AiClient::submitJob(const QString& op, const QJsonObject& params, const QOb
     const QJsonObject body{{u"op"_s, op}, {u"params"_s, params}};
     send("POST", u"/v1/jobs"_s, &body, context,
          adapt<QString>(std::move(done), [](const QJsonDocument& document) -> std::expected<QString, QString> {
-             const QString id = document.object().value(u"jobId").toString();
+             QString id = document.object().value(u"jobId").toString();
              if (id.isEmpty())
                  return std::unexpected(u"the answer has no \"jobId\""_s);
              return id;

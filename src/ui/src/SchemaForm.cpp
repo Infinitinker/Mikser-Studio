@@ -58,7 +58,7 @@ QStringList propertyOrder(const QJsonObject& schema)
 {
     const QJsonObject properties = schema.value(u"properties").toObject();
     QStringList order;
-    for (const QJsonValue& name : schema.value(u"required").toArray()) {
+    for (const QJsonValue name : schema.value(u"required").toArray()) {
         if (properties.contains(name.toString()) && !order.contains(name.toString()))
             order.append(name.toString());
     }

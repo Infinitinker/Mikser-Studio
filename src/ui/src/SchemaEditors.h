@@ -28,7 +28,7 @@ public:
 // Picks the editor for `schema`. `optional` editors can be "not set" (an empty line edit, a
 // "Not set" spin box or combo entry, an unchecked box). `changed` runs on every edit.
 [[nodiscard]] std::unique_ptr<FieldEditor> createFieldEditor(const QJsonObject& schema, bool optional,
-                                                             std::function<void()> changed);
+                                                             const std::function<void()>& changed);
 
 // The JSON Schema "type" of `schema` when it names exactly one type, else empty.
 [[nodiscard]] QString singleSchemaType(const QJsonObject& schema);

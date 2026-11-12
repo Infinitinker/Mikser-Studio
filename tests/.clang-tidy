@@ -1,0 +1,14 @@
+# What clang-tidy leaves out in the tests, on top of the root's .clang-tidy:
+#
+# bugprone-unchecked-optional-access: Catch2's REQUIRE checks an optional before the test reads it,
+#   which the check cannot see.
+# bugprone-throwing-static-initialization: test tables are built when the test program starts, where
+#   running out of memory ends it anyway.
+# clang-analyzer-optin.core.EnumCastOutOfRange: Catch2's result flags combine its enum's values.
+# concurrency-mt-unsafe: the fake AI service is a single-threaded program that exits with std::exit.
+InheritParentConfig: true
+Checks: >
+  -bugprone-unchecked-optional-access,
+  -bugprone-throwing-static-initialization,
+  -clang-analyzer-optin.core.EnumCastOutOfRange,
+  -concurrency-mt-unsafe

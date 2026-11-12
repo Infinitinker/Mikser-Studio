@@ -3,6 +3,7 @@
 #include <framework/mlt.h>  // Declares the C API with C linkage.
 
 #include <cstring>
+#include <utility>
 
 namespace mikserstudio::engine {
 
@@ -20,7 +21,7 @@ QImage frameToImage(mlt_frame frame, int width, int height)
     if (image.isNull())
         return {};
     const auto rowBytes = static_cast<std::size_t>(frameWidth) * 4;
-    if (static_cast<std::size_t>(image.bytesPerLine()) == rowBytes) {
+    if (std::cmp_equal(image.bytesPerLine(), rowBytes)) {
         std::memcpy(image.bits(), data, rowBytes * static_cast<std::size_t>(frameHeight));
     } else {
         for (int y = 0; y < frameHeight; ++y)

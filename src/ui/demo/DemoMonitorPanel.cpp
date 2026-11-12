@@ -12,6 +12,7 @@
 #include <QVBoxLayout>
 
 #include <algorithm>
+#include <cmath>
 
 using namespace Qt::StringLiterals;
 
@@ -21,7 +22,7 @@ namespace {
 
 QString timecode(core::FramePos frame, core::Rational rate)
 {
-    const auto fps = std::max<core::FramePos>(1, static_cast<core::FramePos>(rate.toDouble() + 0.5));
+    const auto fps = std::max<core::FramePos>(1, static_cast<core::FramePos>(std::llround(rate.toDouble())));
     return u"%1:%2:%3:%4"_s.arg(frame / fps / 3600, 2, 10, u'0')
         .arg(frame / fps / 60 % 60, 2, 10, u'0')
         .arg(frame / fps % 60, 2, 10, u'0')

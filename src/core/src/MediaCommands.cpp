@@ -68,7 +68,7 @@ CommandResult importMedia(ProjectModel& project, MediaProbe& probe, const QJsonO
         QJsonObject{{u"mediaId"_s, id}},
         makeEdit(
             u"Import \"%1\""_s.arg(item.name),
-            [&project, id]() -> std::expected<void, QString> {
+            [&project, id] -> std::expected<void, QString> {
                 auto removed = project.removeMedia(id);
                 return removed ? std::expected<void, QString>{} : std::unexpected(removed.error());
             },
@@ -84,12 +84,12 @@ CommandResult removeMedia(ProjectModel& project, const QJsonObject& params)
     if (!removed)
         return commandFailure(CommandErrorCode::Failed, removed.error());
 
-    const MediaItem item = *removed;
+    const MediaItem& item = *removed;
     return CommandOutcome{
         QJsonObject{},
         makeEdit(
             u"Remove \"%1\""_s.arg(item.name), [&project, item, index] { return project.addMedia(item, index); },
-            [&project, id]() -> std::expected<void, QString> {
+            [&project, id] -> std::expected<void, QString> {
                 auto again = project.removeMedia(id);
                 return again ? std::expected<void, QString>{} : std::unexpected(again.error());
             }),

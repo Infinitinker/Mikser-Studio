@@ -8,6 +8,8 @@ project(MikserStudio
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
+# The code uses no C++ modules: skip CMake's scan for them, whose GCC flags clang-tidy cannot read.
+set(CMAKE_CXX_SCAN_FOR_MODULES OFF)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")

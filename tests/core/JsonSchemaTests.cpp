@@ -69,13 +69,13 @@ TEST_CASE("JsonSchema checks enum and const", "[schema]")
 
 TEST_CASE("JsonSchema checks numeric bounds", "[schema]")
 {
-    const auto schema = R"({"minimum": 0, "maximum": 10})";
+    const auto* const schema = R"({"minimum": 0, "maximum": 10})";
     CHECK(check(0, schema).isEmpty());
     CHECK(check(10, schema).isEmpty());
     CHECK(check(-1, schema) == QStringList{u"(root): must be >= 0"_s});
     CHECK(check(11, schema) == QStringList{u"(root): must be <= 10"_s});
 
-    const auto exclusive = R"({"exclusiveMinimum": 0, "exclusiveMaximum": 1.5})";
+    const auto* const exclusive = R"({"exclusiveMinimum": 0, "exclusiveMaximum": 1.5})";
     CHECK(check(0.5, exclusive).isEmpty());
     CHECK(check(0, exclusive) == QStringList{u"(root): must be > 0"_s});
     CHECK(check(1.5, exclusive) == QStringList{u"(root): must be < 1.5"_s});
@@ -84,7 +84,7 @@ TEST_CASE("JsonSchema checks numeric bounds", "[schema]")
 
 TEST_CASE("JsonSchema checks string length in code points and patterns", "[schema]")
 {
-    const auto lengths = R"({"minLength": 2, "maxLength": 3})";
+    const auto* const lengths = R"({"minLength": 2, "maxLength": 3})";
     CHECK(check(u"ab"_s, lengths).isEmpty());
     CHECK(check(u"a"_s, lengths) == QStringList{u"(root): must be at least 2 characters long"_s});
     CHECK(check(u"abcd"_s, lengths) == QStringList{u"(root): must be at most 3 characters long"_s});
@@ -102,7 +102,7 @@ TEST_CASE("JsonSchema checks string length in code points and patterns", "[schem
 
 TEST_CASE("JsonSchema checks object properties, required and additionalProperties", "[schema]")
 {
-    const auto schema = R"({
+    const auto* const schema = R"({
         "type": "object",
         "properties": {"name": {"type": "string"}, "size": {"type": "integer"}},
         "required": ["name"],
@@ -125,7 +125,7 @@ TEST_CASE("JsonSchema checks object properties, required and additionalPropertie
 
 TEST_CASE("JsonSchema checks arrays", "[schema]")
 {
-    const auto schema = R"({"type": "array", "items": {"type": "integer"}, "minItems": 1, "maxItems": 2})";
+    const auto* const schema = R"({"type": "array", "items": {"type": "integer"}, "minItems": 1, "maxItems": 2})";
     CHECK(check(QJsonArray{1, 2}, schema).isEmpty());
     CHECK(check(QJsonArray{}, schema) == QStringList{u"(root): must contain at least 1 items"_s});
     CHECK(check(QJsonArray{1, 2, 3}, schema) == QStringList{u"(root): must contain at most 2 items"_s});
@@ -134,7 +134,7 @@ TEST_CASE("JsonSchema checks arrays", "[schema]")
 
 TEST_CASE("JsonSchema reports nested JSON Pointers with escaping", "[schema]")
 {
-    const auto schema = R"({
+    const auto* const schema = R"({
         "type": "object",
         "properties": {
             "a/b": {"type": "object", "properties": {"m~n": {"type": "array", "items": {
@@ -148,7 +148,7 @@ TEST_CASE("JsonSchema reports nested JSON Pointers with escaping", "[schema]")
 
 TEST_CASE("JsonSchema reports every problem and ignores unknown keywords", "[schema]")
 {
-    const auto schema = R"({
+    const auto* const schema = R"({
         "type": "object",
         "title": "T", "description": "D", "x-custom": 1, "$comment": "c",
         "properties": {"a": {"type": "string"}, "b": {"minimum": 3}},

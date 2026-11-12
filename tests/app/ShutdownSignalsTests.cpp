@@ -101,7 +101,7 @@ TEST_CASE("A close request from another program quits cleanly on any thread's ev
 
     SECTION("a thread that was already running")
     {
-        const HWND window = before.window();
+        HWND window = before.window();
         REQUIRE(window != nullptr);
         CHECK(closeRequestQuits(window));
         CHECK(IsWindow(window));
@@ -109,7 +109,7 @@ TEST_CASE("A close request from another program quits cleanly on any thread's ev
     }
     SECTION("a thread started later")
     {
-        const HWND window = after.window();
+        HWND window = after.window();
         REQUIRE(window != nullptr);
         CHECK(closeRequestQuits(window));
         CHECK(IsWindow(window));
@@ -117,7 +117,7 @@ TEST_CASE("A close request from another program quits cleanly on any thread's ev
     }
     SECTION("the main thread")
     {
-        const HWND window = eventLoopWindow(GetCurrentThreadId());
+        HWND window = eventLoopWindow(GetCurrentThreadId());
         REQUIRE(window != nullptr);
         CHECK(closeRequestQuits(window));
         CHECK(IsWindow(window));

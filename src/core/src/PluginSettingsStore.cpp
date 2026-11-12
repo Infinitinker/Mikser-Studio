@@ -33,7 +33,7 @@ std::expected<QSet<QString>, QString> PluginSettingsStore::loadDisabled() const
     if (!json)
         return std::unexpected(json.error());
     QSet<QString> disabled;
-    for (const QJsonValue& id : json->value(u"disabled").toArray())
+    for (const QJsonValue id : json->value(u"disabled").toArray())
         disabled.insert(id.toString());
     return disabled;
 }
