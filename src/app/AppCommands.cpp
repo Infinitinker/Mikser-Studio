@@ -1,6 +1,8 @@
 // The project.new, project.save, project.open and source.open_media commands.
 #include "AppCommands.h"
 
+#include "Logging.h"
+
 #include "mikserstudio/core/CommandBus.h"
 #include "mikserstudio/core/Project.h"
 #include "mikserstudio/core/UndoStack.h"
@@ -51,12 +53,19 @@ core::CommandResult openProject(core::ProjectModel& project, core::UndoStack& un
 {
     QFile file(path);
     if (!file.open(QIODevice::ReadOnly))
-        return commandFailure(CommandErrorCode::Failed, u"Could not open “%1”: %2."_s.arg(path, file.errorString()));
+        return commandFailure(CommandErrorCode::Failed,
+                              u"Could not open “%1”: %2. Check that the file exists and that you can read it."_s.arg(
+                                  path, file.errorString()));
     QJsonParseError parseError;
     const QJsonDocument document = QJsonDocument::fromJson(file.readAll(), &parseError);
-    if (parseError.error != QJsonParseError::NoError || !document.isObject())
-        return commandFailure(CommandErrorCode::Failed,
-                              u"“%1” is not a Mikser Studio project file (%2)."_s.arg(path, parseError.errorString()));
+    if (parseError.error != QJsonParseError::NoError || !document.isObject()) {
+        qCWarning(lcApp).noquote() << "Not a project file:" << path << "-" << parseError.errorString() << "at offset"
+                                   << parseError.offset;
+        return commandFailure(
+            CommandErrorCode::Failed,
+            u"“%1” is not a Mikser Studio project, or it is damaged. Open a .mikser file that Mikser Studio saved."_s
+                .arg(path));
+    }
     if (const auto loaded = project.loadJson(document.object()); !loaded)
         return commandFailure(CommandErrorCode::Failed, loaded.error());
     undo.clear();  // Old edits refer to the previous project.

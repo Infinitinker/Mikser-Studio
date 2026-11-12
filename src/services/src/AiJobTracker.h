@@ -23,6 +23,9 @@ namespace mikserstudio::services {
 
 class AiClient;
 
+// What an AI command answers once the AI service is gone, which happens only while Mikser Studio closes.
+[[nodiscard]] QString serviceClosedMessage();
+
 // Keeps the app's own list of AI jobs. Each job gets a local id at once, waits until the sidecar
 // is running (starting it on demand), is submitted, and is polled while active. A sidecar crash
 // fails the jobs it was running. Main thread only.

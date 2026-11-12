@@ -1,6 +1,8 @@
 // The Window menu's actions, kept in sync with the dock host's panels.
 #include "WindowMenu.h"
 
+#include "CommandStatus.h"
+
 #include "mikserstudio/ui/DockHost.h"
 
 #include <QAction>
@@ -10,10 +12,12 @@
 
 namespace mikserstudio::ui {
 
-WindowMenu::WindowMenu(DockHost& host, QMenu* menu, QList<QAction*> leadingActions, QObject* parent)
+WindowMenu::WindowMenu(DockHost& host, QMenu* menu, CommandStatus& status, QList<QAction*> leadingActions,
+                       QObject* parent)
     : QObject(parent)
     , m_host(host)
     , m_menu(menu)
+    , m_status(status)
     , m_leading(std::move(leadingActions))
 {
     connect(&host, &DockHost::panelsChanged, this, &WindowMenu::rebuild);
@@ -45,10 +49,12 @@ void WindowMenu::rebuild()
         action->setToolTip(panel.id);
         const QString id = panel.id;
         connect(action, &QAction::triggered, this, [this, id](bool checked) {
-            if (checked)
-                (void)m_host.openPanel(id);
-            else
+            if (checked) {
+                if (const auto opened = m_host.openPanel(id); !opened)
+                    m_status.showMessage(opened.error(), true);
+            } else {
                 m_host.closePanel(id);
+            }
             updateChecks();
         });
         m_actions.insert(id, action);

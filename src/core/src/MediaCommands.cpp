@@ -35,7 +35,7 @@ CommandResult importMedia(ProjectModel& project, MediaProbe& probe, const QJsonO
     const QString path = QDir::fromNativeSeparators(file.absoluteFilePath());
     if (!isAllowedMediaPath(path)) {  // Checked before touching the file, so no share is contacted.
         return commandFailure(CommandErrorCode::Failed,
-                              u"\"%1\" is on a network share. Copy it to a folder on this computer (or map the share "
+                              u"“%1” is on a network share. Copy it to a folder on this computer (or map the share "
                               "to a drive letter) and import it from there."_s.arg(file.filePath()));
     }
     if (!file.exists())
@@ -47,7 +47,7 @@ CommandResult importMedia(ProjectModel& project, MediaProbe& probe, const QJsonO
 
     auto info = probe.probe(path, project.frameRate());
     if (!info)
-        return commandFailure(CommandErrorCode::Failed, u"Cannot import “%1”: %2"_s.arg(file.fileName(), info.error()));
+        return commandFailure(CommandErrorCode::Failed, info.error());  // It names the file and what to do.
     if (info->kind == MediaKind::Image)
         info->durationFrames = imageDuration(project.frameRate());
 

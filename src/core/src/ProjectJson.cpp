@@ -197,7 +197,7 @@ std::expected<ProjectDocument, QString> projectFromJson(const QJsonObject& json)
         const QString path = object.value(u"path").toString();
         if (!isAllowedMediaPath(path)) {
             return std::unexpected(
-                u"The project file is damaged: media \"%1\" has the path \"%2\", which is not an absolute path to a "
+                u"The project file is damaged: media “%1” has the path “%2”, which is not an absolute path to a "
                 "file on this computer. Mikser Studio only opens local media files from projects; import the file again."_s
                     .arg(object.value(u"id").toString(), path));
         }

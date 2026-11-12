@@ -46,7 +46,7 @@ std::expected<MltLocation, QString> find(const char* overrideVariable, const QLi
     const QString overridePath = qEnvironmentVariable(overrideVariable);
     if (!overridePath.isEmpty()) {
         if (!isValid(overridePath))
-            return std::unexpected(u"%1 is set to \"%2\", but that folder does not contain the MLT %3. Point it to the "
+            return std::unexpected(u"%1 is set to “%2”, but that folder does not contain the MLT %3. Point it to the "
                                    u"MLT %3 folder of your installation or unset it."_s.arg(
                                        QString::fromLatin1(overrideVariable), overridePath,
                                        kind == u"lib"_s ? u"modules"_s : u"data files"_s));

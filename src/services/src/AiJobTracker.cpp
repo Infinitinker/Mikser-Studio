@@ -11,6 +11,11 @@ using namespace Qt::StringLiterals;
 
 namespace mikserstudio::services {
 
+QString serviceClosedMessage()
+{
+    return u"The AI service has stopped because Mikser Studio is closing. Start Mikser Studio again to use AI."_s;
+}
+
 namespace {
 
 const QString kWaitingForService = u"Waiting for the AI service to start"_s;
@@ -55,7 +60,7 @@ QString AiJobTracker::submit(const QString& op, const QJsonObject& params, const
     qCInfo(lcAi).noquote() << "New AI job" << id << op << "-" << title;
 
     if (!m_sidecar)
-        finish(job, AiJobState::Failed, u"Failed"_s, u"The AI service is not available in this session."_s);
+        finish(job, AiJobState::Failed, u"Failed"_s, serviceClosedMessage());
     else if (m_sidecar->state() == SidecarState::Running)
         sendToSidecar(job);
     else

@@ -307,7 +307,7 @@ void Shell::buildMenus()
     palette->setToolTip(u"Search and run any command."_s);
     connect(palette, &QAction::triggered, this, &Shell::showCommandPalette);
     window->addAction(palette);
-    m_windowMenuController = new WindowMenu(*m_dockHost, m_windowMenu, {palette}, this);
+    m_windowMenuController = new WindowMenu(*m_dockHost, m_windowMenu, *m_status, {palette}, this);
 
     m_workspaceMenuController = new WorkspaceMenu(*m_dockHost, m_workspaceMenu, *m_status, window, this);
 }

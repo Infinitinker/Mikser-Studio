@@ -19,9 +19,10 @@ CommandResult runHandler(const CommandHandler& handler, const QString& id, const
     try {
         return handler(params);
     } catch (const std::exception& exception) {
-        return commandFailure(CommandErrorCode::Failed,
-                              u"Command “%1” stopped with an internal error: %2. Please report this problem."_s.arg(
-                                  id, QString::fromLocal8Bit(exception.what())));
+        return commandFailure(
+            CommandErrorCode::Failed,
+            u"Command “%1” stopped with an internal error: %2. Report this problem, with Mikser Studio’s log."_s.arg(
+                id, QString::fromLocal8Bit(exception.what())));
     }
 }
 

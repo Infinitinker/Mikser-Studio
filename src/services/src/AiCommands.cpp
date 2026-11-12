@@ -148,8 +148,7 @@ void AiCommandSet::registerAll()
 CommandResult AiCommandSet::status() const
 {
     if (!m_sidecar)
-        return core::commandFailure(CommandErrorCode::NotAvailable,
-                                    u"The AI service is not available in this session."_s);
+        return core::commandFailure(CommandErrorCode::NotAvailable, serviceClosedMessage());
     return ok(QJsonObject{
         {u"state"_s, toString(m_sidecar->state())},
         {u"error"_s, m_sidecar->errorString()},
@@ -162,8 +161,7 @@ CommandResult AiCommandSet::status() const
 CommandResult AiCommandSet::backends()
 {
     if (!m_sidecar)
-        return core::commandFailure(CommandErrorCode::NotAvailable,
-                                    u"The AI service is not available in this session."_s);
+        return core::commandFailure(CommandErrorCode::NotAvailable, serviceClosedMessage());
     if (m_sidecar->state() == SidecarState::Failed) {
         const QString error = m_sidecar->errorString();
         m_tracker.ensureSidecar();

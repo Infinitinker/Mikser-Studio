@@ -1,6 +1,7 @@
 // The MLT media probe: opens the media item and reads its kind, duration, frame rate and size.
 #include "mikserstudio/engine/MltMediaProbe.h"
 
+#include "Logging.h"
 #include "MltProfile.h"
 #include "MltResource.h"
 #include "mikserstudio/engine/MltRuntime.h"
@@ -93,9 +94,12 @@ std::expected<core::MediaInfo, QString> MltMediaProbe::probe(const QString& path
         info.height = producer.get_int("meta.media.height");
         return info;
     }
-    if (service != u"avformat"_s && service != u"avformat-novalidate"_s)
-        return std::unexpected(u"“%1” is not a video, audio or image file (MLT opened it as “%2”)."_s.arg(
-            QDir::toNativeSeparators(path), service));
+    if (service != u"avformat"_s && service != u"avformat-novalidate"_s) {
+        qCInfo(lcEngine).noquote() << "MLT opened" << path << "as" << service << "- not a media file";
+        return std::unexpected(
+            u"“%1” is not a video, sound or picture file that Mikser Studio can play. Import a video, sound or "
+            u"picture file instead."_s.arg(QDir::toNativeSeparators(path)));
+    }
 
     const int videoIndex = producer.get_int("video_index");
     const int audioIndex = producer.get_int("audio_index");
@@ -104,7 +108,8 @@ std::expected<core::MediaInfo, QString> MltMediaProbe::probe(const QString& path
     info.hasAudio = audioIndex >= 0 && audioIndex < streams;
     if (!info.hasVideo && !info.hasAudio)
         return std::unexpected(
-            u"“%1” contains no video or audio that Mikser Studio can play."_s.arg(QDir::toNativeSeparators(path)));
+            u"“%1” has no video or sound that Mikser Studio can play. Import a file with a picture or sound in it."_s
+                .arg(QDir::toNativeSeparators(path)));
 
     if (info.hasVideo) {
         info.width = producer.get_int(streamKey(videoIndex, "codec.width").constData());

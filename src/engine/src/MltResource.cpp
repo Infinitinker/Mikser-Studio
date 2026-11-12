@@ -59,7 +59,7 @@ std::expected<QString, QString> localFileResource(const QString& path)
     // Checked before QFileInfo touches the path: a network share would make Windows contact it.
     if (!core::isAllowedMediaPath(path))
         return std::unexpected(
-            u"\"%1\" is not a file on this computer. Mikser Studio plays only local media files (no web addresses, "
+            u"“%1” is not a file on this computer. Mikser Studio plays only local media files (no web addresses, "
             u"network shares or MLT services); copy the file to a local or mapped drive and import it again."_s.arg(
                 shown));
     const QFileInfo file(path);
@@ -70,7 +70,7 @@ std::expected<QString, QString> localFileResource(const QString& path)
         return std::unexpected(u"“%1” is a folder, not a media file."_s.arg(shown));
     if (isMltDocument(file))
         return std::unexpected(
-            u"\"%1\" is a project or document file, not a media file. Import its video, audio or image "
+            u"“%1” is a project or document file, not a media file. Import its video, audio or image "
             u"files instead."_s.arg(shown));
     return QDir::fromNativeSeparators(file.absoluteFilePath());
 }
@@ -91,7 +91,8 @@ std::expected<std::unique_ptr<Mlt::Producer>, QString> openProducer(Mlt::Profile
     auto producer = std::make_unique<Mlt::Producer>(profile, resource->toUtf8().constData());
     if (!producer->is_valid())
         return std::unexpected(
-            u"“%1” could not be opened. The file may be damaged or in a format Mikser Studio cannot read."_s.arg(
+            u"“%1” could not be opened: it may be damaged or in a format Mikser Studio cannot read. Check that it "
+            u"plays in a media player, or convert it to a common format such as MP4 or WAV."_s.arg(
                 QDir::toNativeSeparators(path)));
     if (isAvformatStill(*producer))
         primeStill(*producer);
