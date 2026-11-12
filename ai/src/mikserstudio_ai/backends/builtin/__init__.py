@@ -35,7 +35,7 @@ class BuiltinBackend:
 
     async def run(self, op: str, params: Mapping[str, Any], context: JobContext) -> Outcome:
         if op != OPERATION.id:
-            raise BackendError(f'The builtin backend does not offer "{op}".')
+            raise BackendError(f"The builtin backend does not offer “{op}”.")
         return await upscale(self._ffmpeg, params, context)
 
     async def close(self) -> None:

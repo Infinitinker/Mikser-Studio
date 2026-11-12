@@ -10,7 +10,7 @@ THINK_END = "</think>"
 
 OPERATION = Operation(
     id="text.generate",
-    title="Generate Text",
+    title="Generate text",
     description="Answers a prompt with a local language model served by Ollama.",
     params_schema={
         "type": "object",
@@ -80,7 +80,7 @@ async def _choose_model(client: OllamaClient, models: list[Model], wanted: objec
             return model
     installed = ", ".join(model.name for model in models)
     raise BackendError(
-        f'The model "{wanted}" is not installed in Ollama (installed: {installed}). '
+        f"The model “{wanted}” is not installed in Ollama (installed: {installed}). "
         f'Download it with "ollama pull {wanted}" or choose an installed one.'
     )
 

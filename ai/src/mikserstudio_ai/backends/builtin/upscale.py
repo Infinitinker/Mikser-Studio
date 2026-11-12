@@ -19,7 +19,7 @@ MAX_OUTPUT_PIXELS = 8192 * 4320
 
 OPERATION = Operation(
     id="video.upscale",
-    title="Upscale Video (Lanczos, not AI)",
+    title="Upscale video (Lanczos, not AI)",
     description=(
         "Scales a video up 2, 3 or 4 times with ffmpeg's lanczos filter. A non-AI placeholder until an AI "
         "upscaler backend is installed."
@@ -40,7 +40,7 @@ async def upscale(ffmpeg: Ffmpeg, params: Mapping[str, Any], context: JobContext
     source = Path(params["input"])
     scale = int(params["scale"])
     if not source.is_file():
-        raise BackendError(f'The video "{source}" does not exist. It may have been moved or deleted.')
+        raise BackendError(f"The video “{source}” does not exist. It may have been moved or deleted.")
 
     context.report(0.0, "Reading the video")
     info = await ffmpeg.probe_video(source)

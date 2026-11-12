@@ -81,17 +81,17 @@ async def submit_job(request: web.Request) -> web.Response:
     params = body.get("params", {})
     wanted_backend = body.get("backend")
     if not isinstance(op, str) or not op:
-        raise ApiError(400, "invalid_params", 'The body needs "op", the id of an operation such as "video.upscale".')
+        raise ApiError(400, "invalid_params", "The body needs “op”, the id of an operation such as “video.upscale”.")
     if not isinstance(params, dict):
-        raise ApiError(400, "invalid_params", '"params" must be a JSON object.')
+        raise ApiError(400, "invalid_params", "“params” must be a JSON object.")
     if wanted_backend is not None and not isinstance(wanted_backend, str):
-        raise ApiError(400, "invalid_params", '"backend" must be the id of a backend.')
+        raise ApiError(400, "invalid_params", "“backend” must be the id of a backend.")
 
     backend, operation = await _choose_backend(request.app[REGISTRY], op, wanted_backend)
     effective = with_defaults(params, operation.params_schema)
     problems = validate(effective, operation.params_schema)
     if problems:
-        raise ApiError(400, "invalid_params", f'Invalid parameters for "{op}": ' + "; ".join(problems))
+        raise ApiError(400, "invalid_params", f"Invalid parameters for “{op}”: " + "; ".join(problems))
     job = request.app[JOBS].submit(backend, op, effective)
     return web.json_response({"jobId": job.id}, status=202)
 
@@ -102,9 +102,9 @@ async def _choose_backend(registry: BackendRegistry, op: str, wanted: str | None
     if wanted is not None:
         candidates = [(backend, operation) for backend, operation in candidates if backend.id == wanted]
     if not candidates:
-        where = f'the backend "{wanted}"' if wanted else "any backend"
+        where = f"the backend “{wanted}”" if wanted else "any backend"
         raise ApiError(
-            404, "unknown_op", f'The operation "{op}" is not offered by {where}. GET /v1/backends lists them.'
+            404, "unknown_op", f"The operation “{op}” is not offered by {where}. GET /v1/backends lists them."
         )
     reasons: list[str] = []
     for backend, operation in candidates:

@@ -39,7 +39,7 @@ class OllamaBackend:
 
     async def run(self, op: str, params: Mapping[str, Any], context: JobContext) -> Outcome:
         if op != OPERATION.id:
-            raise BackendError(f'The ollama backend does not offer "{op}".')
+            raise BackendError(f"The ollama backend does not offer “{op}”.")
         return await generate(self._client, params, context)
 
     async def close(self) -> None:

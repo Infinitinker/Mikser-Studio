@@ -113,7 +113,7 @@ class Ffmpeg:
 
 def missing_ffmpeg_reason(configured: str | None) -> str:
     if configured:
-        return f'ffmpeg was not found at "{configured}". Check the --ffmpeg path of the AI service.'
+        return f"ffmpeg was not found at “{configured}”. Check the --ffmpeg path of the AI service."
     return "ffmpeg was not found. Install FFmpeg (https://ffmpeg.org) and add it to PATH, then restart Mikser Studio."
 
 
