@@ -48,7 +48,8 @@ ctest --preset debug -j8
 (cd ai && .venv/Scripts/python -m pytest -q)
 ```
 
-Presets: `debug`, `release` (RelWithDebInfo) and `ci` (warnings are errors). Every module can be
+Presets: `debug`, `release` (RelWithDebInfo), `ci` (warnings are errors) and `package` (the release
+files' build, [releasing.md](releasing.md)). Every module can be
 switched off (`-DMIKSERSTUDIO_WITH_ENGINE=OFF`, `..._API`, `..._SERVICES`, `..._UI`, `..._PLUGINS`) to build
 and test one module on its own; `src/app` is built only when all of them are on.
 
@@ -88,13 +89,13 @@ moves aside the same way.
 
 Which Mikser Studio runs decides its name and app id, so its own per-user folders (settings, cache,
 logs, the API's discovery file). A build from source is **Mikser Studio Dev**, however it is started:
-only the release build, configured with `MIKSERSTUDIO_INSTALLED_APP` ([releasing.md](releasing.md)),
-is the installed app. `MIKSERSTUDIO_INSTANCE` chooses another:
+only the `package` preset's build, which sets `MIKSERSTUDIO_INSTALLED_APP`
+([releasing.md](releasing.md)), is the installed app. `MIKSERSTUDIO_INSTANCE` chooses another:
 
 | `MIKSERSTUDIO_INSTANCE` | Name | App id | Used by |
 |---|---|---|---|
 | unset, in a build from source | Mikser Studio Dev | `io.github.infinitinker.mikserstudio.dev` | `start.bat`, the program run directly, the UI demo |
-| unset, in the release | Mikser Studio | `io.github.infinitinker.mikserstudio` | the installed app |
+| unset, in the `package` build | Mikser Studio | `io.github.infinitinker.mikserstudio` | the installed app |
 | `dev` | Mikser Studio Dev | `io.github.infinitinker.mikserstudio.dev` | |
 | `e2e` | Mikser Studio E2E | `io.github.infinitinker.mikserstudio.e2e` | the end-to-end tests |
 

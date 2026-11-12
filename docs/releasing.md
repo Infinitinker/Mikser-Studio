@@ -23,22 +23,23 @@ GitHub, under the tag `v<version>`:
 - `MikserStudio-<version>-third-party-notices.md`: the same notices, to read without downloading the
   app.
 
-It needs the release build (the `release` preset with `MIKSERSTUDIO_INSTALLED_APP` on), MSYS2's packages as
+It needs the package build (the `package` preset, in `build/package`), MSYS2's packages as
 [development.md](development.md#windows-msys2-ucrt64) lists them, and Inno Setup 7, found where its
 installer puts it or wherever the `ISCC` environment variable points. From Git Bash or an MSYS2 UCRT64
 shell, with the UCRT64 tools first on `PATH`:
 
 ```sh
 export PATH=/c/msys64/ucrt64/bin:$PATH
-cmake --preset release -DMIKSERSTUDIO_INSTALLED_APP=ON
-cmake --build --preset release
+cmake --preset package
+cmake --build --preset package
 python tools/build_release.py
 ```
 
-`MIKSERSTUDIO_INSTALLED_APP` makes the program the installed Mikser Studio when `MIKSERSTUDIO_INSTANCE`
-is unset. Every other build runs as Mikser Studio Dev, with folders of its own, so a build from source
-never touches an installed copy's files; `build_release.py` refuses a build without it. Configure the
-`release` preset without it again before running that build from source.
+The `package` preset is the `release` build with `MIKSERSTUDIO_INSTALLED_APP` on and without the
+tests: its program is the installed Mikser Studio when `MIKSERSTUDIO_INSTANCE` is unset. Every other
+build, `release` included, runs as Mikser Studio Dev, with folders of its own, so a build from source
+never touches an installed copy's files; `build_release.py` refuses a build without the option. Don't
+run `build/package` from source: it would use the installed app's settings and files.
 
 The version is the one in `CMakeLists.txt`'s `project()`, Mikser Studio's only version.
 
@@ -98,7 +99,7 @@ Once the license is chosen: add `LICENSE`, list the compatible licenses in `ALLO
 
 Releases are built on GitHub the same way, on a clean Windows runner, by the `Build Windows app`
 workflow (`.github/workflows/build-windows.yml`): it installs MSYS2's packages and Inno Setup, builds
-the `release` preset and runs `tools/build_release.py`, then checks that exactly the three release
+the `package` preset and runs `tools/build_release.py`, then checks that exactly the three release
 files arrived, under the version's name, with a whole zip (the `Windows release files` job). It runs
 for every pull request, not for pushes, keeping the files on the run's page, so a change that breaks
 the release shows up before it reaches `main`. To build `dev` without a pull request, run it by hand

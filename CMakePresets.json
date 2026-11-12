@@ -22,7 +22,17 @@
       "name": "release",
       "displayName": "Release",
       "inherits": "base",
-      "cacheVariables": { "CMAKE_BUILD_TYPE": "RelWithDebInfo" }
+      "cacheVariables": { "CMAKE_BUILD_TYPE": "RelWithDebInfo", "MIKSERSTUDIO_INSTALLED_APP": "OFF" }
+    },
+    {
+      "name": "package",
+      "displayName": "Package (the installed app, for tools/build_release.py)",
+      "inherits": "base",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "RelWithDebInfo",
+        "MIKSERSTUDIO_INSTALLED_APP": "ON",
+        "MIKSERSTUDIO_BUILD_TESTS": "OFF"
+      }
     },
     {
       "name": "ci",
@@ -37,6 +47,7 @@
   "buildPresets": [
     { "name": "debug", "configurePreset": "debug" },
     { "name": "release", "configurePreset": "release" },
+    { "name": "package", "configurePreset": "package" },
     { "name": "ci", "configurePreset": "ci" }
   ],
   "testPresets": [

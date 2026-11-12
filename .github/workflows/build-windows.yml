@@ -63,11 +63,11 @@ jobs:
         run: python tools/notices.py --check
       - name: Build
         shell: msys2 {0}
-        # Only the release runs as the installed app when MIKSERSTUDIO_INSTANCE is unset; every other
-        # build is Mikser Studio Dev.
+        # The package preset is the one build that runs as the installed app when MIKSERSTUDIO_INSTANCE
+        # is unset; every other build is Mikser Studio Dev.
         run: |
-          cmake --preset release -DMIKSERSTUDIO_INSTALLED_APP=ON
-          cmake --build --preset release
+          cmake --preset package
+          cmake --build --preset package
       - name: Build the release
         shell: msys2 {0}
         run: python tools/build_release.py
