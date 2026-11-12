@@ -17,6 +17,7 @@
 #include <QCommandLineParser>
 #include <QCoreApplication>
 #include <QGuiApplication>
+#include <QIcon>
 
 #include <cstring>
 #include <memory>
@@ -117,6 +118,7 @@ int runDesktop(int argc, char** argv)
     QApplication app(argc, argv);
     setIdentity();
     ui::applyTheme(app);
+    QApplication::setWindowIcon(QIcon(u":/mikserstudio/icon.svg"_s));
     const auto line = parseCommandLine(app);
     if (!line)
         return 2;

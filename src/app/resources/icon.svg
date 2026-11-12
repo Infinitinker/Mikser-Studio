@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
+  <!-- Mikser Studio's placeholder icon until the real one is drawn: three mixer faders on a dark tile. -->
+  <rect x="8" y="8" width="240" height="240" rx="52" fill="#1d1f27"/>
+  <g stroke="#3a3e4c" stroke-width="10" stroke-linecap="round">
+    <line x1="76" y1="56" x2="76" y2="200"/>
+    <line x1="128" y1="56" x2="128" y2="200"/>
+    <line x1="180" y1="56" x2="180" y2="200"/>
+  </g>
+  <rect x="52" y="132" width="48" height="26" rx="8" fill="#ff5e5b"/>
+  <rect x="104" y="80" width="48" height="26" rx="8" fill="#ffb400"/>
+  <rect x="156" y="108" width="48" height="26" rx="8" fill="#2ea4f0"/>
+</svg>

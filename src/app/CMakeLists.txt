@@ -31,3 +31,10 @@ if(WIN32)
 endif()
 
 install(TARGETS mikser-studio RUNTIME DESTINATION bin)
+
+# The app's icon, which every window shows. A placeholder until the real icon is drawn;
+# docs/images/icon.png is rendered from it (docs/development.md).
+qt_add_resources(mikser-studio mikserstudio_app_icon
+    PREFIX /mikserstudio
+    BASE resources
+    FILES resources/icon.svg)
