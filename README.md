@@ -75,3 +75,9 @@ Mikser Studio is free, with no ads and no tracking. If it helps you make things,
 </p>
 
 Ko-fi takes cards and PayPal; buycoffee.to suits Polish supporters, with BLIK and Polish bank transfers.
+
+## License
+
+Mikser Studio's own license is still to be chosen. The licenses of the libraries a release ships with, such as Qt, MLT and FFmpeg, are in [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md), which comes with every release as `THIRD-PARTY-NOTICES.txt`.
+
+Mikser Studio is not affiliated with or endorsed by the makers of the software it works with, such as Ollama, FFmpeg, MLT or Qt.
