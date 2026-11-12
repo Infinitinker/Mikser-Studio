@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.28)
 
 project(MikserStudio
     VERSION 0.1.0
-    DESCRIPTION "AI-backed multimedia studio"
+    DESCRIPTION "A multimedia studio with AI built in. Edit video and sound on a timeline, and let AI models work on your clips without leaving it."
     LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 23)
