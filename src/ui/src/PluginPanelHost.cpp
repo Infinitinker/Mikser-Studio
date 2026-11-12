@@ -61,11 +61,6 @@ PluginPanelHost::PluginPanelHost(core::CommandBus& bus, const core::PluginManage
     m_quick->setSource(QUrl::fromLocalFile(path));
 }
 
-QString PluginPanelHost::errorText() const
-{
-    return m_error->isHidden() ? QString() : m_error->text();
-}
-
 void PluginPanelHost::showError(const QString& message)
 {
     m_quick->hide();

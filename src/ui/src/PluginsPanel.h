@@ -28,8 +28,6 @@ public:
     explicit PluginsPanel(core::PluginManager& plugins, QWidget* parent = nullptr);
 
     void selectPlugin(const QString& id);
-    [[nodiscard]] QString selectedPlugin() const { return m_selectedId; }
-    [[nodiscard]] SchemaForm* settingsForm() const { return m_form; }
 
     void toggleActive();
     void saveSettings();
