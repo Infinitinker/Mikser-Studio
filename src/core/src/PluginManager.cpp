@@ -229,8 +229,7 @@ std::expected<void, QString> PluginManager::activate(const QString& id)
     if (!record->manifestValid)
         return std::unexpected(record->state.error);
     if (record->state.status == PluginStatus::Disabled)
-        return std::unexpected(
-            u"“%1” is disabled. Enable it in the plugin manager first."_s.arg(displayName(*record)));
+        return std::unexpected(u"“%1” is disabled. Enable it in the plugin manager first."_s.arg(displayName(*record)));
     if (record->state.manifest.kind != u"native")
         return std::unexpected(
             u"“%1” is a Python plugin; the AI services sidecar runs it."_s.arg(displayName(*record)));

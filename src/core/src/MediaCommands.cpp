@@ -47,8 +47,7 @@ CommandResult importMedia(ProjectModel& project, MediaProbe& probe, const QJsonO
 
     auto info = probe.probe(path, project.frameRate());
     if (!info)
-        return commandFailure(CommandErrorCode::Failed,
-                              u"Cannot import “%1”: %2"_s.arg(file.fileName(), info.error()));
+        return commandFailure(CommandErrorCode::Failed, u"Cannot import “%1”: %2"_s.arg(file.fileName(), info.error()));
     if (info->kind == MediaKind::Image)
         info->durationFrames = imageDuration(project.frameRate());
 

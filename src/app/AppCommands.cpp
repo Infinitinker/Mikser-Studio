@@ -55,8 +55,8 @@ core::CommandResult openProject(core::ProjectModel& project, core::UndoStack& un
     QJsonParseError parseError;
     const QJsonDocument document = QJsonDocument::fromJson(file.readAll(), &parseError);
     if (parseError.error != QJsonParseError::NoError || !document.isObject())
-        return commandFailure(CommandErrorCode::Failed, u"“%1” is not a Mikser Studio project file (%2)."_s.arg(
-                                                            path, parseError.errorString()));
+        return commandFailure(CommandErrorCode::Failed,
+                              u"“%1” is not a Mikser Studio project file (%2)."_s.arg(path, parseError.errorString()));
     if (const auto loaded = project.loadJson(document.object()); !loaded)
         return commandFailure(CommandErrorCode::Failed, loaded.error());
     undo.clear();  // Old edits refer to the previous project.

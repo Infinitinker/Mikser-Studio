@@ -45,8 +45,7 @@ TEST_CASE("Malformed backend lists are refused with a reason", "[services][json]
 {
     CHECK(parseBackends(parse(R"({"id": "x"})")).error() == u"the backend list is not a JSON array"_s);
     CHECK(parseBackends(parse(R"([{"title": "x"}])")).error() == u"a backend has no “id”"_s);
-    CHECK(parseBackends(parse(R"([{"id": "b", "ops": [{}]}])")).error() ==
-          u"backend “b”: an operation has no “id”"_s);
+    CHECK(parseBackends(parse(R"([{"id": "b", "ops": [{}]}])")).error() == u"backend “b”: an operation has no “id”"_s);
 }
 
 TEST_CASE("Jobs are parsed with outputs, provenance and a clamped progress", "[services][json]")
