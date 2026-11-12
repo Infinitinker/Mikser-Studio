@@ -49,6 +49,10 @@ Default location: `QStandardPaths::AppLocalDataLocation` + `/api.json`, with the
 | macOS | `~/Library/Application Support/Mikser Studio/api.json` |
 | Linux | `~/.local/share/Mikser Studio/api.json` |
 
+The app run from source (`start.bat`) and the app under the end-to-end tests are named `Mikser Studio
+Dev` and `Mikser Studio E2E` (`MIKSERSTUDIO_INSTANCE`, see
+[development.md](development.md#instances)), so their files are in folders of those names instead.
+
 The file is removed when the server stops or the app exits normally. If the app crashes the file
 stays behind: check that `pid` is still running (or that `GET /v1/health` answers) before trusting
 it. When two instances run, the last one to start owns the file; an instance only removes the file if

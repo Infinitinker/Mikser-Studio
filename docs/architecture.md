@@ -77,6 +77,7 @@ messages.
 | command palette | The popup that finds and runs commands (Ctrl+K). | quick open |
 | plugin | A shared library with a `mikserstudio-plugin.json` manifest that adds commands, settings and panels. | extension, add-on, module |
 | local API | The versioned `/v1` HTTP and WebSocket API on `127.0.0.1`. | server, remote control |
+| instance | Which Mikser Studio runs: the installed app, Mikser Studio Dev or Mikser Studio E2E, each with its own name, app id and folders (`MIKSERSTUDIO_INSTANCE`). | profile, variant |
 | discovery file | `api.json`, which tells other programs the local API's address and session token. | config file |
 | session token | The secret a client needs for the local API or the AI service, made anew at each start. | key, password |
 | AI service | The Python process in `ai/` that runs AI backends; *sidecar* in the code that manages it (`SidecarManager`). | AI server, worker |

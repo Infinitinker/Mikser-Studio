@@ -4,9 +4,9 @@
 //   mikser-studio --headless [--api-port <port>]
 //   mikser-studio [--no-api] [--api-port <port>]
 
-#include "AppId.h"
 #include "AppPaths.h"
 #include "DesktopApp.h"
+#include "Instance.h"
 #include "Logging.h"
 #include "ShutdownSignals.h"
 #include "Studio.h"
@@ -86,21 +86,29 @@ std::optional<CommandLine> parseCommandLine(const QCoreApplication& app)
     return line;
 }
 
-void setIdentity()
+// The instance's name and app id (Instance.h), or false, logged, for an unknown MIKSERSTUDIO_INSTANCE.
+bool setIdentity()
 {
+    const auto instance = app::currentInstance();
+    if (!instance) {
+        qCCritical(app::lcApp).noquote() << instance.error();
+        return false;
+    }
     // No organization name, so QStandardPaths gives "<AppData>/Mikser Studio" rather than a nested
     // folder. The domain is the reversed app id, which macOS uses for the bundle's preferences.
-    QCoreApplication::setApplicationName(u"Mikser Studio"_s);
+    QCoreApplication::setApplicationName(instance->name);
     QCoreApplication::setOrganizationDomain(u"infinitinker.github.io"_s);
     QCoreApplication::setApplicationVersion(QStringLiteral(MIKSERSTUDIO_VERSION));
     // Wayland matches windows to the .desktop file by this name; it must stay the app id forever.
-    QGuiApplication::setDesktopFileName(QString::fromLatin1(app::kAppId));
+    QGuiApplication::setDesktopFileName(instance->appId);
+    return true;
 }
 
 int runHeadless(int argc, char** argv)
 {
     QCoreApplication app(argc, argv);
-    setIdentity();
+    if (!setIdentity())
+        return 2;
     const auto line = parseCommandLine(app);
     if (!line)
         return 2;
@@ -117,7 +125,8 @@ int runDesktop(int argc, char** argv)
 {
     ui::prepareApplication();
     QApplication app(argc, argv);
-    setIdentity();
+    if (!setIdentity())
+        return 2;
     ui::applyTheme(app);
     QApplication::setWindowIcon(QIcon(u":/mikserstudio/icon.svg"_s));
     const auto line = parseCommandLine(app);

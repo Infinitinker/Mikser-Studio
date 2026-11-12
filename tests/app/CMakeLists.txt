@@ -3,8 +3,10 @@
 find_package(Qt6 6.8 REQUIRED COMPONENTS Gui)
 
 add_executable(mikserstudio-app-tests
+    InstanceTests.cpp
     ShutdownSignalsTests.cpp
     main.cpp
+    "${PROJECT_SOURCE_DIR}/src/app/Instance.cpp"
     "${PROJECT_SOURCE_DIR}/src/app/Logging.cpp"
     "${PROJECT_SOURCE_DIR}/src/app/ShutdownSignals.cpp"
 )
