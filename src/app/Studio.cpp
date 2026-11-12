@@ -23,10 +23,6 @@ services::SidecarOptions sidecarOptions(const AppPaths& paths)
     services::SidecarOptions options;
     options.aiDirectory = paths.aiDir;
     options.cacheDirectory = QDir(paths.cacheDir).filePath(u"ai"_s);
-    // An installed ai/ folder is read-only (e.g. under Program Files): keep its Python
-    // environment in the per-user data folder instead of ai/.venv.
-    if (!paths.devBuild && !options.environment.contains(u"UV_PROJECT_ENVIRONMENT"_s))
-        options.environment.insert(u"UV_PROJECT_ENVIRONMENT"_s, QDir(paths.dataDir).filePath(u"ai-venv"_s));
     return options;
 }
 

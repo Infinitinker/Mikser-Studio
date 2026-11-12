@@ -2,6 +2,7 @@
 #include "mikserstudio/services/AiClient.h"
 #include "mikserstudio/services/SidecarManager.h"
 
+#include <QDir>
 #include <QElapsedTimer>
 #include <QFile>
 #include <QFileInfo>
@@ -102,20 +103,21 @@ TEST_CASE("The sidecar runs in the cache folder and never runs programs from it 
     CHECK(lines[1] == u"1"_s);
 }
 
-TEST_CASE("A missing uv fails at once with the install hint", "[services][sidecar]")
+TEST_CASE("A missing Python environment fails at once with the setup hint", "[services][sidecar]")
 {
     QTemporaryDir dir;
+    QFile pyproject(dir.filePath(u"pyproject.toml"_s));
+    REQUIRE(pyproject.open(QIODevice::WriteOnly));
+    pyproject.close();
     SidecarOptions options;
-    options.cacheDirectory = dir.path();
+    options.cacheDirectory = dir.filePath(u"cache"_s);
     options.aiDirectory = dir.path();
-    options.environment = QProcessEnvironment();
-    options.environment.insert(u"PATH"_s, dir.path());
     SidecarManager sidecar(options);
     StateLog log(sidecar);
     sidecar.start();
     CHECK(sidecar.state() == SidecarState::Failed);
-    const QString expected =
-        u"The AI service could not start: uv was not found. Install uv from https://docs.astral.sh/uv/ and restart Mikser Studio."_s;
+    const QString expected = u"The AI service could not start: its Python environment \"%1\" was not found. Create it as docs/development.md describes and restart Mikser Studio."_s
+                                 .arg(QDir::toNativeSeparators(dir.filePath(u".venv"_s)));
     CHECK(sidecar.errorString() == expected);
     CHECK(log.errors == QStringList{expected});
 }

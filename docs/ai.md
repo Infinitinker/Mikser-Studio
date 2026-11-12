@@ -27,12 +27,14 @@ fails only the jobs it was running.
 The app starts it on demand (the first AI command) with:
 
 ```
-uv run --project <ai dir> --no-dev mikserstudio-ai --host 127.0.0.1 --port 0 --cache-dir <dir> --exit-with-stdin [--ffmpeg <path>]
+<ai dir>/.venv/Scripts/mikserstudio-ai --host 127.0.0.1 --port 0 --cache-dir <dir> --exit-with-stdin [--ffmpeg <path>]
 ```
 
 and the session token in the environment variable `MIKSERSTUDIO_AI_TOKEN` (`--token <t>` works too, but
-command lines can be read by other processes). The first start creates `ai/.venv` and downloads the
-dependencies (needs network once; `SidecarOptions::readyTimeout` defaults to 120 s for that).
+command lines can be read by other processes). `mikserstudio-ai` is the program pip installs into the
+virtual environment `ai/.venv` (`bin/mikserstudio-ai` there on Linux and macOS), which is set up as
+[development.md](development.md) describes; without it the app reports how to create it. Nothing creates
+the environment for an installed copy yet: an installer will have to ship it.
 
 When it listens, the sidecar prints exactly one line on stdout:
 
@@ -61,8 +63,9 @@ Downloads) cannot stand in for ffmpeg.
 | `--exit-with-stdin` | off | Stop when stdin closes (the app always passes it). |
 | `--log-level` | `INFO` | `DEBUG`, `INFO`, `WARNING`, `ERROR`. |
 
-Development: `cd ai && uv sync && uv run pytest` (tests need no GPU, network or Ollama; the upscale
-tests are skipped without ffmpeg). `uv run ruff check . && uv run mypy` must stay clean.
+Development: in `ai/`, `.venv/Scripts/python -m pytest` (tests need no GPU, network or Ollama; the
+upscale tests are skipped without ffmpeg). `.venv/Scripts/python -m ruff check .` and
+`.venv/Scripts/python -m mypy` must stay clean.
 
 ## HTTP API (`/v1`)
 
@@ -152,7 +155,8 @@ A backend is one module (or package) plus one entry point; nothing else changes.
    comfyui = "mikserstudio_ai.backends.comfyui:create"
    ```
 
-   (`uv run` re-installs the project when `pyproject.toml` changes.) A backend that fails to import
+   (Run `.venv/Scripts/python -m pip install -e ".[dev]"` in `ai/` again so the environment sees the new entry point.) A backend
+   that fails to import
    or create is logged and skipped; the others keep working.
 
 Rules for `run()`:
@@ -181,8 +185,8 @@ first available one in entry-point order wins unless the client names a `backend
   `maxRestarts` (the budget refills after `stableAfter` of trouble-free running; `start()` from
   `Failed` retries). A fresh 32-byte token per launch. `stop()` closes stdin, waits `stopTimeout`,
   then terminates, then kills. User-facing errors come through `errorOccurred` and `errorString()`,
-  e.g. *"The AI service could not start: uv was not found. Install uv from https://docs.astral.sh/uv/
-  and restart Mikser Studio."*
+  e.g. *"The AI service could not start: its Python environment "…\ai\.venv" was not found. Create
+  it as docs/development.md describes and restart Mikser Studio."*
 - `services::AiClient` — async `QNetworkAccessManager` client of the API above (no proxy, transfer
   timeout, bearer token). Each call answers once through a callback guarded by a context object.
 - `services::registerAiCommands(bus, project, sidecar, client)` — the commands below. Jobs get a

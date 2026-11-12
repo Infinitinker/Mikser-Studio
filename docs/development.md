@@ -15,8 +15,17 @@ pacman -S --needed mingw-w64-ucrt-x86_64-{gcc,gdb,cmake,ninja,ccache,pkgconf} \
 The last line is MLT's optional runtime libraries. Without them MLT silently skips modules: `qt6`
 (the `qtblend` compositor), `plus`, `resample`, `sox`, `rubberband`, `rnnoise` and `ladspa`.
 
-The AI service also needs [uv](https://docs.astral.sh/uv/) on `PATH` (it installs Python 3.13 and
-the service's dependencies on first use). Ollama is optional, for `ai.generate_text`.
+The AI service needs [Python 3.13](https://www.python.org/downloads/) and its own virtual environment
+in `ai/.venv`, made with `venv` and `pip` once (and again after its dependencies change), from Git Bash
+or PowerShell. An MSYS2 shell doesn't see the Windows `py` launcher, and MSYS2's own `python` makes a
+venv the app does not look for.
+
+```sh
+py -3.13 -m venv ai/.venv
+ai/.venv/Scripts/python -m pip install -e "./ai[dev]"
+```
+
+Ollama is optional, for `ai.generate_text`.
 
 ### Build and test
 
@@ -27,7 +36,7 @@ export PATH=/c/msys64/ucrt64/bin:$PATH
 cmake --preset debug
 cmake --build --preset debug
 ctest --preset debug -j8
-(cd ai && uv run pytest -q)
+(cd ai && .venv/Scripts/python -m pytest -q)
 ```
 
 Presets: `debug`, `release` (RelWithDebInfo) and `ci` (warnings are errors). Every module can be
@@ -65,3 +74,10 @@ Demo programs, for working on one module without the others:
 The code is portable (QRhi picks Vulkan/OpenGL or Metal; KDDockWidgets, MLT and RtAudio are
 cross-platform) but only the Windows build has been run so far. The same packages exist in the
 usual package managers; CI for all three platforms is still to be set up.
+
+The AI service's environment is made the same way, with `bin/` in place of `Scripts/`:
+
+```sh
+python3.13 -m venv ai/.venv
+ai/.venv/bin/python -m pip install -e "./ai[dev]"
+```

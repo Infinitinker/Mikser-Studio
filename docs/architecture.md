@@ -30,7 +30,7 @@ separate Python processes. Why this stack was chosen is in `stack-recommendation
 | `src/ui/` | `MikserStudio::ui` | core, Qt Widgets/Quick, KDDockWidgets | Main window, docking, workspaces, panels (media bin, timeline, AI, palette, properties, log). |
 | `src/app/` | `mikserstudio` | all | Wires the modules together; `mikserstudio --headless` runs without UI. |
 | `plugins/` | plugin libraries | sdk | Bundled example plugins. |
-| `ai/` | Python package `mikserstudio-ai` | — | AI sidecar service (uv project). |
+| `ai/` | Python package `mikserstudio-ai` | — | AI sidecar service, run from its own virtual environment (`ai/.venv`). |
 | `tests/` | `*-tests` | Catch2 | Tests mirroring `src/`. |
 
 ## Threads and processes

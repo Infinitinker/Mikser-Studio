@@ -49,7 +49,9 @@ def parse(argv: Sequence[str] | None = None, environment: dict[str, str] | None 
 def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="mikserstudio-ai",
-        description='AI sidecar of Mikser Studio. Prints "MIKSERSTUDIO_AI_READY port=<port>" on stdout once it listens.',
+        description=(
+            'AI sidecar of Mikser Studio. Prints "MIKSERSTUDIO_AI_READY port=<port>" on stdout once it listens.'
+        ),
     )
     parser.add_argument("--host", default="127.0.0.1", help="loopback address to listen on (default 127.0.0.1)")
     parser.add_argument("--port", type=int, default=0, help="port to listen on; 0 picks a free one (default)")

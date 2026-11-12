@@ -27,62 +27,54 @@ TEST_CASE("Tokens are 43 base64url characters and differ every time", "[services
         CHECK((std::isalnum(static_cast<unsigned char>(c)) || c == '-' || c == '_'));
 }
 
-TEST_CASE("A missing uv is reported with what to install", "[services][sidecar]")
-{
-    QTemporaryDir cache;
-    QProcessEnvironment environment;
-    environment.insert(u"PATH"_s, cache.path());
-    SidecarOptions options;
-    options.cacheDirectory = cache.path();
-    options.environment = environment;
-    const auto launch = resolveSidecarLaunch(options, "token");
-    REQUIRE_FALSE(launch);
-    CHECK(launch.error() ==
-          u"The AI service could not start: uv was not found. Install uv from https://docs.astral.sh/uv/ and restart Mikser Studio."_s);
-}
-
-TEST_CASE("The default command runs mikserstudio-ai through uv in the ai folder", "[services][sidecar]")
+TEST_CASE("The default command runs mikserstudio-ai from the ai folder's environment", "[services][sidecar]")
 {
     QTemporaryDir root;
-    const QString bin = root.filePath(u"bin"_s);
     const QString ai = root.filePath(u"ai"_s);
-    QDir().mkpath(bin);
-    QDir().mkpath(ai);
 #ifdef Q_OS_WIN
-    const QString uvName = u"uv.exe"_s;
+    const QString bin = QDir(ai).filePath(u".venv/Scripts"_s);
+    const QString programName = u"mikserstudio-ai.exe"_s;
 #else
-    const QString uvName = u"uv"_s;
+    const QString bin = QDir(ai).filePath(u".venv/bin"_s);
+    const QString programName = u"mikserstudio-ai"_s;
 #endif
-    QFile uv(QDir(bin).filePath(uvName));
-    REQUIRE(uv.open(QIODevice::WriteOnly));
-    uv.close();
-    uv.setPermissions(uv.permissions() | QFileDevice::ExeOwner);
+    QDir().mkpath(ai);
 
     SidecarOptions options;
     options.cacheDirectory = root.filePath(u"cache"_s);
-    options.environment.insert(u"PATH"_s, bin);
+    options.aiDirectory = ai;
 
     SECTION("without the ai folder")
     {
-        options.aiDirectory = ai;
         const auto launch = resolveSidecarLaunch(options, "token");
         REQUIRE_FALSE(launch);
         CHECK(launch.error().contains(u"was not found. Reinstall Mikser Studio."_s));
     }
 
-    SECTION("with the ai folder")
+    QFile pyproject(QDir(ai).filePath(u"pyproject.toml"_s));
+    REQUIRE(pyproject.open(QIODevice::WriteOnly));
+    pyproject.close();
+
+    SECTION("without its environment")
     {
-        QFile pyproject(QDir(ai).filePath(u"pyproject.toml"_s));
-        REQUIRE(pyproject.open(QIODevice::WriteOnly));
-        pyproject.close();
-        options.aiDirectory = ai;
+        const auto launch = resolveSidecarLaunch(options, "token");
+        REQUIRE_FALSE(launch);
+        CHECK(launch.error() == u"The AI service could not start: its Python environment \"%1\" was not found. Create it as docs/development.md describes and restart Mikser Studio."_s
+                                    .arg(QDir::toNativeSeparators(QDir(ai).filePath(u".venv"_s))));
+    }
+
+    SECTION("with its environment")
+    {
+        QDir().mkpath(bin);
+        QFile program(QDir(bin).filePath(programName));
+        REQUIRE(program.open(QIODevice::WriteOnly));
+        program.close();
+        program.setPermissions(program.permissions() | QFileDevice::ExeOwner);
         options.ffmpegPath = u"C:/tools/ffmpeg.exe"_s;
         const auto launch = resolveSidecarLaunch(options, "secret-token");
         REQUIRE(launch);
-        CHECK(QDir::cleanPath(launch->program) == QDir::cleanPath(QDir(bin).filePath(uvName)));
-        CHECK(launch->arguments.mid(0, 5) ==
-              QStringList{u"run"_s, u"--project"_s, QDir::toNativeSeparators(ai), u"--no-dev"_s, u"mikserstudio-ai"_s});
-        CHECK(launch->arguments.mid(5) == QStringList{
+        CHECK(QDir::cleanPath(launch->program) == QDir::cleanPath(QDir(bin).filePath(programName)));
+        CHECK(launch->arguments == QStringList{
                                               u"--host"_s,
                                               u"127.0.0.1"_s,
                                               u"--port"_s,

@@ -18,7 +18,7 @@ All the multiplatform media apps you listed as references ship on this foundatio
 | Audio engine | Our own C++ real-time graph. Device I/O through RtAudio 6 (WASAPI/ASIO, CoreAudio, PipeWire/JACK/ALSA). Hosts CLAP, VST3 SDK 3.8 (MIT) and LV2 via lilv. MIDI through libremidi. **The audio device clock is the master clock** for all playback. |
 | Core / API | `mikserstudio-core` is a C++ library with a command bus: every action is a typed, undoable command described in JSON Schema. That one registry feeds undo, the command palette, macros, shortcuts, the /v1 HTTP+WebSocket API on 127.0.0.1 (with a session token) and an MCP server. `mikserstudio --headless` runs the core with no UI. |
 | Scripting | Embedded CPython 3.13 with nanobind, for trusted macros only. |
-| AI | (1) Python 3.13 sidecar managed by uv, running PyTorch (CUDA/ROCm/XPU/MPS chosen at first run) and a pinned headless ComfyUI. Frames move through shared memory via a `mikserstudio_bridge` custom-node pack. (2) Ollama on :11434. (3) whisper.cpp and ONNX Runtime run in-process for small, latency-critical models. |
+| AI | (1) Python 3.13 sidecar in its own virtual environment, running PyTorch (CUDA/ROCm/XPU/MPS chosen at first run) and a pinned headless ComfyUI. Frames move through shared memory via a `mikserstudio_bridge` custom-node pack. (2) Ollama on :11434. (3) whisper.cpp and ONNX Runtime run in-process for small, latency-critical models. |
 | Other domains | Raster: own tiled QRhi canvas. Vector: lib2geom + resvg. 3D: Blender via bpy as a sidecar. Documents: LibreOfficeKit as a sidecar. Archives: libarchive plus a 7-Zip sidecar. |
 | Packaging | GitHub Actions on Windows, macOS arm64 and Ubuntu, with vcpkg binary cache and sccache. Windows: windeployqt + Inno Setup. macOS: macdeployqt, notarization, DMG. Linux: Flatpak on the KDE runtime, plus AppImage. AI components download on demand. |
 
@@ -39,7 +39,7 @@ This follows the ReflektorTTS rule that a module is not a process: separate proc
 Each plugin has a `mikserstudio-plugin.toml` manifest: id, SemVer version, supported API range, capabilities and a settings JSON Schema. Plugins are discovered without loading their code and activated lazily.
 
 1. **Native C/C++ plugins:** stable C ABI (`mikserstudio_plugin_api.h`, the same approach as OBS's libobs), loaded with QPluginLoader.
-2. **Python plugins:** entry points behind Protocols, as in ReflektorTTS. Trusted plugins run in-process. Others run in their own uv environment as a sidecar. A plugin whose dependencies conflict with the core lock is moved to a sidecar automatically.
+2. **Python plugins:** entry points behind Protocols, as in ReflektorTTS. Trusted plugins run in-process. Others run in their own virtual environment as a sidecar. A plugin whose dependencies conflict with the core's is moved to a sidecar automatically.
 3. **Standard formats:** OFX, frei0r, CLAP/VST3/LV2, OCIO configs, ComfyUI workflows and nodes.
 
 How plugins contribute UI:
@@ -71,7 +71,7 @@ Possible later addition: WASM components (wasmtime) as a sandboxed tier for non-
 | Two engines (MLT and the audio graph) staying in sync | Audio clock is the master as a hard rule. A/V drift tests in CI. |
 | Docking on Wayland and macOS: Wayland apps cannot place their own windows, and macOS Spaces have quirks | Accept approximate position restore on Wayland and offer XWayland as an opt-in. Test docking on every OS for every release. |
 | QRhi can change between Qt minor releases. Qt's 5-year LTS patches go to commercial licensees only | Track Qt minor releases twice a year, or budget for a commercial licence. |
-| AI packaging and VRAM contention | uv-managed environments, ComfyUI pinned to a tag, VRAM scheduler, custom nodes treated as untrusted code. |
+| AI packaging and VRAM contention | A virtual environment per sidecar, ComfyUI pinned to a tag, VRAM scheduler, custom nodes treated as untrusted code. |
 | Build complexity across three OSes | vcpkg binary cache from day one. Shotcut's build scripts as the reference recipe. |
 | Scope (an "everything studio") | Video, audio and AI form the core. 3D and documents start as sidecar bridges. |
 

@@ -30,7 +30,6 @@ AppPaths AppPaths::resolve()
     AppPaths paths;
     paths.configDir = fromEnvOr("MIKSERSTUDIO_CONFIG_DIR", QStandardPaths::writableLocation(QStandardPaths::AppConfigLocation));
     paths.cacheDir = fromEnvOr("MIKSERSTUDIO_CACHE_DIR", QStandardPaths::writableLocation(QStandardPaths::CacheLocation));
-    paths.dataDir = QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation);
     paths.pluginsDir = appDir.filePath(u"plugins"_s);
 
     // Installed: <exe>/ai. Build tree: the source checkout recorded at configure time.
@@ -42,7 +41,6 @@ AppPaths AppPaths::resolve()
         paths.aiDir = installedAi;
     } else if (isAiProject(sourceAi)) {
         paths.aiDir = sourceAi;
-        paths.devBuild = true;
     }
     return paths;
 }

@@ -27,12 +27,12 @@ enum class SidecarState {
 [[nodiscard]] QString toString(SidecarState state);
 
 struct SidecarOptions {
-    // The program to run. Empty: "uv" found on the PATH of `environment`, run as
-    // "uv run --project <aiDirectory> --no-dev mikserstudio-ai".
+    // The program to run. Empty: mikserstudio-ai from the virtual environment in <aiDirectory>/.venv
+    // (Scripts\mikserstudio-ai.exe on Windows, bin/mikserstudio-ai elsewhere), made with venv and pip.
     QString program;
     // Arguments for a custom `program`; ignored when `program` is empty.
     QStringList arguments;
-    // The ai/ folder (the uv project with pyproject.toml), needed by the default command.
+    // The ai/ folder (the Python package with pyproject.toml and its .venv), needed by the default command.
     QString aiDirectory;
     // Where jobs write their outputs (the project/app cache). Created when missing. Required.
     QString cacheDirectory;
@@ -40,7 +40,7 @@ struct SidecarOptions {
     QString ffmpegPath;
     QProcessEnvironment environment = QProcessEnvironment::systemEnvironment();
 
-    // The first start may install the Python environment, which can take a while.
+    // A cold first start, importing Python and the backends, can take a while.
     std::chrono::milliseconds readyTimeout{120'000};
     std::chrono::milliseconds healthInterval{5'000};
     std::chrono::milliseconds healthTimeout{3'000};

@@ -3,7 +3,6 @@
 #include <QDir>
 #include <QFileInfo>
 #include <QRandomGenerator>
-#include <QStandardPaths>
 
 #include <array>
 
@@ -15,21 +14,14 @@ namespace {
 
 constexpr QByteArrayView kReadyPrefix = "MIKSERSTUDIO_AI_READY port=";
 
-QStringList searchPath(const QProcessEnvironment& environment)
+// The mikserstudio-ai program pip installs into the ai/ folder's virtual environment.
+QString environmentProgram(const QDir& ai)
 {
-    return environment.value(u"PATH"_s).split(QDir::listSeparator(), Qt::SkipEmptyParts);
-}
-
-std::expected<QString, QString> findUv(const QProcessEnvironment& environment)
-{
-    const QStringList paths = searchPath(environment);
-    // findExecutable() with an empty list would search the app's own PATH instead.
-    const QString uv = paths.isEmpty() ? QString() : QStandardPaths::findExecutable(u"uv"_s, paths);
-    if (uv.isEmpty()) {
-        return std::unexpected(
-            u"The AI service could not start: uv was not found. Install uv from https://docs.astral.sh/uv/ and restart Mikser Studio."_s);
-    }
-    return uv;
+#ifdef Q_OS_WIN
+    return ai.filePath(u".venv/Scripts/mikserstudio-ai.exe"_s);
+#else
+    return ai.filePath(u".venv/bin/mikserstudio-ai"_s);
+#endif
 }
 
 }  // namespace
@@ -50,17 +42,19 @@ std::expected<SidecarLaunch, QString> resolveSidecarLaunch(const SidecarOptions&
         .workingDirectory = QFileInfo(options.cacheDirectory).absoluteFilePath(),
     };
     if (launch.program.isEmpty()) {
-        auto uv = findUv(options.environment);
-        if (!uv)
-            return std::unexpected(uv.error());
         const QFileInfo project(QDir(options.aiDirectory).filePath(u"pyproject.toml"_s));
         if (options.aiDirectory.isEmpty() || !project.isFile()) {
             return std::unexpected(u"The AI service could not start: its folder \"%1\" was not found. Reinstall Mikser Studio."_s
                                        .arg(QDir::toNativeSeparators(options.aiDirectory)));
         }
-        launch.program = *uv;
-        launch.arguments = {u"run"_s, u"--project"_s, QDir::toNativeSeparators(project.absolutePath()), u"--no-dev"_s,
-                            u"mikserstudio-ai"_s};
+        const QDir ai(project.absolutePath());
+        const QFileInfo program(environmentProgram(ai));
+        if (!program.isFile()) {
+            return std::unexpected(u"The AI service could not start: its Python environment \"%1\" was not found. Create it as docs/development.md describes and restart Mikser Studio."_s
+                                       .arg(QDir::toNativeSeparators(ai.filePath(u".venv"_s))));
+        }
+        launch.program = program.absoluteFilePath();
+        launch.arguments = {};
     }
 
     launch.arguments << u"--host"_s << u"127.0.0.1"_s << u"--port"_s << u"0"_s << u"--cache-dir"_s

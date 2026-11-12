@@ -1,6 +1,6 @@
-// Starts the real Python sidecar through uv, the way the app does. Skipped when uv is not
-// installed or MIKSERSTUDIO_SKIP_REAL_SIDECAR is set; the upscale test also needs ffmpeg on PATH.
-// The first run may install the Python environment.
+// Starts the real Python sidecar from ai/.venv, the way the app does. Skipped when that environment
+// is not set up (docs/development.md) or MIKSERSTUDIO_SKIP_REAL_SIDECAR is set; the upscale test
+// also needs ffmpeg on PATH.
 
 #include "ServicesTestSupport.h"
 #include "mikserstudio/core/CommandBus.h"
@@ -10,6 +10,7 @@
 #include "mikserstudio/services/AiCommands.h"
 #include "mikserstudio/services/SidecarManager.h"
 
+#include <QDir>
 #include <QFileInfo>
 #include <QJsonArray>
 #include <QProcess>
@@ -26,12 +27,18 @@ using mikserstudio::tests::waitFor;
 
 namespace {
 
-void skipWithoutUv()
+void skipWithoutEnvironment()
 {
     if (qEnvironmentVariableIsSet("MIKSERSTUDIO_SKIP_REAL_SIDECAR"))
         SKIP("MIKSERSTUDIO_SKIP_REAL_SIDECAR is set");
-    if (QStandardPaths::findExecutable(u"uv"_s).isEmpty())
-        SKIP("uv is not installed");
+    const QDir venv(QDir(QStringLiteral(MIKSERSTUDIO_AI_PROJECT_DIR)).filePath(u".venv"_s));
+#ifdef Q_OS_WIN
+    const bool installed = QFileInfo(venv.filePath(u"Scripts/mikserstudio-ai.exe"_s)).isFile();
+#else
+    const bool installed = QFileInfo(venv.filePath(u"bin/mikserstudio-ai"_s)).isFile();
+#endif
+    if (!installed)
+        SKIP("ai/.venv is not set up");
 }
 
 SidecarOptions realOptions(const QTemporaryDir& dir)
@@ -39,20 +46,19 @@ SidecarOptions realOptions(const QTemporaryDir& dir)
     SidecarOptions options;
     options.aiDirectory = QStringLiteral(MIKSERSTUDIO_AI_PROJECT_DIR);
     options.cacheDirectory = dir.filePath(u"cache"_s);
-    options.readyTimeout = 300s;
     options.maxRestarts = 0;
     return options;
 }
 
 }  // namespace
 
-TEST_CASE("The real sidecar starts through uv and answers", "[services][real-sidecar]")
+TEST_CASE("The real sidecar starts from its environment and answers", "[services][real-sidecar]")
 {
-    skipWithoutUv();
+    skipWithoutEnvironment();
     QTemporaryDir dir;
     SidecarManager sidecar(realOptions(dir));
     sidecar.start();
-    REQUIRE(waitFor([&] { return sidecar.state() != SidecarState::Starting; }, 310s));
+    REQUIRE(waitFor([&] { return sidecar.state() != SidecarState::Starting; }, 130s));
     INFO(sidecar.errorString().toStdString());
     REQUIRE(sidecar.state() == SidecarState::Running);
 
@@ -83,7 +89,7 @@ TEST_CASE("The real sidecar starts through uv and answers", "[services][real-sid
 
 TEST_CASE("ai.upscale_clip runs on the real sidecar and lands on the timeline", "[services][real-sidecar]")
 {
-    skipWithoutUv();
+    skipWithoutEnvironment();
     const QString ffmpeg = QStandardPaths::findExecutable(u"ffmpeg"_s);
     if (ffmpeg.isEmpty())
         SKIP("ffmpeg is not on PATH");

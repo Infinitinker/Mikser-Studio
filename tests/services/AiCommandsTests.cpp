@@ -32,7 +32,7 @@ struct AiFixture {
     std::unique_ptr<SidecarManager> sidecar;
     std::unique_ptr<AiClient> client;
 
-    explicit AiFixture(const QStringList& sidecarArguments = {}, bool uvMissing = false)
+    explicit AiFixture(const QStringList& sidecarArguments = {}, bool environmentMissing = false)
     {
         registerProjectCommands(bus, project, probe);
         SidecarOptions options;
@@ -40,10 +40,12 @@ struct AiFixture {
         options.healthInterval = 60s;
         options.restartDelay = 50ms;
         options.maxRestarts = 1;
-        if (uvMissing) {
+        if (environmentMissing) {
+            // The ai folder without its .venv.
+            QFile pyproject(dir.filePath(u"pyproject.toml"_s));
+            REQUIRE(pyproject.open(QIODevice::WriteOnly));
+            pyproject.close();
             options.aiDirectory = dir.path();
-            options.environment = QProcessEnvironment();
-            options.environment.insert(u"PATH"_s, dir.path());
         } else {
             options.program = QStringLiteral(MIKSERSTUDIO_FAKE_SIDECAR);
             options.arguments = sidecarArguments;
@@ -374,12 +376,12 @@ TEST_CASE("When the service cannot start, waiting jobs fail with its message", "
     const QString jobId = fixture.run(u"ai.generate_text"_s, {{u"prompt"_s, u"hi"_s}}).value(u"jobId").toString();
     const QJsonObject job = fixture.waitFinished(jobId);
     CHECK(job.value(u"state").toString() == u"failed"_s);
-    CHECK(job.value(u"error").toString() ==
-          u"The AI service could not start: uv was not found. Install uv from https://docs.astral.sh/uv/ and restart Mikser Studio."_s);
+    CHECK(job.value(u"error").toString() == u"The AI service could not start: its Python environment \"%1\" was not found. Create it as docs/development.md describes and restart Mikser Studio."_s
+                                                  .arg(QDir::toNativeSeparators(fixture.dir.filePath(u".venv"_s))));
     CHECK(fixture.run(u"ai.status"_s).value(u"state").toString() == u"failed"_s);
 
     auto backends = fixture.bus.execute(u"ai.backends"_s);
     REQUIRE_FALSE(backends);
     CHECK(backends.error().code == core::CommandErrorCode::NotAvailable);
-    CHECK(backends.error().message.startsWith(u"The AI service could not start: uv was not found."_s));
+    CHECK(backends.error().message.startsWith(u"The AI service could not start: its Python environment"_s));
 }

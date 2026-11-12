@@ -1,5 +1,5 @@
 # Services tests: the AI client against an in-process HTTP server, the sidecar manager and the AI
-# commands against a fake sidecar process, and (when uv is installed) the real Python sidecar.
+# commands against a fake sidecar process, and (when ai/.venv is set up) the real Python sidecar.
 find_package(Qt6 6.8 REQUIRED COMPONENTS HttpServer Network)
 
 # Stands in for the Python sidecar: same command line, READY line and /v1 API, plus misbehaviours.

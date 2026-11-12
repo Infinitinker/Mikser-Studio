@@ -24,7 +24,7 @@ struct SidecarLaunch {
 };
 
 // Builds the command line and environment for one launch, or a user-facing error such as
-// "The AI service could not start: uv was not found. ...".
+// "The AI service could not start: its Python environment ... was not found. ...".
 [[nodiscard]] std::expected<SidecarLaunch, QString> resolveSidecarLaunch(const SidecarOptions& options,
                                                                         const QByteArray& token);
 
