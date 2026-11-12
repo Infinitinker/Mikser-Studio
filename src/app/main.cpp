@@ -105,10 +105,14 @@ std::expected<void, QString> setIdentity()
     return {};
 }
 
-// The log file in the instance's logs folder; without one, Mikser Studio runs on and says why.
-std::unique_ptr<app::LogFile> openLog(const app::AppPaths& paths)
+// The log file in the instance's logs folder; without one, Mikser Studio runs on and says why. A
+// command line that cannot run adds its reason to the current log rather than starting a new one, and
+// --help, --version and unknown options stop before the log is opened: neither pushes out the log of
+// a real run.
+std::unique_ptr<app::LogFile> openLog(const app::AppPaths& paths, bool runs)
 {
-    auto log = app::LogFile::open(paths.user.logs);
+    auto log = app::LogFile::open(paths.user.logs,
+                                  runs ? app::LogFile::Start::NewLog : app::LogFile::Start::ContinueLog);
     if (!log) {
         qCWarning(app::lcApp).noquote() << log.error();
         return nullptr;
@@ -126,8 +130,8 @@ int runHeadless(int argc, char** argv)
         return 2;
     }
     const app::AppPaths paths = app::AppPaths::resolve();
-    const auto log = openLog(paths);  // Outlives the studio, so its teardown is logged.
     const auto line = parseCommandLine(app);
+    const auto log = openLog(paths, line.has_value());  // Outlives the studio, so its teardown is logged.
     if (!line) {
         app::reportFatalError(line.error(), app::StartedAs::Headless);
         return 2;
@@ -152,8 +156,8 @@ int runDesktop(int argc, char** argv)
     ui::applyTheme(app);
     QApplication::setWindowIcon(QIcon(u":/mikserstudio/icon.svg"_s));
     const app::AppPaths paths = app::AppPaths::resolve();
-    const auto log = openLog(paths);
     const auto line = parseCommandLine(app);
+    const auto log = openLog(paths, line.has_value());
     if (!line) {
         app::reportFatalError(line.error(), app::StartedAs::Desktop);
         return 2;

@@ -81,7 +81,7 @@ void handleMessage(QtMsgType type, const QMessageLogContext& context, const QStr
 
 }  // namespace
 
-std::expected<std::unique_ptr<LogFile>, QString> LogFile::open(const QString& folder, qint64 maxBytes)
+std::expected<std::unique_ptr<LogFile>, QString> LogFile::open(const QString& folder, Start start, qint64 maxBytes)
 {
     if (const QMutexLocker lock(&g_mutex); g_state)
         return std::unexpected(u"A log file is already open."_s);
@@ -92,7 +92,8 @@ std::expected<std::unique_ptr<LogFile>, QString> LogFile::open(const QString& fo
         return std::unexpected(u"The logs folder “%1” cannot be created, so this run keeps no log file."_s.arg(
             QDir::toNativeSeparators(folder)));
     }
-    rotate(state->folder);
+    if (start == Start::NewLog)
+        rotate(state->folder);
     state->file.setFileName(state->folder.filePath(logName(0)));
     if (!state->file.open(QIODevice::WriteOnly | QIODevice::Append | QIODevice::Text)) {
         return std::unexpected(u"The log file “%1” cannot be written (%2), so this run keeps no log file."_s.arg(

@@ -62,13 +62,34 @@ TEST_CASE("The log rotates at start and when it grows past its size, keeping the
     CHECK_FALSE(QFile::exists(folder.filePath(u"mikser-studio.5.log"_s)));
 
     {
-        auto log = LogFile::open(folder.path(), 200);
+        auto log = LogFile::open(folder.path(), LogFile::Start::NewLog, 200);
         REQUIRE(log.has_value());
         for (int line = 0; line < 10; ++line)
             qCInfo(lcLogTest) << "line" << line << "of a log that fills up quickly";
     }
     CHECK(contents(folder.filePath(u"mikser-studio.log"_s)).contains(u"line 9"_s));
     CHECK_FALSE(contents(folder.filePath(u"mikser-studio.log"_s)).contains(u"line 0"_s));
+}
+
+TEST_CASE("A start that stops early adds to the current log instead of rotating", "[log]")
+{
+    QTemporaryDir dir;
+    REQUIRE(dir.isValid());
+    const QDir folder(dir.path());
+    {
+        auto log = LogFile::open(folder.path());
+        REQUIRE(log.has_value());
+        qCInfo(lcLogTest) << "the last run";
+    }
+    {
+        auto log = LogFile::open(folder.path(), LogFile::Start::ContinueLog);
+        REQUIRE(log.has_value());
+        qCCritical(lcLogTest) << "a wrong command line";
+    }
+    const QString text = contents(folder.filePath(u"mikser-studio.log"_s));
+    CHECK(text.contains(u"the last run"_s));
+    CHECK(text.contains(u"a wrong command line"_s));
+    CHECK_FALSE(QFile::exists(folder.filePath(u"mikser-studio.1.log"_s)));
 }
 
 TEST_CASE("A logs folder that cannot be created is an error, and logging goes on as before", "[log]")
