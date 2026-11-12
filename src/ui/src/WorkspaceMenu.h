@@ -13,7 +13,7 @@ class CommandStatus;
 class KddwDockHost;
 
 // The Workspace menu: switch between workspaces (the current one is checked), "Save Workspace
-// As…" and "Reset Workspace". Problems are shown in the status bar.
+// As…" and "Reset workspace". Problems are shown in the status bar.
 class WorkspaceMenu final : public QObject {
     Q_OBJECT
 

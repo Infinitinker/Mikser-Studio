@@ -23,7 +23,7 @@ CommandResult addClip(ProjectModel& project, const QJsonObject& params)
     const MediaItem* media = project.findMedia(mediaId);
     if (!media)
         return commandFailure(CommandErrorCode::Failed,
-                              u"There is no media with id \"%1\" in the project."_s.arg(mediaId));
+                              u"There is no media with id “%1” in the project."_s.arg(mediaId));
 
     const FramePos in = params.value(u"in").toInteger(0);
     const FramePos fullOut = media->info.kind == MediaKind::Image ? in + media->info.durationFrames
@@ -42,7 +42,7 @@ CommandResult addClip(ProjectModel& project, const QJsonObject& params)
     return CommandOutcome{
         QJsonObject{{u"clipId"_s, clip.id}},
         makeEdit(
-            u"Add Clip"_s, [&project, id = clip.id] { return discardClip(project.removeClip(id)); },
+            u"Add clip"_s, [&project, id = clip.id] { return discardClip(project.removeClip(id)); },
             [&project, clip] { return project.addClip(clip); }),
     };
 }
@@ -57,7 +57,7 @@ CommandResult removeClip(ProjectModel& project, const QJsonObject& params)
     return CommandOutcome{
         QJsonObject{},
         makeEdit(
-            u"Remove Clip"_s, [&project, clip] { return project.addClip(clip); },
+            u"Remove clip"_s, [&project, clip] { return project.addClip(clip); },
             [&project, id = clip.id] { return discardClip(project.removeClip(id)); }),
     };
 }
@@ -67,7 +67,7 @@ CommandResult moveClip(ProjectModel& project, const QJsonObject& params)
     const QString id = params.value(u"clipId").toString();
     const Clip* clip = project.findClip(id);
     if (!clip)
-        return commandFailure(CommandErrorCode::Failed, u"There is no clip with id \"%1\" on the timeline."_s.arg(id));
+        return commandFailure(CommandErrorCode::Failed, u"There is no clip with id “%1” on the timeline."_s.arg(id));
 
     const QString oldTrack = clip->trackId;
     const FramePos oldPosition = clip->position;
@@ -79,7 +79,7 @@ CommandResult moveClip(ProjectModel& project, const QJsonObject& params)
     return CommandOutcome{
         QJsonObject{},
         makeEdit(
-            u"Move Clip"_s,
+            u"Move clip"_s,
             [&project, id, oldTrack, oldPosition] { return project.moveClip(id, oldTrack, oldPosition); },
             [&project, id, newTrack, newPosition] { return project.moveClip(id, newTrack, newPosition); }),
     };
@@ -90,7 +90,7 @@ CommandResult trimClip(ProjectModel& project, const QJsonObject& params)
     const QString id = params.value(u"clipId").toString();
     const Clip* clip = project.findClip(id);
     if (!clip)
-        return commandFailure(CommandErrorCode::Failed, u"There is no clip with id \"%1\" on the timeline."_s.arg(id));
+        return commandFailure(CommandErrorCode::Failed, u"There is no clip with id “%1” on the timeline."_s.arg(id));
 
     const FramePos oldIn = clip->in;
     const FramePos oldOut = clip->out;
@@ -102,7 +102,7 @@ CommandResult trimClip(ProjectModel& project, const QJsonObject& params)
     return CommandOutcome{
         QJsonObject{},
         makeEdit(
-            u"Trim Clip"_s, [&project, id, oldIn, oldOut] { return project.trimClip(id, oldIn, oldOut); },
+            u"Trim clip"_s, [&project, id, oldIn, oldOut] { return project.trimClip(id, oldIn, oldOut); },
             [&project, id, newIn, newOut] { return project.trimClip(id, newIn, newOut); }),
     };
 }
@@ -118,7 +118,7 @@ CommandResult addTrack(ProjectModel& project, const QJsonObject& params)
     return CommandOutcome{
         QJsonObject{{u"trackId"_s, id}},
         makeEdit(
-            kind == TrackKind::Video ? u"Add Video Track"_s : u"Add Audio Track"_s,
+            kind == TrackKind::Video ? u"Add video track"_s : u"Add audio track"_s,
             [&project, id] -> std::expected<void, QString> {
                 auto removed = project.removeTrack(id);
                 return removed ? std::expected<void, QString>{} : std::unexpected(removed.error());
@@ -137,10 +137,10 @@ CommandResult addTrack(ProjectModel& project, const QJsonObject& params)
 QString trackFlagsText(const Track& before, bool muted, bool hidden)
 {
     if (before.hidden == hidden)
-        return (muted ? u"Mute Track %1"_s : u"Unmute Track %1"_s).arg(before.id);
+        return (muted ? u"Mute track %1"_s : u"Unmute track %1"_s).arg(before.id);
     if (before.muted == muted)
-        return (hidden ? u"Hide Track %1"_s : u"Show Track %1"_s).arg(before.id);
-    return u"Change Track %1"_s.arg(before.id);
+        return (hidden ? u"Hide track %1"_s : u"Show track %1"_s).arg(before.id);
+    return u"Change track %1"_s.arg(before.id);
 }
 
 CommandResult setTrackFlags(ProjectModel& project, const QJsonObject& params)
@@ -148,7 +148,7 @@ CommandResult setTrackFlags(ProjectModel& project, const QJsonObject& params)
     const QString id = params.value(u"trackId").toString();
     const Track* track = project.findTrack(id);
     if (!track)
-        return commandFailure(CommandErrorCode::Failed, u"There is no track \"%1\"."_s.arg(id));
+        return commandFailure(CommandErrorCode::Failed, u"There is no track “%1”."_s.arg(id));
 
     const bool oldMuted = track->muted;
     const bool oldHidden = track->hidden;
@@ -186,10 +186,10 @@ CommandSpec timelineSpec(QString id, QString title, QString description, QJsonOb
 void registerTimelineCommands(CommandBus& bus, ProjectModel& project)
 {
     const QJsonObject clipId = idParam(u"Id of the clip."_s);
-    const QJsonObject trackId = idParam(u"Track id, e.g. \"V1\" or \"A1\"."_s);
+    const QJsonObject trackId = idParam(u"Track id, e.g. “V1” or “A1”."_s);
     const QJsonObject position = frameParam(u"Timeline frame where the clip starts."_s);
 
-    bus.registerCommand(timelineSpec(u"timeline.add_clip"_s, u"Add Clip to Timeline"_s,
+    bus.registerCommand(timelineSpec(u"timeline.add_clip"_s, u"Add clip to timeline"_s,
                                      u"Places a media item on a track; in/out default to the whole media."_s,
                                      objectSchema(
                                          QJsonObject{
@@ -202,20 +202,20 @@ void registerTimelineCommands(CommandBus& bus, ProjectModel& project)
                                          {u"mediaId"_s, u"trackId"_s, u"position"_s})),
                         [&project](const QJsonObject& params) { return addClip(project, params); });
 
-    bus.registerCommand(timelineSpec(u"timeline.remove_clip"_s, u"Remove Clip"_s,
+    bus.registerCommand(timelineSpec(u"timeline.remove_clip"_s, u"Remove clip"_s,
                                      u"Removes a clip from the timeline."_s,
                                      objectSchema(QJsonObject{{u"clipId"_s, clipId}}, {u"clipId"_s})),
                         [&project](const QJsonObject& params) { return removeClip(project, params); });
 
     bus.registerCommand(
         timelineSpec(
-            u"timeline.move_clip"_s, u"Move Clip"_s,
+            u"timeline.move_clip"_s, u"Move clip"_s,
             u"Moves a clip to another position or track without changing its length."_s,
             objectSchema(QJsonObject{{u"clipId"_s, clipId}, {u"trackId"_s, trackId}, {u"position"_s, position}},
                          {u"clipId"_s, u"trackId"_s, u"position"_s})),
         [&project](const QJsonObject& params) { return moveClip(project, params); });
 
-    bus.registerCommand(timelineSpec(u"timeline.trim_clip"_s, u"Trim Clip"_s,
+    bus.registerCommand(timelineSpec(u"timeline.trim_clip"_s, u"Trim clip"_s,
                                      u"Changes which part of the source a clip uses; its start position stays."_s,
                                      objectSchema(
                                          QJsonObject{
@@ -227,7 +227,7 @@ void registerTimelineCommands(CommandBus& bus, ProjectModel& project)
                         [&project](const QJsonObject& params) { return trimClip(project, params); });
 
     bus.registerCommand(
-        timelineSpec(u"timeline.add_track"_s, u"Add Track"_s,
+        timelineSpec(u"timeline.add_track"_s, u"Add track"_s,
                      u"Adds an empty track; a new video track goes on top of the other video tracks."_s,
                      objectSchema(QJsonObject{{u"kind"_s, QJsonObject{{u"enum"_s, QJsonArray{u"video"_s, u"audio"_s}},
                                                                       {u"description"_s, u"Kind of track to add."_s}}}},
@@ -238,13 +238,13 @@ void registerTimelineCommands(CommandBus& bus, ProjectModel& project)
         return QJsonObject{{u"type"_s, u"boolean"_s}, {u"description"_s, description}};
     };
     bus.registerCommand(
-        timelineSpec(u"timeline.set_track_flags"_s, u"Set Track Mute/Hide"_s,
-                     u"Mutes or unmutes a track's sound and hides or shows its picture; omitted flags stay."_s,
+        timelineSpec(u"timeline.set_track_flags"_s, u"Mute or hide track"_s,
+                     u"Mutes or unmutes a track’s sound and hides or shows its picture; omitted flags stay."_s,
                      objectSchema(
                          QJsonObject{
                              {u"trackId"_s, trackId},
                              {u"muted"_s, flag(u"True silences the track."_s)},
-                             {u"hidden"_s, flag(u"True hides the track's picture."_s)},
+                             {u"hidden"_s, flag(u"True hides the track’s picture."_s)},
                          },
                          {u"trackId"_s})),
         [&project](const QJsonObject& params) { return setTrackFlags(project, params); });

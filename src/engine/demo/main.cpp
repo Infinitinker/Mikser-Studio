@@ -78,7 +78,7 @@ int main(int argc, char** argv)
     }
 
     mikserstudio::engine::ClipPlayer player(**runtime, mikserstudio::engine::AudioOutput::Device);
-    mikserstudio::demo::DemoWindow window(player, QApplication::translate("main", "Source Monitor"));
+    mikserstudio::demo::DemoWindow window(player, QApplication::translate("main", "Source monitor"));
     player.setFrameSink(window.monitorPanel()->frameSink());
     QObject::connect(&player, &mikserstudio::engine::MltPlayer::errorOccurred, &app,
                      [&err](const QString& message) { err << message << Qt::endl; });

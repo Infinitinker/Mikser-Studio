@@ -39,7 +39,7 @@ TEST_CASE("The bundled hello plugin is discovered, greets and follows its settin
     REQUIRE(manager.activate(u"mikserstudio.examples.hello"_s));
     const CommandSpec* greet = bus.spec(u"mikserstudio.examples.hello.greet"_s);
     REQUIRE(greet);
-    CHECK(greet->title == u"Say Hello"_s);
+    CHECK(greet->title == u"Say hello"_s);
     CHECK(greet->category == u"Examples"_s);
     CHECK(greet->readOnly);
 

@@ -34,7 +34,7 @@ const auto kMediaFilter =
 
 QStringList showFileDialog(QWidget* parent)
 {
-    return QFileDialog::getOpenFileNames(parent, u"Import Media"_s, QString(), kMediaFilter);
+    return QFileDialog::getOpenFileNames(parent, u"Import media"_s, QString(), kMediaFilter);
 }
 
 }  // namespace

@@ -210,7 +210,7 @@ std::expected<void, QString> KddwDockHost::openPanel(const QString& id)
         dock = firstDock(id);
         if (!dock)
             return std::unexpected(
-                u"There is no panel \"%1\". It may come from a plugin that is not active."_s.arg(id));
+                u"There is no panel “%1”. It may come from a plugin that is not active."_s.arg(id));
     } else if (panel->unique) {
         dock = firstDock(id);
     } else {
@@ -311,11 +311,11 @@ std::expected<void, QString> KddwDockHost::loadWorkspace(const QString& name)
             return std::unexpected(
                 u"Could not read the workspace file %1: %2"_s.arg(QDir::toNativeSeparators(path), file.errorString()));
         if (auto restored = restore(file.readAll(), true); !restored)
-            return std::unexpected(u"The workspace \"%1\" could not be loaded. %2"_s.arg(name, restored.error()));
+            return std::unexpected(u"The workspace “%1” could not be loaded. %2"_s.arg(name, restored.error()));
     } else if (preset) {
         applyPreset(*preset);
     } else {
-        return std::unexpected(u"There is no workspace named \"%1\"."_s.arg(name));
+        return std::unexpected(u"There is no workspace named “%1”."_s.arg(name));
     }
     setCurrentWorkspace(preset ? preset->name : name);
     return {};
@@ -358,7 +358,7 @@ std::expected<void, QString> KddwDockHost::setPanelFloating(const QString& id, b
         }
     }
     if (!dock)
-        return std::unexpected(u"The panel \"%1\" is not open."_s.arg(id));
+        return std::unexpected(u"The panel “%1” is not open."_s.arg(id));
     if (dock->isFloating() != floating)
         dock->setFloating(floating);
     return {};

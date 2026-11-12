@@ -169,7 +169,7 @@ TEST_CASE("ai.upscale_clip places the result above the clip, with provenance and
     REQUIRE(job.value(u"state").toString() == u"succeeded"_s);
     CHECK(job.value(u"progress").toDouble() == 1.0);
     CHECK(job.value(u"op").toString() == u"video.upscale"_s);
-    CHECK(job.value(u"title").toString() == u"Upscale \"clip.mp4\" x3"_s);
+    CHECK(job.value(u"title").toString() == u"Upscale “clip.mp4” x3"_s);
     CHECK(job.value(u"params").toObject().value(u"scale").toInt() == 3);
     CHECK(job.value(u"remoteId").toString().startsWith(u"job-"_s));
 
@@ -196,12 +196,12 @@ TEST_CASE("ai.upscale_clip places the result above the clip, with provenance and
     CHECK(clip->out == 70);
 
     // One undo step removes the clip and the imported media; the source clip stays.
-    CHECK(fixture.undo.undoText() == u"Place AI Result"_s);
+    CHECK(fixture.undo.undoText() == u"Place AI result"_s);
     fixture.run(u"edit.undo"_s);
     CHECK_FALSE(fixture.project.findClip(clipId));
     CHECK_FALSE(fixture.project.findMedia(mediaId));
     CHECK(fixture.project.findClip(sourceClip));
-    CHECK(fixture.undo.undoText() == u"Add Clip"_s);  // The fixture's own placement of the source.
+    CHECK(fixture.undo.undoText() == u"Add clip"_s);  // The fixture's own placement of the source.
 
     fixture.run(u"edit.redo"_s);
     REQUIRE(fixture.project.findClip(clipId));
@@ -227,7 +227,7 @@ TEST_CASE("ai.upscale_clip on the top video track adds a track for the result", 
     CHECK(clip->position == 5);
 
     // One undo step removes the clip, the new track and the media.
-    CHECK(fixture.undo.undoText() == u"Place AI Result"_s);
+    CHECK(fixture.undo.undoText() == u"Place AI result"_s);
     fixture.run(u"edit.undo"_s);
     CHECK_FALSE(fixture.project.findTrack(u"V3"_s));
     CHECK(fixture.project.media().size() == 1);
@@ -270,7 +270,7 @@ TEST_CASE("ai.upscale_clip refuses clips it cannot upscale", "[services][command
 
     auto image = fixture.bus.execute(u"ai.upscale_clip"_s, {{u"clipId"_s, still}});
     REQUIRE_FALSE(image);
-    CHECK(image.error().message == u"\"still.png\" is not a video, so it cannot be upscaled. Choose a video clip."_s);
+    CHECK(image.error().message == u"“still.png” is not a video, so it cannot be upscaled. Choose a video clip."_s);
 
     auto missing = fixture.bus.execute(u"ai.upscale_clip"_s, {{u"clipId"_s, u"clip-nope"_s}});
     REQUIRE_FALSE(missing);
@@ -296,7 +296,7 @@ TEST_CASE("An upscale whose target is taken is imported but reported as not plac
     CHECK(fixture.project.media().last().name == u"source.mp4 (upscaled x2)"_s);
     CHECK(fixture.project.clips().size() == 2);
 
-    CHECK(fixture.undo.undoText() == u"Place AI Result"_s);
+    CHECK(fixture.undo.undoText() == u"Place AI result"_s);
     fixture.run(u"edit.undo"_s);
     CHECK(fixture.project.media().size() == 2);
 }
@@ -388,7 +388,7 @@ TEST_CASE("When the service cannot start, waiting jobs fail with its message", "
     CHECK(job.value(u"state").toString() == u"failed"_s);
     CHECK(
         job.value(u"error").toString() ==
-        u"The AI service could not start: its Python environment \"%1\" was not found. Create it as docs/development.md describes and restart Mikser Studio."_s
+        u"The AI service could not start: its Python environment “%1” was not found. Create it as docs/development.md describes and restart Mikser Studio."_s
             .arg(QDir::toNativeSeparators(fixture.dir.filePath(u".venv"_s))));
     CHECK(fixture.run(u"ai.status"_s).value(u"state").toString() == u"failed"_s);
 

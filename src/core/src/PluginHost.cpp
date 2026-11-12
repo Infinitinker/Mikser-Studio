@@ -150,7 +150,7 @@ std::expected<void, QString> PluginHost::addCommand(const QByteArray& specJson, 
     const QString id = json->value(u"id").toString();
     if (!id.startsWith(m_pluginId + u'.'))
         return std::unexpected(
-            u"command id \"%1\" must start with the plugin id followed by a dot (\"%2.\")"_s.arg(id, m_pluginId));
+            u"command id “%1” must start with the plugin id followed by a dot (\"%2.\")"_s.arg(id, m_pluginId));
 
     CommandSpec spec{
         .id = id,
@@ -170,14 +170,14 @@ std::expected<void, QString> PluginHost::addCommand(const QByteArray& specJson, 
         if (fn(userData, input.constData(), static_cast<size_t>(input.size()), result.sink(), error.sink()) != 0) {
             return commandFailure(CommandErrorCode::Failed,
                                   error.data().isEmpty()
-                                      ? u"The plugin command \"%1\" failed without giving a reason."_s.arg(id)
+                                      ? u"The plugin command “%1” failed without giving a reason."_s.arg(id)
                                       : error.text());
         }
         auto output = parseObject(result.data());
         if (!output) {
             return commandFailure(
                 CommandErrorCode::Failed,
-                u"Plugin \"%1\" returned a broken result for \"%2\" (%3). Report this to the plugin author."_s.arg(
+                u"Plugin “%1” returned a broken result for “%2” (%3). Report this to the plugin author."_s.arg(
                     pluginId, id, output.error()));
         }
         return CommandOutcome{std::move(*output), nullptr};
@@ -185,7 +185,7 @@ std::expected<void, QString> PluginHost::addCommand(const QByteArray& specJson, 
 
     if (!m_bus.registerCommand(std::move(spec), std::move(handler))) {
         return std::unexpected(m_bus.contains(id)
-                                   ? u"command id \"%1\" is already registered"_s.arg(id)
+                                   ? u"command id “%1” is already registered"_s.arg(id)
                                    : u"command \"%1\" was rejected; check its id format and paramsSchema "
                                      "(the log has details)"_s.arg(id));
     }
@@ -200,7 +200,7 @@ int PluginHost::executeCommand(void* host, const char* id, size_t idLength, cons
     const QString commandId = QString::fromUtf8(toUtf8(id, idLength));
     auto params = parseObject(toUtf8(paramsJson, paramsLength));
     if (!params) {
-        writeToSink(error, u"The params for \"%1\" are not valid: %2"_s.arg(commandId, params.error()).toUtf8());
+        writeToSink(error, u"The params for “%1” are not valid: %2"_s.arg(commandId, params.error()).toUtf8());
         return 1;
     }
     auto outcome = plugin.m_bus.execute(commandId, *params);

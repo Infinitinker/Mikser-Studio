@@ -16,8 +16,10 @@ namespace mikserstudio::core {
 // the command palette, macros, the /v1 API and plugins all go through the same registry.
 struct CommandSpec {
     QString id;  // Stable, dotted, lower_snake: "timeline.add_clip".
-    QString title;  // Short English UI label: "Add Clip to Timeline".
-    QString description;  // One sentence for tooltips, the palette and API docs.
+    // Short English label in sentence case, as a menu item reads: "Add clip to timeline".
+    QString title;
+    // One sentence in the third person for tooltips, the palette and API docs: "Adds a clip to a track.".
+    QString description;
     QString category;  // Menu/palette group: "Timeline", "Edit", "AI".
     QJsonObject paramsSchema;  // JSON Schema (draft 2020-12 subset) of the params object.
     QString shortcut;  // Default key sequence in QKeySequence portable text, may be empty.

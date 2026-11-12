@@ -27,7 +27,7 @@ class SidecarManager;
 //   ai.generate_text {prompt, model?}       -> {jobId}
 //
 // ai.upscale_clip runs "video.upscale" on the clip's media. When it succeeds, one undo step
-// ("Place AI Result") imports the output with "project.import_media" and the job provenance,
+// ("Place AI result") imports the output with "project.import_media" and the job provenance,
 // adds a video track on top with "timeline.add_track" when the clip is on the top video track,
 // and places the result with "timeline.add_clip" at the clip's position on the video track above
 // the clip's track. The command fails at once when the clip is not a video clip. A job whose

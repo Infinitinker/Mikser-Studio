@@ -124,7 +124,7 @@ std::shared_ptr<Mlt::Producer> TimelineBuilder::producerFor(const core::MediaIte
     if (!producer || QString::fromUtf8(producer->get("mikserstudio.path")) != media.path) {
         auto opened = openProducer(m_profile, media.path);
         if (!opened) {
-            problems.append(u"\"%1\" plays as a gap: %2"_s.arg(media.name, opened.error()));
+            problems.append(u"“%1” plays as a gap: %2"_s.arg(media.name, opened.error()));
             qCWarning(lcPlayback).noquote() << "Timeline media" << media.path << "unavailable:" << opened.error();
             return nullptr;
         }

@@ -65,9 +65,9 @@ std::expected<QString, QString> localFileResource(const QString& path)
     const QFileInfo file(path);
     if (!file.exists())
         return std::unexpected(
-            u"The file \"%1\" does not exist. It may have been moved, renamed or deleted."_s.arg(shown));
+            u"The file “%1” does not exist. It may have been moved, renamed or deleted."_s.arg(shown));
     if (!file.isFile())
-        return std::unexpected(u"\"%1\" is a folder, not a media file."_s.arg(shown));
+        return std::unexpected(u"“%1” is a folder, not a media file."_s.arg(shown));
     if (isMltDocument(file))
         return std::unexpected(
             u"\"%1\" is a project or document file, not a media file. Import its video, audio or image "
@@ -91,7 +91,7 @@ std::expected<std::unique_ptr<Mlt::Producer>, QString> openProducer(Mlt::Profile
     auto producer = std::make_unique<Mlt::Producer>(profile, resource->toUtf8().constData());
     if (!producer->is_valid())
         return std::unexpected(
-            u"\"%1\" could not be opened. The file may be damaged or in a format Mikser Studio cannot read."_s.arg(
+            u"“%1” could not be opened. The file may be damaged or in a format Mikser Studio cannot read."_s.arg(
                 QDir::toNativeSeparators(path)));
     if (isAvformatStill(*producer))
         primeStill(*producer);

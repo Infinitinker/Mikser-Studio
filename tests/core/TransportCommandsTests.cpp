@@ -57,7 +57,7 @@ private:
 };
 
 struct Fixture {
-    Fixture() { registerTransportCommands(bus, transport, u"program"_s, u"Program Monitor"_s); }
+    Fixture() { registerTransportCommands(bus, transport, u"program"_s, u"Program monitor"_s); }
 
     QJsonObject run(const QString& name, const QJsonObject& params = {})
     {
@@ -79,13 +79,13 @@ TEST_CASE("Transport commands are registered under the prefix", "[transport]")
     for (const QString& name : {u"play"_s, u"pause"_s, u"toggle"_s, u"seek"_s, u"step"_s, u"shuttle"_s, u"status"_s}) {
         const CommandSpec* spec = f.bus.spec(u"program."_s + name);
         REQUIRE(spec);
-        CHECK(spec->category == u"Program Monitor"_s);
-        CHECK(spec->title.startsWith(u"Program Monitor: "_s));
+        CHECK(spec->category == u"Program monitor"_s);
+        CHECK(spec->title.startsWith(u"Program monitor: "_s));
         CHECK_FALSE(spec->undoable);
         CHECK(spec->readOnly == (name == u"status"_s));
         CHECK(spec->confirmation.isEmpty());
     }
-    registerTransportCommands(f.bus, f.transport, u"source"_s, u"Source Monitor"_s);
+    registerTransportCommands(f.bus, f.transport, u"source"_s, u"Source monitor"_s);
     CHECK(f.bus.contains(u"source.play"_s));
 }
 

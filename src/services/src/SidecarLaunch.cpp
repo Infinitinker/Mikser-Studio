@@ -33,7 +33,7 @@ std::expected<SidecarLaunch, QString> resolveSidecarLaunch(const SidecarOptions&
         return std::unexpected(u"The AI service could not start: no cache folder was configured."_s);
     if (!QDir().mkpath(options.cacheDirectory)) {
         return std::unexpected(
-            u"The AI service could not start: the cache folder \"%1\" cannot be created. Check that the drive is writable."_s
+            u"The AI service could not start: the cache folder “%1” cannot be created. Check that the drive is writable."_s
                 .arg(QDir::toNativeSeparators(options.cacheDirectory)));
     }
 
@@ -52,14 +52,14 @@ std::expected<SidecarLaunch, QString> resolveSidecarLaunch(const SidecarOptions&
         const QFileInfo project(QDir(options.aiDirectory).filePath(u"pyproject.toml"_s));
         if (!project.isFile()) {
             return std::unexpected(
-                u"The AI service could not start: its folder \"%1\" was not found. Reinstall Mikser Studio."_s.arg(
+                u"The AI service could not start: its folder “%1” was not found. Reinstall Mikser Studio."_s.arg(
                     QDir::toNativeSeparators(options.aiDirectory)));
         }
         const QDir ai(project.absolutePath());
         const QFileInfo program(environmentProgram(ai));
         if (!program.isFile()) {
             return std::unexpected(
-                u"The AI service could not start: its Python environment \"%1\" was not found. Create it as docs/development.md describes and restart Mikser Studio."_s
+                u"The AI service could not start: its Python environment “%1” was not found. Create it as docs/development.md describes and restart Mikser Studio."_s
                     .arg(QDir::toNativeSeparators(ai.filePath(u".venv"_s))));
         }
         launch.program = program.absoluteFilePath();

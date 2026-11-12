@@ -33,6 +33,6 @@ TEST_CASE("An unknown instance is an error that names the value and the ones to 
 {
     const auto instance = instanceNamed(u"Dev"_s);
     REQUIRE_FALSE(instance.has_value());
-    CHECK(instance.error().contains(u"\"Dev\""_s));
+    CHECK(instance.error().contains(u"“Dev”"_s));
     CHECK(instance.error().contains(u"dev or e2e"_s));
 }

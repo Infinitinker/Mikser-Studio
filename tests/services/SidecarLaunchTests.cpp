@@ -72,7 +72,7 @@ TEST_CASE("The default command runs mikserstudio-ai from the ai folder's environ
         REQUIRE_FALSE(launch);
         CHECK(
             launch.error() ==
-            u"The AI service could not start: its Python environment \"%1\" was not found. Create it as docs/development.md describes and restart Mikser Studio."_s
+            u"The AI service could not start: its Python environment “%1” was not found. Create it as docs/development.md describes and restart Mikser Studio."_s
                 .arg(QDir::toNativeSeparators(QDir(ai).filePath(u".venv"_s))));
     }
 

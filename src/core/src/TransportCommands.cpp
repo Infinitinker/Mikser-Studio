@@ -88,7 +88,7 @@ QList<TransportCommand> transportCommands()
          [](Transport& t, const QJsonObject&) { t.play(); }},
         {u"pause"_s, u"Pause"_s, u"Pauses playback."_s, {}, [](Transport& t, const QJsonObject&) { t.pause(); }},
         {u"toggle"_s,
-         u"Play/Pause"_s,
+         u"Play/pause"_s,
          u"Starts or pauses playback."_s,
          {},
          [](Transport& t, const QJsonObject&) {
@@ -97,10 +97,10 @@ QList<TransportCommand> transportCommands()
              else
                  t.play();
          }},
-        {u"seek"_s, u"Go to Frame"_s, u"Moves the playhead to a frame."_s,
+        {u"seek"_s, u"Go to frame"_s, u"Moves the playhead to a frame."_s,
          paramsSchema(QJsonObject{{u"frame"_s, frameSchema(0)}}, {u"frame"_s}),
          [](Transport& t, const QJsonObject& params) { t.seek(params.value(u"frame").toInteger()); }},
-        {u"step"_s, u"Step Frames"_s, u"Pauses and moves the playhead by a number of frames (negative steps back)."_s,
+        {u"step"_s, u"Step frames"_s, u"Pauses and moves the playhead by a number of frames (negative steps back)."_s,
          paramsSchema(QJsonObject{{u"frames"_s, withDefault(frameSchema(-kMaxFrame), 1)}}, {}),
          [](Transport& t, const QJsonObject& params) {
              if (t.state() == Transport::State::Playing)
@@ -114,7 +114,7 @@ QList<TransportCommand> transportCommands()
              {u"speed"_s}),
          [](Transport& t, const QJsonObject& params) { t.setSpeed(params.value(u"speed").toDouble()); }},
         {u"status"_s,
-         u"Playback Status"_s,
+         u"Playback status"_s,
          u"Returns position, duration, state and frame rate."_s,
          {},
          [](Transport&, const QJsonObject&) { },

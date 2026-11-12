@@ -181,7 +181,7 @@ void PluginManager::discover()
                     continue;
                 }
                 failures.append(
-                    {id, u"Plugin \"%1\" in %2 is ignored because %3 already provides a plugin with that id."_s.arg(
+                    {id, u"Plugin “%1” in %2 is ignored because %3 already provides a plugin with that id."_s.arg(
                              id, QDir::toNativeSeparators(record.state.manifest.directory),
                              QDir::toNativeSeparators(existing->second.state.manifest.directory))});
                 continue;
@@ -223,17 +223,17 @@ std::expected<void, QString> PluginManager::activate(const QString& id)
 {
     Record* record = d->find(id);
     if (!record)
-        return std::unexpected(u"There is no plugin \"%1\". Check the plugin folders and rescan."_s.arg(id));
+        return std::unexpected(u"There is no plugin “%1”. Check the plugin folders and rescan."_s.arg(id));
     if (record->native)
         return {};
     if (!record->manifestValid)
         return std::unexpected(record->state.error);
     if (record->state.status == PluginStatus::Disabled)
         return std::unexpected(
-            u"\"%1\" is disabled. Enable it in the plugin manager first."_s.arg(displayName(*record)));
+            u"“%1” is disabled. Enable it in the plugin manager first."_s.arg(displayName(*record)));
     if (record->state.manifest.kind != u"native")
         return std::unexpected(
-            u"\"%1\" is a Python plugin; the AI services sidecar runs it."_s.arg(displayName(*record)));
+            u"“%1” is a Python plugin; the AI services sidecar runs it."_s.arg(displayName(*record)));
 
     auto native = NativePlugin::activate(record->state.manifest, d->bus, [this, id] { return settings(id); });
     record = d->find(id);  // The plugin may have run commands that changed the plugin list.
@@ -242,7 +242,7 @@ std::expected<void, QString> PluginManager::activate(const QString& id)
         return std::unexpected(native.error());
     }
     if (!record)
-        return std::unexpected(u"Plugin \"%1\" was removed while it started."_s.arg(id));
+        return std::unexpected(u"Plugin “%1” was removed while it started."_s.arg(id));
     record->native = std::move(*native);
     record->state.status = PluginStatus::Active;
     record->state.error.clear();
@@ -278,7 +278,7 @@ std::expected<void, QString> PluginManager::setEnabled(const QString& id, bool e
 {
     Record* record = d->find(id);
     if (!record || !record->manifestValid)
-        return std::unexpected(u"There is no usable plugin \"%1\"."_s.arg(id));
+        return std::unexpected(u"There is no usable plugin “%1”."_s.arg(id));
 
     QSet<QString> disabled = d->disabled;
     if (enabled)
@@ -315,15 +315,15 @@ std::expected<void, QString> PluginManager::setSettings(const QString& id, const
 {
     Record* record = d->find(id);
     if (!record || !record->manifestValid)
-        return std::unexpected(u"There is no usable plugin \"%1\"."_s.arg(id));
+        return std::unexpected(u"There is no usable plugin “%1”."_s.arg(id));
     const QJsonObject& schema = record->state.manifest.settingsSchema;
     if (schema.isEmpty() && !settings.isEmpty())
-        return std::unexpected(u"\"%1\" has no settings."_s.arg(displayName(*record)));
+        return std::unexpected(u"“%1” has no settings."_s.arg(displayName(*record)));
 
     const QJsonObject effective = JsonSchema::applyDefaults(settings, schema);
     if (const QStringList problems = JsonSchema::validate(effective, schema); !problems.isEmpty())
         return std::unexpected(
-            u"The settings for \"%1\" are not valid: %2"_s.arg(displayName(*record), problems.join(u"; "_s)));
+            u"The settings for “%1” are not valid: %2"_s.arg(displayName(*record), problems.join(u"; "_s)));
     if (auto saved = d->store.save(id, settings); !saved)
         return std::unexpected(saved.error());
 

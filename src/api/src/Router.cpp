@@ -50,7 +50,7 @@ ApiResponse notFound(const QString& path)
 ApiResponse unknownCommand(const QString& id)
 {
     return errorResponse(HttpStatus::NotFound, core::toString(core::CommandErrorCode::UnknownCommand),
-                         u"There is no command \"%1\". GET /v1/commands lists the available commands."_s.arg(id));
+                         u"There is no command “%1”. GET /v1/commands lists the available commands."_s.arg(id));
 }
 
 HttpStatus statusFor(core::CommandErrorCode code)

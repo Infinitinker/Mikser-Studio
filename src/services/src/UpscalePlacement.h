@@ -32,7 +32,7 @@ struct UpscaleSource {
                                                                          const QString& clipId);
 
 // Brings a finished video.upscale job into the project through the bus, as one undo step
-// ("Place AI Result"): imports the output with the job provenance ("project.import_media"), adds
+// ("Place AI result"): imports the output with the job provenance ("project.import_media"), adds
 // a video track on top when the source clip is on the top one ("timeline.add_track") and adds
 // the result with "timeline.add_clip" over the source clip (same position and source range) on
 // the track above it. Returns {mediaId, clipId, trackId}; the error message says how far it got

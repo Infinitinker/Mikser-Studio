@@ -14,7 +14,7 @@ std::expected<AiOperation, QString> parseOperation(const QJsonValue& value)
     const QJsonObject object = value.toObject();
     const QString id = object.value(u"id").toString();
     if (id.isEmpty())
-        return std::unexpected(u"an operation has no \"id\""_s);
+        return std::unexpected(u"an operation has no “id”"_s);
     return AiOperation{
         .id = id,
         .title = object.value(u"title").toString(id),
@@ -34,11 +34,11 @@ std::expected<AiBackendInfo, QString> parseBackend(const QJsonValue& value)
         .reason = object.value(u"reason").toString(),
     };
     if (backend.id.isEmpty())
-        return std::unexpected(u"a backend has no \"id\""_s);
+        return std::unexpected(u"a backend has no “id”"_s);
     for (const QJsonValue op : object.value(u"ops").toArray()) {
         auto operation = parseOperation(op);
         if (!operation)
-            return std::unexpected(u"backend \"%1\": %2"_s.arg(backend.id, operation.error()));
+            return std::unexpected(u"backend “%1”: %2"_s.arg(backend.id, operation.error()));
         backend.operations.append(*operation);
     }
     return backend;
@@ -64,11 +64,11 @@ std::expected<AiJobInfo, QString> parseJob(const QJsonObject& object)
 {
     const QString id = object.value(u"id").toString();
     if (id.isEmpty())
-        return std::unexpected(u"a job has no \"id\""_s);
+        return std::unexpected(u"a job has no “id”"_s);
     const QString stateText = object.value(u"state").toString();
     const auto state = aiJobStateFromString(stateText);
     if (!state)
-        return std::unexpected(u"job %1 has the unknown state \"%2\""_s.arg(id, stateText));
+        return std::unexpected(u"job %1 has the unknown state “%2”"_s.arg(id, stateText));
 
     AiJobInfo job{
         .id = id,

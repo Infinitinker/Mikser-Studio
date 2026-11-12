@@ -20,7 +20,7 @@ CommandResult runHandler(const CommandHandler& handler, const QString& id, const
         return handler(params);
     } catch (const std::exception& exception) {
         return commandFailure(CommandErrorCode::Failed,
-                              u"Command \"%1\" stopped with an internal error: %2. Please report this problem."_s.arg(
+                              u"Command “%1” stopped with an internal error: %2. Please report this problem."_s.arg(
                                   id, QString::fromLocal8Bit(exception.what())));
     }
 }
@@ -139,7 +139,7 @@ std::expected<QJsonObject, CommandError> CommandBus::execute(const QString& id, 
     if (it == m_commands.end()) {
         return fail(
             {CommandErrorCode::UnknownCommand,
-             u"Unknown command \"%1\". Open the command palette or call GET /v1/commands to see the available commands."_s
+             u"Unknown command “%1”. Open the command palette or call GET /v1/commands to see the available commands."_s
                  .arg(id)});
     }
     // Copies, because a handler may unregister commands (e.g. a plugin deactivating itself).
@@ -150,7 +150,7 @@ std::expected<QJsonObject, CommandError> CommandBus::execute(const QString& id, 
     if (const QStringList problems = JsonSchema::validate(effective, it->second.spec.paramsSchema);
         !problems.isEmpty()) {
         return fail(
-            {CommandErrorCode::InvalidParams, u"Invalid parameters for \"%1\": %2"_s.arg(id, problems.join(u"; "_s))});
+            {CommandErrorCode::InvalidParams, u"Invalid parameters for “%1”: %2"_s.arg(id, problems.join(u"; "_s))});
     }
 
     CommandResult outcome = runHandler(handler, id, effective);

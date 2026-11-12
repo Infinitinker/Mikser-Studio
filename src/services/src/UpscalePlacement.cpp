@@ -45,7 +45,7 @@ std::expected<UpscaleSource, QString> resolveUpscaleSource(const core::ProjectMo
         return std::unexpected(u"The media of clip %1 is missing from the media bin."_s.arg(clipId));
     if (media->info.kind != core::MediaKind::Video || !media->info.hasVideo) {
         return std::unexpected(
-            u"\"%1\" is not a video, so it cannot be upscaled. Choose a video clip."_s.arg(media->name));
+            u"“%1” is not a video, so it cannot be upscaled. Choose a video clip."_s.arg(media->name));
     }
     const core::Track* target = videoTrackAbove(project, clip->trackId);
     return UpscaleSource{
@@ -76,11 +76,11 @@ std::expected<QJsonObject, QString> placeUpscaledVideo(core::CommandBus& bus, co
     const auto source = resolveUpscaleSource(project, sourceClipId);
 
     // Everything below is one undo step, also when it stops half-way.
-    const core::UndoGroup group(bus.undoStack(), u"Place AI Result"_s);
+    const core::UndoGroup group(bus.undoStack(), u"Place AI result"_s);
     auto imported = bus.execute(u"project.import_media"_s,
                                 QJsonObject{{u"path"_s, output}, {u"name"_s, name}, {u"provenance"_s, provenance}});
     if (!imported) {
-        return std::unexpected(u"The upscaled video was saved to \"%1\" but could not be imported: %2"_s.arg(
+        return std::unexpected(u"The upscaled video was saved to “%1” but could not be imported: %2"_s.arg(
             QDir::toNativeSeparators(output), imported.error().message));
     }
     const QString mediaId = imported->value(u"mediaId").toString();

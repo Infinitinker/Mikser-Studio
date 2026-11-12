@@ -57,11 +57,11 @@ FakeAiService::FakeAiService(core::CommandBus& bus, const core::ProjectModel& pr
         if (m_bus.registerCommand(std::move(spec), std::move(handler)))
             m_commandIds.append(id);
     };
-    core::CommandSpec jobs = aiSpec(u"ai.jobs"_s, u"List AI Jobs"_s,
+    core::CommandSpec jobs = aiSpec(u"ai.jobs"_s, u"List AI jobs"_s,
                                     u"Lists the AI jobs of this session with their progress and results."_s);
     jobs.readOnly = true;
     add(std::move(jobs), [this](const QJsonObject&) { return ok(QJsonObject{{u"jobs"_s, jobsJson()}}); });
-    add(aiSpec(u"ai.cancel_job"_s, u"Cancel AI Job"_s, u"Stops a queued or running AI job."_s,
+    add(aiSpec(u"ai.cancel_job"_s, u"Cancel AI job"_s, u"Stops a queued or running AI job."_s,
                QJsonObject{{u"jobId"_s, stringParam(u"Id of the job, from ai.jobs."_s)}}, {u"jobId"_s}),
         [this](const QJsonObject& params) -> core::CommandResult {
             const QString id = params.value(u"jobId").toString();
@@ -74,9 +74,9 @@ FakeAiService::FakeAiService(core::CommandBus& bus, const core::ProjectModel& pr
                 }
                 return ok(QJsonObject{{u"jobId"_s, id}, {u"state"_s, job.state}});
             }
-            return core::commandFailure(core::CommandErrorCode::Failed, u"There is no AI job \"%1\"."_s.arg(id));
+            return core::commandFailure(core::CommandErrorCode::Failed, u"There is no AI job “%1”."_s.arg(id));
         });
-    add(aiSpec(u"ai.upscale_clip"_s, u"Upscale Clip"_s,
+    add(aiSpec(u"ai.upscale_clip"_s, u"Upscale clip"_s,
                u"Upscales a video clip and places the result on the video track above it."_s,
                QJsonObject{{u"clipId"_s, stringParam(u"Id of the video clip to upscale."_s)},
                            {u"scale"_s, QJsonObject{{u"type"_s, u"integer"_s},
@@ -89,10 +89,10 @@ FakeAiService::FakeAiService(core::CommandBus& bus, const core::ProjectModel& pr
             const core::MediaItem* media = clip ? m_project.findMedia(clip->mediaId) : nullptr;
             if (!media || media->info.kind != core::MediaKind::Video)
                 return core::commandFailure(core::CommandErrorCode::Failed, u"Select a video clip to upscale."_s);
-            const QString title = u"Upscale \"%1\" x%2"_s.arg(media->name).arg(params.value(u"scale").toInt());
+            const QString title = u"Upscale “%1” x%2"_s.arg(media->name).arg(params.value(u"scale").toInt());
             return ok(QJsonObject{{u"jobId"_s, submit(u"video.upscale"_s, title, 0.0)}});
         });
-    add(aiSpec(u"ai.generate_text"_s, u"Generate Text"_s, u"Answers a prompt with a local language model."_s,
+    add(aiSpec(u"ai.generate_text"_s, u"Generate text"_s, u"Answers a prompt with a local language model."_s,
                QJsonObject{{u"prompt"_s, stringParam(u"What to ask the model."_s)},
                            {u"model"_s, stringParam(u"Model name; the first installed model when omitted."_s)}},
                {u"prompt"_s}),

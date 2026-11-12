@@ -155,7 +155,7 @@ void Shell::restoreState()
         }
         qCWarning(lcShell).noquote() << "Could not restore the last layout:" << restored.error();
         m_status->showMessage(
-            u"The last window layout could not be restored; using the \"%1\" workspace."_s.arg(workspace), true);
+            u"The last window layout could not be restored; using the “%1” workspace."_s.arg(workspace), true);
     }
     // Workspaces are laid out in proportion to the window, so wait until it has its real size.
     m_pendingWorkspace = std::move(workspace);
@@ -305,7 +305,7 @@ void Shell::buildMenus()
     m_commandMenus = new CommandMenus(m_bus, bar, window, this);
     m_commandMenus->setInsertBefore(m_workspaceMenu->menuAction());
 
-    auto* palette = new QAction(u"Command Palette…"_s, window);
+    auto* palette = new QAction(u"Command palette…"_s, window);
     palette->setShortcuts({QKeySequence(u"Ctrl+Shift+P"_s), QKeySequence(u"Ctrl+K"_s)});
     palette->setShortcutContext(Qt::ApplicationShortcut);
     palette->setToolTip(u"Search and run any command."_s);

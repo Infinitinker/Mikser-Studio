@@ -18,7 +18,7 @@ std::expected<Instance, QString> instanceNamed(const QString& value)
     if (value == u"e2e")
         return Instance{.name = name + u" E2E"_s, .appId = appId + u".e2e"_s};
     return std::unexpected(
-        u"MIKSERSTUDIO_INSTANCE is \"%1\", which Mikser Studio doesn't know. Set it to dev or e2e, or leave it unset."_s
+        u"MIKSERSTUDIO_INSTANCE is “%1”, which Mikser Studio doesn’t know. Set it to dev or e2e, or leave it unset."_s
             .arg(value));
 }
 

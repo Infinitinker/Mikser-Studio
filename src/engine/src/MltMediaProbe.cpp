@@ -94,7 +94,7 @@ std::expected<core::MediaInfo, QString> MltMediaProbe::probe(const QString& path
         return info;
     }
     if (service != u"avformat"_s && service != u"avformat-novalidate"_s)
-        return std::unexpected(u"\"%1\" is not a video, audio or image file (MLT opened it as \"%2\")."_s.arg(
+        return std::unexpected(u"“%1” is not a video, audio or image file (MLT opened it as “%2”)."_s.arg(
             QDir::toNativeSeparators(path), service));
 
     const int videoIndex = producer.get_int("video_index");
@@ -104,7 +104,7 @@ std::expected<core::MediaInfo, QString> MltMediaProbe::probe(const QString& path
     info.hasAudio = audioIndex >= 0 && audioIndex < streams;
     if (!info.hasVideo && !info.hasAudio)
         return std::unexpected(
-            u"\"%1\" contains no video or audio that Mikser Studio can play."_s.arg(QDir::toNativeSeparators(path)));
+            u"“%1” contains no video or audio that Mikser Studio can play."_s.arg(QDir::toNativeSeparators(path)));
 
     if (info.hasVideo) {
         info.width = producer.get_int(streamKey(videoIndex, "codec.width").constData());

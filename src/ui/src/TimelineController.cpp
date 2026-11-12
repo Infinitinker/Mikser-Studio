@@ -216,7 +216,7 @@ void TimelineController::removeSelected()
     if (clipIds.isEmpty())
         return;
     const core::UndoGroup group(m_bus.undoStack(),
-                                clipIds.size() == 1 ? u"Remove Clip"_s : u"Remove %1 Clips"_s.arg(clipIds.size()));
+                                clipIds.size() == 1 ? u"Remove clip"_s : u"Remove %1 clips"_s.arg(clipIds.size()));
     for (const QString& clipId : clipIds) {
         if (!run(u"timeline.remove_clip"_s, QJsonObject{{u"clipId"_s, clipId}}))
             break;

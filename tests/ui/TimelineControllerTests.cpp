@@ -49,7 +49,7 @@ TEST_CASE("Deleting several selected clips is one undo step", "[timeline-control
 
     f.timeline.removeSelected();
     CHECK(f.project.clips().isEmpty());
-    CHECK(f.undo.undoText() == u"Remove 3 Clips"_s);
+    CHECK(f.undo.undoText() == u"Remove 3 clips"_s);
 
     REQUIRE(f.bus.execute(u"edit.undo"_s));
     CHECK(f.project.clips().size() == 3);

@@ -50,9 +50,9 @@ Studio::Studio(const AppPaths& paths, StudioOptions options)
 
     core::registerProjectCommands(m_bus, m_project, *m_probe);
     if (m_program)
-        core::registerTransportCommands(m_bus, *m_program, u"program"_s, u"Program Monitor"_s);
+        core::registerTransportCommands(m_bus, *m_program, u"program"_s, u"Program monitor"_s);
     if (m_source)
-        core::registerTransportCommands(m_bus, *m_source, u"source"_s, u"Source Monitor"_s);
+        core::registerTransportCommands(m_bus, *m_source, u"source"_s, u"Source monitor"_s);
     registerAppCommands(m_bus, m_project, m_source.get());
     if (m_source) {
         // The source monitor shows a media item of the project; a new or opened project replaces it.

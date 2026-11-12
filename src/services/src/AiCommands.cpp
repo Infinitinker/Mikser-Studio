@@ -110,20 +110,20 @@ private:
 
 void AiCommandSet::registerAll()
 {
-    add(readOnly(aiSpec(u"ai.status"_s, u"AI Service Status"_s,
+    add(readOnly(aiSpec(u"ai.status"_s, u"AI service status"_s,
                         u"Reports whether the AI service is running, its last error and the number of active jobs."_s)),
         [this](const QJsonObject&) { return status(); });
-    add(aiSpec(u"ai.backends"_s, u"List AI Backends"_s,
+    add(aiSpec(u"ai.backends"_s, u"List AI backends"_s,
                u"Lists the AI backends with their operations and whether they can run now."_s),
         [this](const QJsonObject&) { return backends(); });
-    add(readOnly(aiSpec(u"ai.jobs"_s, u"List AI Jobs"_s,
+    add(readOnly(aiSpec(u"ai.jobs"_s, u"List AI jobs"_s,
                         u"Lists the AI jobs of this session with their progress and results."_s)),
         [this](const QJsonObject&) { return ok(QJsonObject{{u"jobs"_s, m_tracker.jobsJson()}}); });
-    add(aiSpec(u"ai.cancel_job"_s, u"Cancel AI Job"_s, u"Stops a queued or running AI job."_s,
+    add(aiSpec(u"ai.cancel_job"_s, u"Cancel AI job"_s, u"Stops a queued or running AI job."_s,
                objectSchema(QJsonObject{{u"jobId"_s, stringParam(u"Id of the job, from ai.jobs."_s)}}, {u"jobId"_s})),
         [this](const QJsonObject& params) { return cancelJob(params); });
     add(aiSpec(
-            u"ai.upscale_clip"_s, u"Upscale Clip"_s,
+            u"ai.upscale_clip"_s, u"Upscale clip"_s,
             u"Upscales a video clip and places the result on the video track above it (a new one on top if needed)."_s,
             objectSchema(
                 QJsonObject{
@@ -135,7 +135,7 @@ void AiCommandSet::registerAll()
                 },
                 {u"clipId"_s})),
         [this](const QJsonObject& params) { return upscaleClip(params); });
-    add(aiSpec(u"ai.generate_text"_s, u"Generate Text"_s, u"Answers a prompt with a local language model."_s,
+    add(aiSpec(u"ai.generate_text"_s, u"Generate text"_s, u"Answers a prompt with a local language model."_s,
                objectSchema(
                    QJsonObject{
                        {u"prompt"_s, stringParam(u"What to ask the model."_s)},
@@ -194,7 +194,7 @@ CommandResult AiCommandSet::upscaleClip(const QJsonObject& params)
 
     const QString jobId = m_tracker.submit(
         u"video.upscale"_s, QJsonObject{{u"input"_s, source->mediaPath}, {u"scale"_s, scale}},
-        u"Upscale \"%1\" x%2"_s.arg(source->mediaName).arg(scale),
+        u"Upscale “%1” x%2"_s.arg(source->mediaName).arg(scale),
         // The tracker that runs this belongs to `this`.
         [this, session = m_projectSession, clipId, scale](const AiJobInfo& job) -> std::expected<QJsonObject, QString> {
             if (!m_bus || !m_project)

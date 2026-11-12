@@ -67,9 +67,9 @@ void DesktopApp::registerMonitors()
 {
     ui::KddwDockHost& host = m_shell->dockHost();
     if (engine::ClipPlayer* source = m_studio.sourcePlayer())
-        registerMonitor(host, ui::panel_ids::kSourceMonitor, u"Source Monitor"_s, *source);
+        registerMonitor(host, ui::panel_ids::kSourceMonitor, u"Source monitor"_s, *source);
     if (engine::TimelinePlayer* program = m_studio.programPlayer())
-        registerMonitor(host, ui::panel_ids::kProgramMonitor, u"Program Monitor"_s, *program);
+        registerMonitor(host, ui::panel_ids::kProgramMonitor, u"Program monitor"_s, *program);
 
     for (engine::MltPlayer* player : {static_cast<engine::MltPlayer*>(m_studio.sourcePlayer()),
                                       static_cast<engine::MltPlayer*>(m_studio.programPlayer())}) {

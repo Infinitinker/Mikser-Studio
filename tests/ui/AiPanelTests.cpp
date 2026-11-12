@@ -202,7 +202,7 @@ TEST_CASE("AiPanel shows a failed request inline", "[ai-panel]")
     f.ai.registerAll();
     f.bus.unregisterCommand(u"ai.generate_text"_s);
     REQUIRE(f.bus.registerCommand(CommandSpec{.id = u"ai.generate_text"_s,
-                                              .title = u"Generate Text"_s,
+                                              .title = u"Generate text"_s,
                                               .description = u"Generates text."_s,
                                               .category = u"AI"_s,
                                               .paramsSchema = QJsonObject{{u"type"_s, u"object"_s}},

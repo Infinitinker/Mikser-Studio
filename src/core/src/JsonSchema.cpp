@@ -217,7 +217,7 @@ private:
             return;
         const QRegularExpression expression(pattern.toString());
         if (!expression.isValid()) {
-            add(pointer, u"the schema pattern \"%1\" is not a valid regular expression (%2)"_s.arg(
+            add(pointer, u"the schema pattern “%1” is not a valid regular expression (%2)"_s.arg(
                              pattern.toString(), expression.errorString()));
             return;
         }

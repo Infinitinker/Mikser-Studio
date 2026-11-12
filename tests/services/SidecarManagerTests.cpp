@@ -119,7 +119,7 @@ TEST_CASE("A missing Python environment fails at once with the setup hint", "[se
     sidecar.start();
     CHECK(sidecar.state() == SidecarState::Failed);
     const QString expected =
-        u"The AI service could not start: its Python environment \"%1\" was not found. Create it as docs/development.md describes and restart Mikser Studio."_s
+        u"The AI service could not start: its Python environment “%1” was not found. Create it as docs/development.md describes and restart Mikser Studio."_s
             .arg(QDir::toNativeSeparators(dir.filePath(u".venv"_s)));
     CHECK(sidecar.errorString() == expected);
     CHECK(log.errors == QStringList{expected});
@@ -133,7 +133,7 @@ TEST_CASE("A program that cannot be run fails without restarts", "[services][sid
     SidecarManager sidecar(options);
     sidecar.start();
     REQUIRE(waitFor([&] { return sidecar.state() == SidecarState::Failed; }));
-    CHECK(sidecar.errorString().startsWith(u"The AI service could not start: \""_s));
+    CHECK(sidecar.errorString().startsWith(u"The AI service could not start: “"_s));
     CHECK(sidecar.errorString().contains(u"could not be run"_s));
     CHECK(sidecar.restartCount() == 0);
 }

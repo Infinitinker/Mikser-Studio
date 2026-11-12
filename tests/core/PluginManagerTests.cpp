@@ -247,7 +247,7 @@ TEST_CASE("A native plugin activates, runs commands and deactivates cleanly", "[
         CHECK(nested->value(u"echo").toString() == u"x"_s);
         const auto unknown = env.bus.execute(kFixtureId + u".run"_s, json(R"({"command": "no.such_command"})"));
         REQUIRE_FALSE(unknown);
-        CHECK(unknown.error().message.contains(u"Unknown command \"no.such_command\""_s));
+        CHECK(unknown.error().message.contains(u"Unknown command “no.such_command”"_s));
     }
     SECTION("get_settings returns the current settings")
     {

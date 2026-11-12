@@ -38,12 +38,12 @@ core::CommandResult saveProject(const core::ProjectModel& project, const QString
     QSaveFile file(path);
     if (!file.open(QIODevice::WriteOnly))
         return commandFailure(CommandErrorCode::Failed,
-                              u"Could not write \"%1\": %2. Choose another folder."_s.arg(path, file.errorString()));
+                              u"Could not write “%1”: %2. Choose another folder."_s.arg(path, file.errorString()));
     file.write(QJsonDocument(project.toJson()).toJson(QJsonDocument::Indented));
     if (!file.commit())
         return commandFailure(
             CommandErrorCode::Failed,
-            u"Could not save \"%1\": %2. Check the free space and permissions."_s.arg(path, file.errorString()));
+            u"Could not save “%1”: %2. Check the free space and permissions."_s.arg(path, file.errorString()));
     return core::CommandOutcome{QJsonObject{{u"path"_s, path}}, nullptr};
 }
 
@@ -51,11 +51,11 @@ core::CommandResult openProject(core::ProjectModel& project, core::UndoStack& un
 {
     QFile file(path);
     if (!file.open(QIODevice::ReadOnly))
-        return commandFailure(CommandErrorCode::Failed, u"Could not open \"%1\": %2."_s.arg(path, file.errorString()));
+        return commandFailure(CommandErrorCode::Failed, u"Could not open “%1”: %2."_s.arg(path, file.errorString()));
     QJsonParseError parseError;
     const QJsonDocument document = QJsonDocument::fromJson(file.readAll(), &parseError);
     if (parseError.error != QJsonParseError::NoError || !document.isObject())
-        return commandFailure(CommandErrorCode::Failed, u"\"%1\" is not a Mikser Studio project file (%2)."_s.arg(
+        return commandFailure(CommandErrorCode::Failed, u"“%1” is not a Mikser Studio project file (%2)."_s.arg(
                                                             path, parseError.errorString()));
     if (const auto loaded = project.loadJson(document.object()); !loaded)
         return commandFailure(CommandErrorCode::Failed, loaded.error());
@@ -70,8 +70,8 @@ void registerAppCommands(core::CommandBus& bus, core::ProjectModel& project, eng
     core::UndoStack& undo = bus.undoStack();
 
     bus.registerCommand({.id = u"project.new"_s,
-                         .title = u"New Project"_s,
-                         .description = u"Start an empty project. This cannot be undone."_s,
+                         .title = u"New project"_s,
+                         .description = u"Starts an empty project. This cannot be undone."_s,
                          .category = u"File"_s,
                          .paramsSchema = {},
                          .shortcut = u"Ctrl+N"_s,
@@ -84,12 +84,12 @@ void registerAppCommands(core::CommandBus& bus, core::ProjectModel& project, eng
                             return core::CommandOutcome{};
                         });
     bus.registerCommand(
-        {u"project.save"_s, u"Save Project As…"_s, u"Save the project to a .mikser file."_s, u"File"_s,
+        {u"project.save"_s, u"Save project as…"_s, u"Saves the project to a .mikser file."_s, u"File"_s,
          pathSchema(u"Where to save the project (.mikser)."_s), u"Ctrl+Shift+S"_s, false},
         [&project](const QJsonObject& params) { return saveProject(project, params.value(u"path"_s).toString()); });
     bus.registerCommand({.id = u"project.open"_s,
-                         .title = u"Open Project…"_s,
-                         .description = u"Open a .mikser project file. The undo history is cleared."_s,
+                         .title = u"Open project…"_s,
+                         .description = u"Opens a .mikser project file. The undo history is cleared."_s,
                          .category = u"File"_s,
                          .paramsSchema = pathSchema(u"The .mikser project file to open."_s),
                          .shortcut = u"Ctrl+O"_s,
@@ -109,9 +109,9 @@ void registerAppCommands(core::CommandBus& bus, core::ProjectModel& project, eng
         {u"additionalProperties"_s, false},
     };
     bus.registerCommand({u"source.open_media"_s,
-                         u"Show in Source Monitor"_s,
-                         u"Load a media item from the bin into the source monitor."_s,
-                         u"Source Monitor"_s,
+                         u"Show in source monitor"_s,
+                         u"Loads a media item from the bin into the source monitor."_s,
+                         u"Source monitor"_s,
                          mediaSchema,
                          {},
                          false},
@@ -120,7 +120,7 @@ void registerAppCommands(core::CommandBus& bus, core::ProjectModel& project, eng
                             const core::MediaItem* item = project.findMedia(id);
                             if (!item)
                                 return commandFailure(CommandErrorCode::Failed,
-                                                      u"There is no media item \"%1\" in the project."_s.arg(id));
+                                                      u"There is no media item “%1” in the project."_s.arg(id));
                             if (const auto opened = source->openFile(item->path); !opened)
                                 return commandFailure(CommandErrorCode::Failed, opened.error());
                             return core::CommandOutcome{QJsonObject{{u"mediaId"_s, id}}, nullptr};

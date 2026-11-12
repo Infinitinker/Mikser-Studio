@@ -33,7 +33,7 @@ void WorkspaceMenu::switchTo(const QString& name)
         m_status.showMessage(loaded.error(), true);
         return;
     }
-    m_status.showMessage(u"Workspace \"%1\""_s.arg(m_host.currentWorkspace()), false);
+    m_status.showMessage(u"Workspace “%1”"_s.arg(m_host.currentWorkspace()), false);
 }
 
 void WorkspaceMenu::saveAs(const QString& name)
@@ -42,7 +42,7 @@ void WorkspaceMenu::saveAs(const QString& name)
         m_status.showMessage(saved.error(), true);
         return;
     }
-    m_status.showMessage(u"Saved workspace \"%1\""_s.arg(name), false);
+    m_status.showMessage(u"Saved workspace “%1”"_s.arg(name), false);
 }
 
 void WorkspaceMenu::resetCurrent()
@@ -53,7 +53,7 @@ void WorkspaceMenu::resetCurrent()
         m_status.showMessage(reset.error(), true);
         return;
     }
-    m_status.showMessage(u"Reset workspace \"%1\""_s.arg(name), false);
+    m_status.showMessage(u"Reset workspace “%1”"_s.arg(name), false);
 }
 
 void WorkspaceMenu::rebuild()
@@ -75,8 +75,8 @@ void WorkspaceMenu::rebuild()
         connect(action, &QAction::triggered, this, [this, name] { switchTo(name); });
     }
     m_menu->addSeparator();
-    connect(m_menu->addAction(u"Save Workspace As…"_s), &QAction::triggered, this, &WorkspaceMenu::askAndSave);
-    QAction* reset = m_menu->addAction(u"Reset Workspace"_s);
+    connect(m_menu->addAction(u"Save workspace as…"_s), &QAction::triggered, this, &WorkspaceMenu::askAndSave);
+    QAction* reset = m_menu->addAction(u"Reset workspace"_s);
     reset->setToolTip(u"Brings the current workspace back to its saved or built-in layout."_s);
     connect(reset, &QAction::triggered, this, &WorkspaceMenu::resetCurrent);
 }
@@ -84,14 +84,14 @@ void WorkspaceMenu::rebuild()
 void WorkspaceMenu::askAndSave()
 {
     bool ok = false;
-    const QString name = QInputDialog::getText(m_dialogParent, u"Save Workspace"_s, u"Workspace name:"_s,
+    const QString name = QInputDialog::getText(m_dialogParent, u"Save workspace"_s, u"Workspace name:"_s,
                                                QLineEdit::Normal, m_host.currentWorkspace(), &ok)
                              .trimmed();
     if (!ok || name.isEmpty())
         return;
     if (m_host.hasSavedWorkspace(name) &&
-        QMessageBox::question(m_dialogParent, u"Save Workspace"_s,
-                              u"A workspace named \"%1\" exists. Replace it?"_s.arg(name)) != QMessageBox::Yes) {
+        QMessageBox::question(m_dialogParent, u"Save workspace"_s,
+                              u"A workspace named “%1” exists. Replace it?"_s.arg(name)) != QMessageBox::Yes) {
         return;
     }
     saveAs(name);

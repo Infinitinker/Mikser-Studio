@@ -46,6 +46,15 @@ std::pair<int, QString> actionKey(const QAction* action)
     return {rank, action->text().toLower()};
 }
 
+// An undo step's name as it follows "Undo " or "Redo ": "Add clip" reads "Undo add clip". A name that
+// starts with an abbreviation, such as "AI", keeps its capital.
+QString stepName(const QString& name)
+{
+    if (name.isEmpty() || (name.size() > 1 && name.at(1).isUpper()))
+        return name;
+    return name.at(0).toLower() + name.sliced(1);
+}
+
 }  // namespace
 
 CommandMenus::CommandMenus(core::CommandBus& bus, QMenuBar* menuBar, QWidget* dialogParent, QObject* parent)
@@ -143,11 +152,11 @@ void CommandMenus::updateUndoRedo()
 {
     const core::UndoStack& undo = m_bus.undoStack();
     if (QAction* action = m_actions.value(kUndo)) {
-        action->setText(undo.canUndo() ? u"Undo %1"_s.arg(undo.undoText()) : u"Undo"_s);
+        action->setText(undo.canUndo() ? u"Undo %1"_s.arg(stepName(undo.undoText())) : u"Undo"_s);
         action->setEnabled(undo.canUndo());
     }
     if (QAction* action = m_actions.value(kRedo)) {
-        action->setText(undo.canRedo() ? u"Redo %1"_s.arg(undo.redoText()) : u"Redo"_s);
+        action->setText(undo.canRedo() ? u"Redo %1"_s.arg(stepName(undo.redoText())) : u"Redo"_s);
         action->setEnabled(undo.canRedo());
     }
 }

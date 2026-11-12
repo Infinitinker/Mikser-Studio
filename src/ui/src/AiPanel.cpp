@@ -214,7 +214,7 @@ void AiPanel::updateControls()
     if (!clip)
         m_clipLabel->setText(u"Select a video clip on the timeline."_s);
     else if (!isVideo)
-        m_clipLabel->setText(u"\"%1\" is not a video clip."_s.arg(media ? media->name : clip->id));
+        m_clipLabel->setText(u"“%1” is not a video clip."_s.arg(media ? media->name : clip->id));
     else
         m_clipLabel->setText(u"Clip: %1"_s.arg(media->name));
 

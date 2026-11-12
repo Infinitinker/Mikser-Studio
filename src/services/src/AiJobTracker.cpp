@@ -73,7 +73,7 @@ std::expected<AiJobState, core::CommandError> AiJobTracker::cancel(const QString
     }
     if (isFinished(job->state)) {
         return core::commandFailure(core::CommandErrorCode::NotAvailable,
-                                    u"The AI job \"%1\" has already finished."_s.arg(job->title));
+                                    u"The AI job “%1” has already finished."_s.arg(job->title));
     }
     if (job->remoteId.isEmpty()) {
         // Not in the sidecar yet; a submission still on its way is canceled when it arrives.

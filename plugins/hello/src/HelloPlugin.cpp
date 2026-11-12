@@ -14,7 +14,7 @@ namespace {
 
 constexpr std::string_view kGreetSpec = R"json({
     "id": "mikserstudio.examples.hello.greet",
-    "title": "Say Hello",
+    "title": "Say hello",
     "description": "Greets someone with the greeting from the plugin settings.",
     "category": "Examples",
     "readOnly": true,

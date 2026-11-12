@@ -109,8 +109,8 @@ int main(int argc, char** argv)
     ui::demo::FakeTransport program(project.frameRate());
     ui::demo::FakeTransport source(project.frameRate());
     source.setDuration(static_cast<core::FramePos>(project.frameRate().toDouble() * 20));
-    core::registerTransportCommands(bus, program, u"program"_s, u"Program Monitor"_s);
-    core::registerTransportCommands(bus, source, u"source"_s, u"Source Monitor"_s);
+    core::registerTransportCommands(bus, program, u"program"_s, u"Program monitor"_s);
+    core::registerTransportCommands(bus, source, u"source"_s, u"Source monitor"_s);
     QObject::connect(&project, &core::ProjectModel::timelineChanged, &program,
                      [&] { program.setDuration(project.duration()); });
     QObject::connect(&project, &core::ProjectModel::projectReset, &program, [&] {
@@ -126,8 +126,8 @@ int main(int argc, char** argv)
     plugins.activateAll();
 
     ui::Shell shell(bus, project, plugins, configDir);
-    registerMonitor(shell.dockHost(), ui::panel_ids::kSourceMonitor, u"Source Monitor"_s, source, project);
-    registerMonitor(shell.dockHost(), ui::panel_ids::kProgramMonitor, u"Program Monitor"_s, program, project);
+    registerMonitor(shell.dockHost(), ui::panel_ids::kSourceMonitor, u"Source monitor"_s, source, project);
+    registerMonitor(shell.dockHost(), ui::panel_ids::kProgramMonitor, u"Program monitor"_s, program, project);
     shell.setProgramTransport(&program);
 
     const auto clips = ui::demo::populateDemoProject(bus, project, QDir(configDir).filePath(u"demo-media"_s));
@@ -137,7 +137,7 @@ int main(int argc, char** argv)
     }
     undo.clear();
     ai.submit(u"text.generate"_s, u"Generate text: shot ideas for the opening"_s, 1.0);
-    ai.submit(u"video.upscale"_s, u"Upscale \"Interview A\" x2"_s, 0.35);
+    ai.submit(u"video.upscale"_s, u"Upscale “Interview A” x2"_s, 0.35);
     program.seek(static_cast<core::FramePos>(project.frameRate().toDouble() * 11.5));
     if (clips->size() > 1)
         shell.selection().select(clips->at(1));

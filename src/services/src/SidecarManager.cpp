@@ -191,7 +191,7 @@ void SidecarManager::onFailedToStart()
     const QString reason = m_process ? m_process->errorString() : QString();
     m_readyTimer.stop();
     discardProcess(false);
-    fail(u"The AI service could not start: \"%1\" could not be run (%2)."_s.arg(program, reason));
+    fail(u"The AI service could not start: “%1” could not be run (%2)."_s.arg(program, reason));
 }
 
 void SidecarManager::onReadyTimeout()

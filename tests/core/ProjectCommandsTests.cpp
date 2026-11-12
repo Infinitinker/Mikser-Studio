@@ -124,7 +124,7 @@ TEST_CASE("project.import_media probes the file and undo removes it", "[project]
     CHECK(item.name == u"clip.mp4"_s);
     CHECK(item.info.durationFrames == 300);
     CHECK(f.probe.probedPaths == QStringList{f.path(u"clip.mp4"_s)});
-    CHECK(f.stack.undoText() == u"Import \"clip.mp4\""_s);
+    CHECK(f.stack.undoText() == u"Import “clip.mp4”"_s);
 
     f.undo();
     CHECK(f.project.media().isEmpty());
@@ -190,7 +190,7 @@ TEST_CASE("project.remove_media and its undo restore the bin order", "[project][
 
     REQUIRE(f.bus.execute(u"project.remove_media"_s, QJsonObject{{u"mediaId"_s, second}}));
     CHECK(f.project.findMedia(second) == nullptr);
-    CHECK(f.stack.undoText() == u"Remove \"song.wav\""_s);
+    CHECK(f.stack.undoText() == u"Remove “song.wav”"_s);
 
     f.undo();
     REQUIRE(f.project.media().size() == 3);
@@ -219,7 +219,7 @@ TEST_CASE("project.list returns the project JSON", "[project][commands]")
     REQUIRE(listed);
     CHECK(*listed == f.project.toJson());
     CHECK(listed->value(u"media").toArray()[0].toObject().value(u"id").toString() == id);
-    CHECK(f.stack.undoText() == u"Import \"clip.mp4\""_s);
+    CHECK(f.stack.undoText() == u"Import “clip.mp4”"_s);
 }
 
 TEST_CASE("timeline.add_clip defaults in/out to the whole media", "[project][commands]")
@@ -273,7 +273,7 @@ TEST_CASE("timeline.remove_clip undo restores the exact clip", "[project][comman
 
     REQUIRE(f.bus.execute(u"timeline.remove_clip"_s, QJsonObject{{u"clipId"_s, id}}));
     CHECK(f.project.clips().isEmpty());
-    CHECK(f.stack.undoText() == u"Remove Clip"_s);
+    CHECK(f.stack.undoText() == u"Remove clip"_s);
     f.undo();
     const Clip* restored = f.project.findClip(id);
     REQUIRE(restored);
@@ -300,7 +300,7 @@ TEST_CASE("timeline.move_clip and timeline.trim_clip are undoable", "[project][c
                           QJsonObject{{u"clipId"_s, id}, {u"trackId"_s, u"V2"_s}, {u"position"_s, 40}}));
     CHECK(f.project.findClip(id)->trackId == u"V2"_s);
     CHECK(f.project.findClip(id)->position == 40);
-    CHECK(f.stack.undoText() == u"Move Clip"_s);
+    CHECK(f.stack.undoText() == u"Move clip"_s);
     f.undo();
     CHECK(f.project.findClip(id)->trackId == u"V1"_s);
     CHECK(f.project.findClip(id)->position == 0);
@@ -317,7 +317,7 @@ TEST_CASE("timeline.move_clip and timeline.trim_clip are undoable", "[project][c
     CHECK(f.project.findClip(id)->in == 20);
     CHECK(f.project.findClip(id)->out == 80);
     CHECK(f.project.findClip(id)->position == 0);
-    CHECK(f.stack.undoText() == u"Trim Clip"_s);
+    CHECK(f.stack.undoText() == u"Trim clip"_s);
     f.undo();
     CHECK(f.project.findClip(id)->in == 0);
     CHECK(f.project.findClip(id)->out == 100);
@@ -410,7 +410,7 @@ TEST_CASE("timeline.add_track adds the next track and undo removes it", "[projec
     REQUIRE(added);
     CHECK(added->value(u"trackId").toString() == u"V3"_s);
     CHECK(f.project.tracks()[2].id == u"V3"_s);
-    CHECK(f.stack.undoText() == u"Add Video Track"_s);
+    CHECK(f.stack.undoText() == u"Add video track"_s);
 
     const auto audio = f.bus.execute(u"timeline.add_track"_s, json(R"({"kind": "audio"})"));
     REQUIRE(audio);
@@ -437,16 +437,16 @@ TEST_CASE("timeline.set_track_flags mutes and hides tracks undoably", "[project]
     REQUIRE(f.bus.execute(u"timeline.set_track_flags"_s, json(R"({"trackId": "A1", "muted": true})")));
     CHECK(f.project.findTrack(u"A1"_s)->muted);
     CHECK_FALSE(f.project.findTrack(u"A1"_s)->hidden);
-    CHECK(f.stack.undoText() == u"Mute Track A1"_s);
+    CHECK(f.stack.undoText() == u"Mute track A1"_s);
 
     REQUIRE(f.bus.execute(u"timeline.set_track_flags"_s, json(R"({"trackId": "V2", "hidden": true})")));
-    CHECK(f.stack.undoText() == u"Hide Track V2"_s);
+    CHECK(f.stack.undoText() == u"Hide track V2"_s);
     REQUIRE(f.bus.execute(u"timeline.set_track_flags"_s, json(R"({"trackId": "V2", "muted": true, "hidden": false})")));
-    CHECK(f.stack.undoText() == u"Change Track V2"_s);
+    CHECK(f.stack.undoText() == u"Change track V2"_s);
 
     // Nothing changes: no undo step.
     REQUIRE(f.bus.execute(u"timeline.set_track_flags"_s, json(R"({"trackId": "V2"})")));
-    CHECK(f.stack.undoText() == u"Change Track V2"_s);
+    CHECK(f.stack.undoText() == u"Change track V2"_s);
 
     f.undo();
     CHECK(f.project.findTrack(u"V2"_s)->hidden);

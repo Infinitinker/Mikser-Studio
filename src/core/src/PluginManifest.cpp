@@ -83,7 +83,7 @@ std::expected<QList<PanelContribution>, QString> parsePanels(const QJsonArray& p
         };
         const QString pointer = u"/panels/%1"_s.arg(i);
         if (ids.contains(contribution.id))
-            return std::unexpected(pointer + u"/id: panel id \"%1\" is used twice"_s.arg(contribution.id));
+            return std::unexpected(pointer + u"/id: panel id “%1” is used twice"_s.arg(contribution.id));
         if (!QDir::isRelativePath(contribution.qml) || contribution.qml.split(u'/').contains(u".."_s) ||
             contribution.qml.contains(u'\\') || contribution.qml.contains(u':')) {
             return std::unexpected(pointer +
