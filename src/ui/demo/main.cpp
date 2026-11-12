@@ -88,7 +88,7 @@ int main(int argc, char** argv)
     QCommandLineParser parser;
     parser.setApplicationDescription(u"Mikser Studio UI demo with fake media, transport and AI."_s);
     parser.addHelpOption();
-    const QCommandLineOption configOption(u"config"_s, u"Folder for layouts, workspaces and demo files."_s, u"dir"_s);
+    const QCommandLineOption configOption(u"config"_s, u"Folder for workspaces, settings and demo files."_s, u"dir"_s);
     const QCommandLineOption workspaceOption(u"workspace"_s, u"Workspace to load after start."_s, u"name"_s);
     const QCommandLineOption screenshotOption(u"screenshot"_s, u"Save a screenshot to <png> and quit."_s, u"png"_s);
     const QCommandLineOption floatOption(u"float"_s, u"Panel to float before the screenshot."_s, u"panel-id"_s,

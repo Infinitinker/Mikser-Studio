@@ -166,7 +166,7 @@ TEST_CASE("KddwDockHost saves and restores layouts", "[docking]")
 
     const auto broken = f.host->restoreLayout("{not json");
     REQUIRE_FALSE(broken);
-    CHECK(broken.error().contains(u"not valid JSON"_s));
+    CHECK(broken.error().contains(u"is damaged"_s));
     CHECK(f.host->isPanelOpen(u"test/a"_s));
 }
 

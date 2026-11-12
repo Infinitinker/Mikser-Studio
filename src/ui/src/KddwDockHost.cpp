@@ -209,8 +209,7 @@ std::expected<void, QString> KddwDockHost::openPanel(const QString& id)
     if (!panel) {
         dock = firstDock(id);
         if (!dock)
-            return std::unexpected(
-                u"There is no panel “%1”. It may come from a plugin that is not active."_s.arg(id));
+            return std::unexpected(u"There is no panel “%1”. It may come from a plugin that is not active."_s.arg(id));
     } else if (panel->unique) {
         dock = firstDock(id);
     } else {
@@ -557,14 +556,15 @@ std::expected<void, QString> KddwDockHost::restore(const QByteArray& layout, boo
     QJsonParseError error;
     const QJsonDocument document = QJsonDocument::fromJson(layout, &error);
     if (error.error != QJsonParseError::NoError || !document.isObject())
-        return std::unexpected(u"The layout is not valid JSON (%1)."_s.arg(error.errorString()));
+        return std::unexpected(u"The saved arrangement of the panels is damaged (%1)."_s.arg(error.errorString()));
     KDDockWidgets::RestoreOptions options = KDDockWidgets::RestoreOption_CloseUnknownDockWidgets;
     if (keepMainWindowGeometry)
         options |= KDDockWidgets::RestoreOption_RelativeToMainWindow;
     KDDockWidgets::LayoutSaver saver(options);
     if (!saver.restoreLayout(layout))
         return std::unexpected(
-            u"The layout could not be restored; it may come from an incompatible version of Mikser Studio."_s);
+            u"The saved arrangement of the panels could not be restored; it may come from another version of "
+            u"Mikser Studio."_s);
     // Panels the layout does not place would otherwise stay open (KDDockWidgets floats them).
     const QSet<QString> placed = placedDocks(document.object());
     for (auto it = m_docks.cbegin(); it != m_docks.cend(); ++it) {

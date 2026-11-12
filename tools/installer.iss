@@ -57,7 +57,7 @@ RestartApplications=no
 Name: "english"; MessagesFile: "compiler:Default.isl"
 
 [CustomMessages]
-english.DeleteUserData=Also delete your Mikser Studio settings, window layouts and the cache with the AI's results?%n%n%1
+english.DeleteUserData=Also delete your Mikser Studio settings, workspaces and the cache with the AI's results?%n%n%1
 english.UserDataNotDeleted=Some files in %1 could not be deleted. Delete the folder yourself.
 
 [Tasks]

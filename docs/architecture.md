@@ -72,7 +72,7 @@ messages.
 | source monitor | The monitor that plays one media item. | clip viewer |
 | program monitor | The monitor that plays the timeline. | preview, output |
 | panel | A movable, dockable part of the main window (media bin, timeline, AI, log). | dock, pane, widget |
-| workspace | A saved arrangement of the panels. | layout, perspective |
+| workspace | A saved arrangement of the panels. | layout, perspective (in the code, *layout* is only KDDockWidgets' saved form of a workspace, as in `LayoutSaver` and `layout.json`) |
 | command | An action with an id such as `project.import_media`, run the same way from menus, shortcuts, the command palette, the API and plugins. | action, operation |
 | command palette | The popup that finds and runs commands (Ctrl+K). | quick open |
 | plugin | A shared library with a `mikserstudio-plugin.json` manifest that adds commands, settings and panels. | extension, add-on, module |

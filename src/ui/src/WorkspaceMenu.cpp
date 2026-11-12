@@ -77,7 +77,7 @@ void WorkspaceMenu::rebuild()
     m_menu->addSeparator();
     connect(m_menu->addAction(u"Save workspace as…"_s), &QAction::triggered, this, &WorkspaceMenu::askAndSave);
     QAction* reset = m_menu->addAction(u"Reset workspace"_s);
-    reset->setToolTip(u"Brings the current workspace back to its saved or built-in layout."_s);
+    reset->setToolTip(u"Puts the panels back the way the current workspace was saved."_s);
     connect(reset, &QAction::triggered, this, &WorkspaceMenu::resetCurrent);
 }
 

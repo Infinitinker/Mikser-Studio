@@ -1,4 +1,4 @@
-// The Media panel: importing, removing and placing media items, always through commands.
+// The media bin panel: importing, removing and placing media items, always through commands.
 #include "MediaBinPanel.h"
 
 #include "CommandInvoker.h"
@@ -53,7 +53,7 @@ MediaBinPanel::MediaBinPanel(core::CommandBus& bus, const core::ProjectModel& pr
     import->setProperty("role", u"primary"_s);
     import->setToolTip(u"Adds media files to the project (project.import_media)."_s);
     connect(import, &QPushButton::clicked, this, [this] { importFiles(m_pickFiles(this)); });
-    layout->addLayout(makePanelHeader(u"Media"_s, {import}));
+    layout->addLayout(makePanelHeader(u"Media bin"_s, {import}));
 
     m_view->setModel(m_model);
     m_view->setRootIsDecorated(false);

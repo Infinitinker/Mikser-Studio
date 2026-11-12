@@ -155,7 +155,8 @@ void Shell::restoreState()
         }
         qCWarning(lcShell).noquote() << "Could not restore the last layout:" << restored.error();
         m_status->showMessage(
-            u"The last window layout could not be restored; using the “%1” workspace."_s.arg(workspace), true);
+            u"The panels could not be arranged as you left them, so the “%1” workspace is shown."_s.arg(workspace),
+            true);
     }
     // Workspaces are laid out in proportion to the window, so wait until it has its real size.
     m_pendingWorkspace = std::move(workspace);
@@ -250,7 +251,7 @@ void Shell::registerCorePanels()
 {
     using namespace panel_ids;
     KddwDockHost& host = *m_dockHost;
-    host.registerPanel({kMediaBin.toString(), u"Media"_s, DockArea::Left, true,
+    host.registerPanel({kMediaBin.toString(), u"Media bin"_s, DockArea::Left, true,
                         [this](QWidget* parent) { return new MediaBinPanel(m_bus, m_project, parent); }});
     host.registerPanel({kTimeline.toString(), u"Timeline"_s, DockArea::Bottom, true,
                         [this](QWidget* parent) { return new TimelineView(*m_timeline, *m_theme, parent); }});

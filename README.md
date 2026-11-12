@@ -20,8 +20,8 @@ Mikser Studio is a desktop studio for video and sound. You put clips on a timeli
 
 ## What it does
 
-- 🎬 **Plays and edits video and sound** on a timeline with video and audio tracks, with a source monitor for one clip and a program monitor for the whole timeline, both drawn on the GPU.
-- 🪟 **Lets you arrange the studio**: every panel can be moved, docked, undocked and stacked into tabs, and the layout is kept for next time.
+- 🎬 **Plays and edits video and sound** on a timeline with video and audio tracks, with a source monitor for one media item and a program monitor for the whole timeline, both drawn on the GPU.
+- 🪟 **Lets you arrange the studio**: every panel can be moved, docked, undocked and stacked into tabs, the arrangement is kept for next time, and you can save it as a workspace of its own.
 - 🤖 **Runs AI on your clips**: upscale a clip, or generate text with a local [Ollama](https://ollama.com) model. AI runs in a process of its own, so a model that fails never takes the editor down. For now this works only when Mikser Studio runs from source: a release doesn't include the AI features yet.
 - ⌨️ **Does everything through commands**: menus, shortcuts and the command palette (**Ctrl+K**) run the same commands, and every change can be undone.
 - 🧩 **Grows with plugins**: a plugin adds commands, settings and panels without changing Mikser Studio itself.
@@ -34,14 +34,14 @@ Mikser Studio has no release yet. Once it has one:
 
 1. **Download** `MikserStudio-<version>-windows-x64-setup.exe` from the [latest release](https://github.com/Infinitinker/Mikser-Studio/releases/latest) and run it.
 2. **Start Mikser Studio** from the installer's last page or the Start menu.
-3. **Drop a video or sound file** on the media bin, drag the clip onto the timeline, and play it in the program monitor (**Space**).
+3. **Drop a video or sound file** on the media bin, drag it onto the timeline, and play it in the program monitor (**Space**).
 
 Until then, Mikser Studio runs from source, as [docs/development.md](docs/development.md) describes; `start.bat` starts it from a built checkout.
 
 ## Questions
 
 **Where are my settings?**
-On Windows, in `%LOCALAPPDATA%\Mikser Studio`: the window layout and settings, the cache with the AI's results in `cache`, and `api.json`, which tells other programs on your computer how to reach the local API while Mikser Studio runs. They stay when you update Mikser Studio.
+On Windows, in `%LOCALAPPDATA%\Mikser Studio`: your workspaces and settings, the cache with the AI's results in `cache`, and `api.json`, which tells other programs on your computer how to reach the local API while Mikser Studio runs. They stay when you update Mikser Studio.
 
 **Where are the AI features?**
 A release of Mikser Studio doesn't include them yet; its AI commands say so. They run when Mikser Studio runs from source, as [docs/development.md](docs/development.md) describes, and come to the releases later.
