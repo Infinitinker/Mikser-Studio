@@ -15,8 +15,7 @@ using namespace Qt::StringLiterals;
 
 namespace mikserstudio::ui {
 
-WorkspaceMenu::WorkspaceMenu(DockHost& host, QMenu* menu, CommandStatus& status, QWidget* dialogParent,
-                             QObject* parent)
+WorkspaceMenu::WorkspaceMenu(DockHost& host, QMenu* menu, CommandStatus& status, QWidget* dialogParent, QObject* parent)
     : QObject(parent)
     , m_host(host)
     , m_menu(menu)

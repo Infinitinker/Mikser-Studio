@@ -184,10 +184,9 @@ std::expected<void, QString> PluginHost::addCommand(const QByteArray& specJson, 
     };
 
     if (!m_bus.registerCommand(std::move(spec), std::move(handler))) {
-        return std::unexpected(m_bus.contains(id)
-                                   ? u"command id “%1” is already registered"_s.arg(id)
-                                   : u"command “%1” was rejected; check its id format and paramsSchema "
-                                     "(the log has details)"_s.arg(id));
+        return std::unexpected(m_bus.contains(id) ? u"command id “%1” is already registered"_s.arg(id)
+                                                  : u"command “%1” was rejected; check its id format and paramsSchema "
+                                                    "(the log has details)"_s.arg(id));
     }
     m_commands.append(id);
     return {};

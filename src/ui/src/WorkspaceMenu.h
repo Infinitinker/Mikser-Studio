@@ -18,8 +18,7 @@ class WorkspaceMenu final : public QObject {
     Q_OBJECT
 
 public:
-    WorkspaceMenu(DockHost& host, QMenu* menu, CommandStatus& status, QWidget* dialogParent,
-                  QObject* parent = nullptr);
+    WorkspaceMenu(DockHost& host, QMenu* menu, CommandStatus& status, QWidget* dialogParent, QObject* parent = nullptr);
 
     void switchTo(const QString& name);
     void saveAs(const QString& name);  // Overwrites a saved workspace of that name.
