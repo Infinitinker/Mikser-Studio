@@ -1,3 +1,5 @@
+// Receiving requests for the local API, answering them through the router, logging them without secrets and
+// checking WebSocket upgrades.
 #include "HttpFrontend.h"
 
 #include "ApiResponse.h"

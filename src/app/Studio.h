@@ -1,3 +1,5 @@
+// Everything except the UI, wired together: the core, the playback engine, the AI service, plugins and the
+// local API.
 #pragma once
 
 #include "mikserstudio/api/ApiServer.h"

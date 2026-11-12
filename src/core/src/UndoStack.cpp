@@ -1,3 +1,4 @@
+// The undo history and the compound edit that groups use.
 #include "mikserstudio/core/UndoStack.h"
 
 #include "Logging.h"

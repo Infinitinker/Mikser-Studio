@@ -1,3 +1,4 @@
+// The stand-in for a panel of a saved workspace whose owner, usually a plugin, is not installed.
 #pragma once
 
 #include <QWidget>

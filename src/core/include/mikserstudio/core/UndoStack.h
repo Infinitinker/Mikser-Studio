@@ -1,3 +1,4 @@
+// The undo history: applied edits, undo and redo, and groups that combine several edits into one step.
 #pragma once
 
 #include "mikserstudio/core/Command.h"

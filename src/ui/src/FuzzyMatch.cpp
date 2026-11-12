@@ -1,3 +1,4 @@
+// The fuzzy match score: word starts and consecutive runs score more, gaps score less.
 #include "FuzzyMatch.h"
 
 #include <algorithm>

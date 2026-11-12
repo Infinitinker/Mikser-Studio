@@ -1,3 +1,5 @@
+// The command bus: specs are validated and listed, params are checked and defaulted before the handler runs,
+// unknown commands are reported, edits reach the undo stack, and signals fire for executed and failed commands.
 #include "TestSupport.h"
 
 #include "mikserstudio/core/CommandBus.h"

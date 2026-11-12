@@ -1,3 +1,4 @@
+// The engine's logging categories.
 #include "Logging.h"
 
 namespace mikserstudio::engine {

@@ -1,3 +1,5 @@
+// The Media panel: the media bin with import by button or file drop, remove, and drag or double-click onto
+// the timeline.
 #pragma once
 
 #include <QWidget>

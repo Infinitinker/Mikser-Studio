@@ -1,3 +1,4 @@
+// The timeline clip rows and their track rows, updated from the project's signals.
 #include "TimelineModel.h"
 
 #include "mikserstudio/ui/ClipSelection.h"

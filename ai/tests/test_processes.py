@@ -1,3 +1,7 @@
+"""Finding programs: never in the working directory, only in absolute PATH folders or a configured absolute
+path, and ffprobe next to ffmpeg.
+"""
+
 import os
 import sys
 from pathlib import Path

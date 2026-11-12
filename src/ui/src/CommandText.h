@@ -1,3 +1,4 @@
+// Short texts about commands for the UI: a command's title and the one-line summary of its result.
 #pragma once
 
 #include <QJsonObject>

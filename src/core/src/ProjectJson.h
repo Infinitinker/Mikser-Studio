@@ -1,3 +1,4 @@
+// Converting the project and its parts to and from JSON, checking a document against the project schema.
 #pragma once
 
 #include "mikserstudio/core/Project.h"

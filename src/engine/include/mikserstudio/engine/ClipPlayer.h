@@ -1,3 +1,4 @@
+// The source monitor's playback engine: plays one media item from a file, at the file's own frame rate and size.
 #pragma once
 
 #include "mikserstudio/engine/MltPlayer.h"

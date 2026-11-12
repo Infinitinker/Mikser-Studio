@@ -1,3 +1,4 @@
+// Composes a screenshot of the main window with its floating panels laid over it.
 #pragma once
 
 #include <QImage>

@@ -1,3 +1,4 @@
+// Submitting, polling, canceling and finishing AI jobs, and starting the AI service when a job needs it.
 #include "AiJobTracker.h"
 
 #include "Logging.h"

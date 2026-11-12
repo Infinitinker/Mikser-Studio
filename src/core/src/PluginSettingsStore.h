@@ -1,3 +1,4 @@
+// Reading and writing the plugins' settings files and the list of disabled plugins.
 #pragma once
 
 #include <QJsonObject>

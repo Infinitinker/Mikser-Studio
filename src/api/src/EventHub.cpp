@@ -1,3 +1,5 @@
+// Turning command bus and undo stack changes into events for the clients of /v1/events, and dropping clients
+// that do not keep up.
 #include "EventHub.h"
 
 #include "Logging.h"

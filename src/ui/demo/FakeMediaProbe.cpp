@@ -1,3 +1,4 @@
+// Describing a media item by its extension and name: kind, duration, frame rate and size.
 #include "FakeMediaProbe.h"
 
 #include <QFileInfo>

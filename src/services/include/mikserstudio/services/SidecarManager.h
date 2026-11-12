@@ -1,3 +1,5 @@
+// The sidecar manager: starts the AI service process, waits until it is ready, watches it and restarts it when
+// it crashes.
 #pragma once
 
 #include <QByteArray>

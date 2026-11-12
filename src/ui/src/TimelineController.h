@@ -1,3 +1,5 @@
+// The timeline's controller for QML: tracks, zoom, scroll, playhead, snapping and the actions, all run as
+// commands.
 #pragma once
 
 #include "mikserstudio/core/Project.h"

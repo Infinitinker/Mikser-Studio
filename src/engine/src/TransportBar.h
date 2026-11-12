@@ -1,3 +1,4 @@
+// The transport controls of a monitor panel: play/pause button, timecode and seek slider.
 #pragma once
 
 #include "mikserstudio/core/Transport.h"

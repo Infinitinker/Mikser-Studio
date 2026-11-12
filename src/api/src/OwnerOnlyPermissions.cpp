@@ -1,3 +1,4 @@
+// Restricting a file to the current user: file mode on Unix, an access control list on Windows.
 #include "OwnerOnlyPermissions.h"
 
 #include <QDir>

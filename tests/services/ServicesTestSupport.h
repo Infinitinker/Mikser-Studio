@@ -1,3 +1,5 @@
+// Helpers the services tests share: waiting for the event loop, a media probe that needs no engine, and an
+// in-process HTTP server that records requests.
 #pragma once
 
 #include <catch2/catch_test_macros.hpp>

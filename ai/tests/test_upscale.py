@@ -1,3 +1,7 @@
+"""The built-in video.upscale operation with a real ffmpeg: availability, doubling the size while keeping the
+audio, refusals, the 8K limit, and canceling that removes the partial output.
+"""
+
 import asyncio
 import json
 import shutil

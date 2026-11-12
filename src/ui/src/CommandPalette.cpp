@@ -1,3 +1,4 @@
+// The command palette popup: the search field, the result list and running the chosen command.
 #include "mikserstudio/ui/CommandPalette.h"
 
 #include "CommandInvoker.h"

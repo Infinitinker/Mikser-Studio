@@ -1,3 +1,4 @@
+// The video surface of a monitor: a QRhi-backed window that draws the newest frame a player sends it.
 #pragma once
 
 #include "mikserstudio/engine/FrameSink.h"

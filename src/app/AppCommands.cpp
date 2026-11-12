@@ -1,3 +1,4 @@
+// The project.new, project.save, project.open and source.open_media commands.
 #include "AppCommands.h"
 
 #include "mikserstudio/core/CommandBus.h"

@@ -1,3 +1,4 @@
+// The Media panel: importing, removing and placing media items, always through commands.
 #include "MediaBinPanel.h"
 
 #include "CommandInvoker.h"

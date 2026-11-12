@@ -1,3 +1,4 @@
+// Entry point of the app tests: they run in a QCoreApplication, like the headless studio.
 #include <catch2/catch_session.hpp>
 
 #include <QCoreApplication>

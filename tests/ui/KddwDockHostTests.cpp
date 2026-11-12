@@ -1,3 +1,5 @@
+// The KDDockWidgets dock host: panels open, raise, float and close, layouts are saved and restored, and
+// placeholders stand in for unknown panels until they appear.
 #include "mikserstudio/ui/KddwDockHost.h"
 #include "mikserstudio/ui/PanelIds.h"
 

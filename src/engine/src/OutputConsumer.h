@@ -1,3 +1,4 @@
+// The MLT consumer that plays a producer in real time (audio device, else silent) and reports each shown frame.
 #pragma once
 
 #include "SilentPacer.h"

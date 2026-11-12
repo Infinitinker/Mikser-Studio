@@ -1,3 +1,4 @@
+// The logging categories of the core module.
 #pragma once
 
 #include <QLoggingCategory>

@@ -1,3 +1,4 @@
+// The DockHost built on KDDockWidgets: dockable, tabbed and floating panels, and workspaces saved as layout files.
 #pragma once
 
 #include "mikserstudio/ui/DockHost.h"

@@ -1,3 +1,4 @@
+// The QRhi drawing of a monitor window: uploading the newest frame and drawing it letterboxed.
 #include "MonitorRenderer.h"
 
 #include "Logging.h"

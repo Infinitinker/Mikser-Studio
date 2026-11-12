@@ -1,3 +1,5 @@
+// The docking seam of the UI: panels, areas and workspaces behind one interface, so the docking library can be
+// replaced.
 #pragma once
 
 #include <QByteArray>

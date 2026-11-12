@@ -1,3 +1,4 @@
+// Checking command specs and dotted ids before a command or plugin is registered.
 #include "CommandSpecCheck.h"
 
 #include <QJsonArray>

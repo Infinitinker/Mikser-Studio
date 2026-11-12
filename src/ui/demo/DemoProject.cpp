@@ -1,3 +1,4 @@
+// The demo project's media items and clips, placed through the project and timeline commands.
 #include "DemoProject.h"
 
 #include "mikserstudio/core/CommandBus.h"

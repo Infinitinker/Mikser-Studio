@@ -1,3 +1,4 @@
+// The playback commands (play, pause, toggle, seek, step, shuttle, status) for one transport.
 #include "mikserstudio/core/Transport.h"
 
 #include "Logging.h"

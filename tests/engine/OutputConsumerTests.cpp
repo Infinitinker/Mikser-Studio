@@ -1,3 +1,5 @@
+// The output consumer: audio outputs are tried device first and silent last, and a running output switches
+// to another producer without stopping.
 #include "EngineTestSupport.h"
 
 #include "MltProfile.h"

@@ -1,3 +1,4 @@
+// Chooses the QRhi backend of the monitor windows (Direct3D, Metal, Vulkan, OpenGL or Null) and creates the QRhi.
 #pragma once
 
 #include <rhi/qrhi.h>

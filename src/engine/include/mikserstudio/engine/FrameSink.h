@@ -1,3 +1,4 @@
+// The seam between a player and a monitor: a decoded video frame, and the sink that receives the frames a player shows.
 #pragma once
 
 #include "mikserstudio/core/Project.h"

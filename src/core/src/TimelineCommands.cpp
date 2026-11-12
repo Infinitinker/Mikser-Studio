@@ -1,3 +1,5 @@
+// The timeline commands (adding, removing, moving and trimming clips, adding tracks, track flags), with their
+// undo steps.
 #include "ProjectCommandsPrivate.h"
 #include "mikserstudio/core/CommandBus.h"
 #include "mikserstudio/core/Project.h"

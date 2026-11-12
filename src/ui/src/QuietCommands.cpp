@@ -1,3 +1,4 @@
+// The quiet command scope and the test for quiet commands.
 #include "QuietCommands.h"
 
 #include "mikserstudio/core/CommandBus.h"

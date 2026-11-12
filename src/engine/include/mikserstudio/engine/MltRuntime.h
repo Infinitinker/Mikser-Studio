@@ -1,3 +1,5 @@
+// The process-wide MLT factory: initializes MLT once, finds its modules and data, and says which producers,
+// consumers and transitions are available.
 #pragma once
 
 #include <QString>

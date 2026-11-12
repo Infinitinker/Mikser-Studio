@@ -1,3 +1,4 @@
+// The Workspace menu: switch, save and reset workspaces.
 #pragma once
 
 #include <QObject>

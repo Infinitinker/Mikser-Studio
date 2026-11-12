@@ -1,3 +1,7 @@
+"""The AI service's HTTP API: health without a token, the bearer token for the rest, listing backends, and
+submitting, reading, listing and canceling jobs, with refusals for bad requests.
+"""
+
 import asyncio
 from pathlib import Path
 from typing import Any

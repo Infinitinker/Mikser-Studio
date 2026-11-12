@@ -1,3 +1,4 @@
+// Parsing the AI service's backend and job JSON into the AI types, with errors that name the field.
 #include "AiJson.h"
 
 #include <algorithm>

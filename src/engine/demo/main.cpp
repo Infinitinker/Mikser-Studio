@@ -1,3 +1,4 @@
+// The engine demo program: plays one media file in a monitor panel, or runs the self-test with --self-test.
 #include "DemoWindow.h"
 #include "SelfTest.h"
 #include "mikserstudio/engine/ClipPlayer.h"

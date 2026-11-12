@@ -1,3 +1,4 @@
+// The AI panel's job row: shows one entry of the "ai.jobs" result and offers Cancel.
 #include "AiJobRow.h"
 
 #include "mikserstudio/ui/Theme.h"

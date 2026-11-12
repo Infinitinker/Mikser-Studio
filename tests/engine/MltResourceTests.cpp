@@ -1,3 +1,5 @@
+// Which resources reach MLT: only colors are taken as service strings, non-local paths and local MLT
+// documents are refused, and local media opens.
 #include "EngineTestSupport.h"
 
 #include "MltProfile.h"

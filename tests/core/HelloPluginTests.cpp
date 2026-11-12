@@ -1,3 +1,4 @@
+// The bundled hello plugin: it is discovered from its manifest, activates, greets and follows its settings.
 #include "TestSupport.h"
 
 #include "mikserstudio/core/CommandBus.h"

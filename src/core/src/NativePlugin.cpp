@@ -1,3 +1,4 @@
+// Loading a native plugin library, checking its exported table and calling its activate and deactivate.
 #include "NativePlugin.h"
 
 #include "Logging.h"

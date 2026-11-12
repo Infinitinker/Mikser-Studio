@@ -1,3 +1,4 @@
+// The track choice and end-of-track lookup that mirror the project's placement rules.
 #include "TimelineRules.h"
 
 #include <algorithm>

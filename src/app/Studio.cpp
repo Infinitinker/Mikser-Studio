@@ -1,3 +1,5 @@
+// Creating the core, engine, AI service, plugins and local API, registering their commands, and starting and
+// stopping them in order.
 #include "Studio.h"
 
 #include "AppCommands.h"

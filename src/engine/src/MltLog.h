@@ -1,3 +1,4 @@
+// Routes MLT's own log output into the engine's logging category.
 #pragma once
 
 namespace mikserstudio::engine {

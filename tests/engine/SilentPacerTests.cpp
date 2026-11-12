@@ -1,3 +1,5 @@
+// The silent pacer, which times frames when there is no audio device: it spaces them one frame period apart,
+// waits for a refresh while paused and can be canceled.
 #include "EngineTestSupport.h"
 
 #include "SilentPacer.h"

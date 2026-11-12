@@ -1,3 +1,5 @@
+// The placement rules of the project as seen by the UI, to pick a track and a frame before running a
+// command.
 #pragma once
 
 #include "mikserstudio/core/Project.h"

@@ -1,3 +1,4 @@
+// The project model: the rules for media, tracks and clips, and the changes that keep them consistent.
 #include "mikserstudio/core/Project.h"
 
 #include "Logging.h"

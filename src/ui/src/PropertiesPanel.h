@@ -1,3 +1,4 @@
+// The Properties panel: shows the current clip and edits its position, in and out through commands.
 #pragma once
 
 #include "mikserstudio/core/Project.h"

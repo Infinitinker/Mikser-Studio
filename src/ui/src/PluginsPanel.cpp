@@ -1,3 +1,4 @@
+// The Plugins panel: plugin list, activation and enabling, and the settings form from the settings schema.
 #include "PluginsPanel.h"
 
 #include "PanelLayout.h"

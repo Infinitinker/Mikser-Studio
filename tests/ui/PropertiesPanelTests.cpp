@@ -1,3 +1,4 @@
+// The properties panel: an In past the Out, or an Out before the In, slides the trim window in one undo step.
 #include "PropertiesPanel.h"
 #include "TimelineFixture.h"
 

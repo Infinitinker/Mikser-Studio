@@ -1,3 +1,4 @@
+// The shared playback engine: loading a producer, play, pause, seek and speed, and the frames shown by the consumer.
 #include "mikserstudio/engine/MltPlayer.h"
 
 #include "FrameConversion.h"

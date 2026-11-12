@@ -1,3 +1,5 @@
+// The desktop shell: wires the menus, panels, command palette, status bar and workspaces into the main
+// window.
 #include "mikserstudio/ui/Shell.h"
 
 #include "AiPanel.h"

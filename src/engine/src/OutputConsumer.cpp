@@ -1,3 +1,4 @@
+// The real-time MLT consumer: trying the audio outputs in order and handling each shown frame.
 #include "OutputConsumer.h"
 
 #include "Logging.h"

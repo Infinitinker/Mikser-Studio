@@ -1,3 +1,7 @@
+"""The job manager: one job per backend at a time, backends side by side, cancellation, readable failures,
+and how many finished jobs it keeps.
+"""
+
 import asyncio
 from pathlib import Path
 

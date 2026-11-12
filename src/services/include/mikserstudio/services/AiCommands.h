@@ -1,3 +1,5 @@
+// The ai.* commands (status, backends, jobs, cancel, upscale a clip, generate text) and the job tracking behind
+// them.
 #pragma once
 
 namespace mikserstudio::core {

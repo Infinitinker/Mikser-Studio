@@ -1,3 +1,4 @@
+// The Log panel's table over the command log model.
 #include "LogPanel.h"
 
 #include "CommandLogModel.h"

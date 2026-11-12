@@ -1,3 +1,7 @@
+"""The ollama backend against a fake Ollama: availability and reasons, model choice, saving the answer,
+canceling the stream, and dropping reasoning before the answer.
+"""
+
 import asyncio
 import json
 import socket

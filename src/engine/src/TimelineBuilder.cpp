@@ -1,3 +1,4 @@
+// Building the timeline's MLT tractor from the project: playlists, gaps, compositing and audio mixing.
 #include "TimelineBuilder.h"
 
 #include "Logging.h"

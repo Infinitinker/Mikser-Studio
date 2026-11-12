@@ -1,3 +1,4 @@
+// The schema form's editors: line edit, combo box, spin box, check box and JSON text, by schema type.
 #include "SchemaEditors.h"
 
 #include <QCheckBox>

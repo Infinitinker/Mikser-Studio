@@ -1,3 +1,4 @@
+// The dialog that asks for a command's params with a form generated from its schema, then runs the command.
 #pragma once
 
 #include "mikserstudio/core/Command.h"

@@ -1,3 +1,4 @@
+// The command title lookup and the one-line summary of a command's result.
 #include "CommandText.h"
 
 #include "mikserstudio/core/CommandBus.h"

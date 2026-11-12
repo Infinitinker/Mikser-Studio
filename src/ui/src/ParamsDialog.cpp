@@ -1,3 +1,4 @@
+// The params dialog: validates the form, runs the command and shows its error while staying open.
 #include "ParamsDialog.h"
 
 #include "mikserstudio/core/CommandBus.h"

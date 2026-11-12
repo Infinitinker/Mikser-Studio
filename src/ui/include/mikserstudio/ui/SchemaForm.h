@@ -1,3 +1,4 @@
+// A form generated from a JSON Schema, used for command params and plugin settings.
 #pragma once
 
 #include <QJsonObject>

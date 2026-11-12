@@ -1,3 +1,4 @@
+// The placeholder panel's message and tab title.
 #include "PlaceholderPanel.h"
 
 #include <QLabel>

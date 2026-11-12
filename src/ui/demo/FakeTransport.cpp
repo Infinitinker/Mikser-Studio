@@ -1,3 +1,4 @@
+// The stand-in transport: play, pause, seek, speed and the timer that advances the position.
 #include "FakeTransport.h"
 
 #include <algorithm>

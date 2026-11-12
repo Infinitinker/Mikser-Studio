@@ -1,3 +1,5 @@
+// Turns Ctrl+C, closing the console and termination signals into a normal quit, so everything is torn down in
+// order.
 #pragma once
 
 #include <QObject>

@@ -1,3 +1,4 @@
+// The Workspace menu's actions and the prompts for saving a workspace.
 #include "WorkspaceMenu.h"
 
 #include "CommandStatus.h"

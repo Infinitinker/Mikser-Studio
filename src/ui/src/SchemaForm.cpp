@@ -1,3 +1,4 @@
+// The schema form: building fields from a JSON Schema, reading the value and showing validation problems.
 #include "mikserstudio/ui/SchemaForm.h"
 
 #include "SchemaEditors.h"

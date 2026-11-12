@@ -1,3 +1,4 @@
+// The project file's JSON schema and the conversion of the project and its parts to and from JSON.
 #include "ProjectJson.h"
 
 #include "mikserstudio/core/JsonSchema.h"

@@ -1,3 +1,4 @@
+// The definitions of the built-in workspaces.
 #include "WorkspacePresets.h"
 
 #include "mikserstudio/ui/PanelIds.h"

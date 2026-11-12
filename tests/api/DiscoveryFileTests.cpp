@@ -1,3 +1,5 @@
+// The discovery file: it describes the running local API, only the current user can read it, it is removed
+// on stop, a file taken over by another instance is kept, and an unwritable path fails the start.
 #include "ApiTestSupport.h"
 
 #include "DiscoveryFile.h"

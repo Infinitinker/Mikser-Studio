@@ -1,3 +1,4 @@
+// The input widgets for the properties of a JSON Schema, which the schema form is built from.
 #pragma once
 
 #include <QJsonObject>

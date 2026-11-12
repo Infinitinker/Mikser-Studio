@@ -1,3 +1,4 @@
+// The /v1/events WebSocket of the local API: pushes command bus and undo stack changes to its clients.
 #pragma once
 
 #include <QJsonObject>

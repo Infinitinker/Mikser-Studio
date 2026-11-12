@@ -1,3 +1,4 @@
+// Finding the folders of MLT's modules and data, and how each was found.
 #include "MltPaths.h"
 
 #include <QCoreApplication>

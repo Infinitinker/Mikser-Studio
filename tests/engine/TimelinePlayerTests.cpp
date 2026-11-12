@@ -1,3 +1,5 @@
+// The program timeline player: it builds from clips, seeks, composites tracks, rebuilds on model changes while
+// keeping position and play state, plays in real time, and shows gaps for media it cannot open.
 #include "EngineTestSupport.h"
 
 #include "mikserstudio/core/Project.h"

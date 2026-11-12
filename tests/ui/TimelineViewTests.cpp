@@ -1,3 +1,5 @@
+// The timeline view: a plain click on a clip of a multi-selection selects only that clip, and the S key
+// toggles snapping.
 #include "mikserstudio/ui/Theme.h"
 
 #include "TimelineFixture.h"

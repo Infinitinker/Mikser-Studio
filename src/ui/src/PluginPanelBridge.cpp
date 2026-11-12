@@ -1,3 +1,4 @@
+// The plugin panel bridge: runs commands for QML with confirmations and passes on live settings.
 #include "PluginPanelBridge.h"
 
 #include "CommandInvoker.h"

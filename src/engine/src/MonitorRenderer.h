@@ -1,3 +1,4 @@
+// The QRhi drawing of a monitor window: device, swapchain, frame texture and the letterboxed picture.
 #pragma once
 
 #include "mikserstudio/engine/FrameSink.h"

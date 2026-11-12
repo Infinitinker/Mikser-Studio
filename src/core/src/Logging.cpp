@@ -1,3 +1,4 @@
+// The logging categories of the core module.
 #include "Logging.h"
 
 namespace mikserstudio::core {

@@ -1,3 +1,4 @@
+// Helpers that give the panels the same margins, header row and themed labels.
 #pragma once
 
 #include <QHBoxLayout>

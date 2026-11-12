@@ -1,3 +1,5 @@
+// The local API tests' helpers: the test commands, the fixture that runs a server on a free port, and
+// HTTP requests with or without the session token.
 #include "ApiTestSupport.h"
 
 #include <QCoreApplication>

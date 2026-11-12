@@ -1,3 +1,5 @@
+// The local API server's life: its state and restarts, fixed and taken ports, IPv6 loopback, and no
+// listening on addresses other than loopback.
 #include "ApiTestSupport.h"
 
 #include <QFileInfo>

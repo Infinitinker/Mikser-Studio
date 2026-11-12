@@ -1,3 +1,4 @@
+// The engine demo's self-test: plays a clip, floats and re-docks the monitor, and checks the picture it drew.
 #pragma once
 
 #include <QObject>

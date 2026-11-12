@@ -1,3 +1,4 @@
+// The monitor's video surface: its frame mailbox, its drawing on demand and the swapchain's life with the surface.
 #include "mikserstudio/engine/MonitorWindow.h"
 
 #include "FrameMailbox.h"

@@ -1,3 +1,4 @@
+// The "mikserstudio" object that plugin QML panels use to run commands and read their plugin's settings.
 #pragma once
 
 #include <QObject>

@@ -1,3 +1,4 @@
+// A stand-in for the AI service's commands in the UI demo, so the AI panel works without the Python process.
 #pragma once
 
 #include <QJsonArray>

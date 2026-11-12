@@ -1,3 +1,4 @@
+// Loading a plugin's QML panel, and showing the load errors in the panel instead.
 #include "PluginPanelHost.h"
 
 #include "Logging.h"

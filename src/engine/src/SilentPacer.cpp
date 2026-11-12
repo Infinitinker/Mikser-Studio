@@ -1,3 +1,4 @@
+// The silent output's clock: waiting until each frame is due, or for a refresh while paused.
 #include "SilentPacer.h"
 
 namespace mikserstudio::engine {

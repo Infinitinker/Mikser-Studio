@@ -1,3 +1,5 @@
+// The app's own list of AI jobs: submitting them to the AI service, polling them and failing them when the
+// service stops.
 #pragma once
 
 #include "mikserstudio/core/Command.h"

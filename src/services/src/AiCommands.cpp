@@ -1,3 +1,4 @@
+// Registering the ai.* commands and placing a finished upscale job into the project.
 #include "mikserstudio/services/AiCommands.h"
 
 #include "AiJobTracker.h"

@@ -1,3 +1,4 @@
+// The J/K/L shuttle speeds: L and J double the speed up to 8x in their direction, and K stops.
 #include "EngineTestSupport.h"
 
 #include "Shuttle.h"

@@ -1,3 +1,5 @@
+// The menus generated from the command bus: one per category in a fixed order, Undo and Redo labels, and
+// commands registered or unregistered later.
 #include "mikserstudio/core/CommandBus.h"
 #include "mikserstudio/core/PluginManager.h"
 #include "mikserstudio/core/Project.h"

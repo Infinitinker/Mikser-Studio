@@ -1,3 +1,4 @@
+// The Window menu's actions, kept in sync with the dock host's panels.
 #include "WindowMenu.h"
 
 #include "mikserstudio/ui/KddwDockHost.h"

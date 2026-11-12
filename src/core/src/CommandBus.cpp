@@ -1,3 +1,4 @@
+// The command bus: registering, finding and running commands, and their undo steps.
 #include "mikserstudio/core/CommandBus.h"
 
 #include "CommandSpecCheck.h"

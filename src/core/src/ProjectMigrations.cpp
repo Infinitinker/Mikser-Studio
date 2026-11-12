@@ -1,3 +1,4 @@
+// Checking a project file's version and applying the migrations that bring it to the current format.
 #include "ProjectMigrations.h"
 
 #include <QJsonValue>

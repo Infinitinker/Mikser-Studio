@@ -1,3 +1,4 @@
+// The interface to one monitor's playback (source or program), and the transport commands built on it.
 #pragma once
 
 #include "mikserstudio/core/Project.h"

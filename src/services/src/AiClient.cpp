@@ -1,3 +1,4 @@
+// Sending requests to the AI service and turning its answers and errors into results.
 #include "mikserstudio/services/AiClient.h"
 
 #include "AiJson.h"

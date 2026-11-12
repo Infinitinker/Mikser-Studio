@@ -1,3 +1,5 @@
+// The timeline model: tracks run top to bottom, it follows clips added, changed and removed, marks selected
+// clips, resets with the project and names its roles for QML.
 #include "mikserstudio/core/Project.h"
 #include "mikserstudio/ui/ClipSelection.h"
 #include "mikserstudio/ui/Theme.h"

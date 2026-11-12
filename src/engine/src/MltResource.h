@@ -1,3 +1,4 @@
+// Opens a media item as an MLT producer, refusing everything but local files and color resources.
 #pragma once
 
 #include <QString>

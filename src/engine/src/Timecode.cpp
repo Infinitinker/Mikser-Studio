@@ -1,3 +1,4 @@
+// Formatting frame numbers as timecode.
 #include "mikserstudio/engine/Timecode.h"
 
 #include <cmath>

@@ -1,3 +1,5 @@
+// The dock host on KDDockWidgets: panels as dock widgets, and workspaces saved and restored as layout
+// files.
 #include "mikserstudio/ui/KddwDockHost.h"
 
 #include "DockViewFactory.h"

@@ -1,3 +1,4 @@
+// Helpers the core tests share: Catch2 printers for Qt types and a parser for JSON written in a test.
 #pragma once
 
 #include <catch2/catch_test_macros.hpp>

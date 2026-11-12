@@ -1,3 +1,5 @@
+// The model of the command log: the commands run and failed on the command bus, newest rows kept, for the
+// Log panel.
 #pragma once
 
 #include "mikserstudio/core/Command.h"

@@ -1,3 +1,5 @@
+// Quitting on Ctrl+C, closing the console and termination signals: console events and window close requests on
+// Windows, POSIX signals elsewhere.
 #include "ShutdownSignals.h"
 
 #include "Logging.h"

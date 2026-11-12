@@ -1,3 +1,4 @@
+// The J/K/L shuttle of the monitors: the playback speed after each key press.
 #pragma once
 
 namespace mikserstudio::engine {

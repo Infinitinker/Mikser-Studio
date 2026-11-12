@@ -1,3 +1,4 @@
+// What the media and timeline command files share: the undo step type and the schema snippets for parameters.
 #pragma once
 
 #include "mikserstudio/core/Command.h"

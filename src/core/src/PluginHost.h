@@ -1,3 +1,5 @@
+// The host side of the plugin ABI for one active plugin: registers the plugin's commands on the command bus and
+// answers its settings requests.
 #pragma once
 
 #include <mikserstudio/plugin_api.h>

@@ -1,3 +1,5 @@
+// The monitor panel: its keys drive the transport with J/K/L shuttle, the transport bar shows the timecode
+// and scrubs, and a docked monitor keeps presenting after it is floated and docked again.
 #include "EngineTestSupport.h"
 
 #include "mikserstudio/core/Transport.h"

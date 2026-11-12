@@ -1,3 +1,7 @@
+"""The sidecar's command line: defaults, the session token from the command line or the environment, and
+exit with usage on bad arguments.
+"""
+
 from pathlib import Path
 
 import pytest

@@ -1,3 +1,5 @@
+// Test commands the UI tests share: an edit that counts its undos and redos, and commands that record
+// how often they ran.
 #pragma once
 
 #include "mikserstudio/core/CommandBus.h"

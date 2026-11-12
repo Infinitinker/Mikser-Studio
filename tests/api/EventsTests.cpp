@@ -1,3 +1,5 @@
+// The local API's events socket: it pushes command and undo events and registry changes, needs the session
+// token, and is closed when the server stops.
 #include "ApiTestSupport.h"
 
 #include <QNetworkRequest>

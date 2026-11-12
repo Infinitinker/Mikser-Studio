@@ -1,3 +1,5 @@
+// Project migrations: the built-in ones cover every older format, run step by step to the target version, and
+// refuse missing, invalid and newer versions.
 #include "TestSupport.h"
 
 #include "ProjectMigrations.h"

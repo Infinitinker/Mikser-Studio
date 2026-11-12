@@ -1,3 +1,4 @@
+// Writing and removing the discovery file (api.json) of the local API.
 #include "DiscoveryFile.h"
 
 #include "Logging.h"

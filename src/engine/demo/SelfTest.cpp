@@ -1,3 +1,4 @@
+// The self-test's steps and its checks of the monitor's statistics and read-back picture.
 #include "SelfTest.h"
 
 #include "DemoWindow.h"

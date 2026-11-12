@@ -1,3 +1,4 @@
+// A helper for tests that open a message box: it answers the box by clicking the button with a given role.
 #pragma once
 
 #include <QAbstractButton>

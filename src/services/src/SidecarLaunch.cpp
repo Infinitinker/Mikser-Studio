@@ -1,3 +1,4 @@
+// Building the AI service's command line and environment, making its session token and reading its ready line.
 #include "SidecarLaunch.h"
 
 #include <QDir>

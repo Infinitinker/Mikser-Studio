@@ -1,3 +1,4 @@
+// Shows the outcome of the last command, or its error, in a status bar label.
 #pragma once
 
 #include <QObject>

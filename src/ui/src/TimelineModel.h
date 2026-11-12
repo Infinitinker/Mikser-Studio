@@ -1,3 +1,4 @@
+// The timeline's clips as a list model for QML, kept in sync with the project.
 #pragma once
 
 #include "mikserstudio/core/Project.h"

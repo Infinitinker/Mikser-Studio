@@ -1,3 +1,5 @@
+// Plugin discovery and lifecycle: reading manifests, activating and deactivating plugins, and storing their
+// settings.
 #pragma once
 
 #include <QJsonObject>

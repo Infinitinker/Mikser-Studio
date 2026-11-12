@@ -1,3 +1,5 @@
+// Session tokens: generated ones are long, URL-safe and unique, a supplied one is validated, and tokens are
+// compared in constant time.
 #include "ApiTestSupport.h"
 
 #include "Auth.h"

@@ -1,3 +1,4 @@
+// The Window menu: opens and closes panels, one checkable action per registered panel.
 #pragma once
 
 #include <QHash>

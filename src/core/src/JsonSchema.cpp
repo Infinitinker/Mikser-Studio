@@ -1,3 +1,4 @@
+// Validating JSON against a schema and applying schema defaults.
 #include "mikserstudio/core/JsonSchema.h"
 
 #include <QJsonArray>

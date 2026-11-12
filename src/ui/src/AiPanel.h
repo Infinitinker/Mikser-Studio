@@ -1,3 +1,5 @@
+// The AI panel: runs the AI commands (upscale the selected clip, generate text) and lists the session's AI
+// jobs with progress and Cancel.
 #pragma once
 
 #include <QHash>

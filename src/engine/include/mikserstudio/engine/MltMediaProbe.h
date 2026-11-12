@@ -1,3 +1,4 @@
+// The media probe implemented with MLT: reads a media item's kind, duration, frame rate and size when it is imported.
 #pragma once
 
 #include "mikserstudio/core/Project.h"

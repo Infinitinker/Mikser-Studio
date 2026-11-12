@@ -1,3 +1,4 @@
+// Checking command specs and dotted ids before a command or plugin is registered.
 #pragma once
 
 #include "mikserstudio/core/Command.h"

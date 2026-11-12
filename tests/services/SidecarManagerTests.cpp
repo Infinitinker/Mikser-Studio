@@ -1,3 +1,5 @@
+// The sidecar manager: it starts the AI service, answers with its token and stops it cleanly, reports a
+// missing environment, restarts a crashed or unhealthy service with backoff, and gives up or times out.
 #include "ServicesTestSupport.h"
 #include "mikserstudio/services/AiClient.h"
 #include "mikserstudio/services/SidecarManager.h"

@@ -1,3 +1,5 @@
+// The /v1 routes (health, listing commands, running a command): authorization, parsing, calling the command bus
+// and turning command errors into HTTP errors.
 #include "Router.h"
 
 #include "Auth.h"

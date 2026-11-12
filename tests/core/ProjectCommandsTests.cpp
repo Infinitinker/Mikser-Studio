@@ -1,3 +1,5 @@
+// The project and timeline commands: importing and removing media, adding, moving, trimming and removing
+// clips, bad params, provenance, and undo of a whole editing session.
 #include "TestSupport.h"
 
 #include "mikserstudio/core/CommandBus.h"

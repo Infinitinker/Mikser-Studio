@@ -1,3 +1,4 @@
+// The application id, which names the app to the operating system and must never change after a release.
 #pragma once
 
 namespace mikserstudio::app {

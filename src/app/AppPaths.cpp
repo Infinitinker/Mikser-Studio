@@ -1,3 +1,5 @@
+// Finding the settings, cache, plugins and ai/ folders from the environment overrides, the standard locations
+// and the install layout.
 #include "AppPaths.h"
 
 #include <QCoreApplication>

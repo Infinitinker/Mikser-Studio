@@ -1,3 +1,4 @@
+// Builds the MLT tractor of the timeline: a black background, one playlist per track, compositing and audio mix.
 #pragma once
 
 #include "mikserstudio/core/Project.h"

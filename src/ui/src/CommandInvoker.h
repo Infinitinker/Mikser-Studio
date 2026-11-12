@@ -1,3 +1,5 @@
+// Interactive command runs for the UI: ask for the command's confirmation first, then run it on the command
+// bus.
 #pragma once
 
 #include "mikserstudio/core/Command.h"

@@ -1,3 +1,5 @@
+// The playback engine under both monitors: one MLT producer played through one MLT consumer, with the audio device
+// as the master clock. ClipPlayer and TimelinePlayer build on it.
 #pragma once
 
 #include "mikserstudio/core/Transport.h"

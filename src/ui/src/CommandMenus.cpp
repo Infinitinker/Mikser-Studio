@@ -1,3 +1,4 @@
+// Menu generation: one menu per command category, actions with titles and shortcuts, Undo and Redo texts.
 #include "CommandMenus.h"
 
 #include "CommandInvoker.h"

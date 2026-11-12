@@ -1,3 +1,4 @@
+// Where Mikser Studio keeps its files: the settings, cache, bundled plugins and the ai/ folder.
 #pragma once
 
 #include <QString>

@@ -1,3 +1,5 @@
+// The undo stack: steps are undone and redone in order, a new push discards the redo branch, and grouped
+// edits become one step that is reverted in reverse order.
 #include "TestSupport.h"
 
 #include "mikserstudio/core/UndoStack.h"

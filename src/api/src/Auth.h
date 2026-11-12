@@ -1,3 +1,5 @@
+// Session token handling of the local API: making and checking tokens, and deciding whether a request carries
+// the right one.
 #pragma once
 
 #include <QByteArray>

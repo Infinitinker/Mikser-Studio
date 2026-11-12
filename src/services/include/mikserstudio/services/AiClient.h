@@ -1,3 +1,4 @@
+// The client of the AI service's HTTP API: health, backends and jobs, answered asynchronously.
 #pragma once
 
 #include "mikserstudio/services/AiTypes.h"

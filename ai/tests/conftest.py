@@ -1,3 +1,5 @@
+"""Fixtures every AI service test shares."""
+
 from pathlib import Path
 
 import pytest

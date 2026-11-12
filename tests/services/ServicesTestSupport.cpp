@@ -1,3 +1,5 @@
+// Helpers the services tests share: waiting for the event loop, a media probe that needs no engine, and an
+// in-process HTTP server that records requests.
 #include "ServicesTestSupport.h"
 
 #include <QCoreApplication>

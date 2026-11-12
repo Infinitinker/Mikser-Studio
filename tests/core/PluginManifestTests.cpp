@@ -1,3 +1,5 @@
+// Plugin manifests: a valid one is parsed with defaults, errors name the field, and panel contributions and
+// Python entries are checked.
 #include "TestSupport.h"
 
 #include "mikserstudio/core/PluginManager.h"

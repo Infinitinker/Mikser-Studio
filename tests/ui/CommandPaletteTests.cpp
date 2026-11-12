@@ -1,3 +1,5 @@
+// The command palette: fuzzy scoring, the model that lists, filters and ranks commands, and the popup that
+// shows the bus commands and runs the current one.
 #include "mikserstudio/core/CommandBus.h"
 #include "mikserstudio/core/UndoStack.h"
 #include "mikserstudio/ui/CommandPalette.h"

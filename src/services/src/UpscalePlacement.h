@@ -1,3 +1,5 @@
+// Placing the result of an AI upscale job into the project: checking the source clip and adding the result above
+// it, as one undo step.
 #pragma once
 
 #include "mikserstudio/services/AiTypes.h"

@@ -1,3 +1,4 @@
+// Making, checking and comparing the local API's session token, and reading it from a request.
 #include "Auth.h"
 
 #include <QHttpServerRequest>

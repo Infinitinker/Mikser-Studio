@@ -1,3 +1,5 @@
+// The plugin manager: discovery of valid and broken plugins, activation and deactivation, command prefixes,
+// unloadable libraries, and settings that are validated, saved and kept across restarts.
 #include "TestSupport.h"
 
 #include "mikserstudio/core/CommandBus.h"

@@ -1,3 +1,4 @@
+// Making MLT profiles and comparing them with a frame rate and size.
 #include "MltProfile.h"
 
 #include <Mlt.h>

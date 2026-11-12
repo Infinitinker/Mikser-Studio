@@ -1,3 +1,4 @@
+// The J/K/L shuttle speeds.
 #include "Shuttle.h"
 
 #include <algorithm>

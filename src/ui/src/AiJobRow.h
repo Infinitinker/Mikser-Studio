@@ -1,3 +1,4 @@
+// One AI job in the AI panel: title, state, progress, message or error, result text and a Cancel button.
 #pragma once
 
 #include <QFrame>

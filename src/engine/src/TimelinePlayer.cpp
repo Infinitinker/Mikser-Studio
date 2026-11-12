@@ -1,3 +1,4 @@
+// The program monitor's playback engine: following the project and rebuilding the timeline after changes.
 #include "mikserstudio/engine/TimelinePlayer.h"
 
 #include "Logging.h"

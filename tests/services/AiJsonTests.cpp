@@ -1,3 +1,5 @@
+// Parsing the AI service's JSON: backends with their operations, jobs with outputs, provenance and clamped
+// progress, and job states as names.
 #include "AiJson.h"
 #include "ServicesTestSupport.h"
 

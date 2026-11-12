@@ -1,3 +1,4 @@
+// The UI's design tokens (colors, sizes) and the stylesheet and palette made from them, for widgets and QML panels.
 #pragma once
 
 #include <QColor>

@@ -1,3 +1,4 @@
+// The engine demo's main window and its monitor dock.
 #include "DemoWindow.h"
 
 #include "mikserstudio/engine/MonitorPanel.h"

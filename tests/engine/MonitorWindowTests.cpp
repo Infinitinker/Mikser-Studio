@@ -1,3 +1,5 @@
+// The monitor window: it draws only the newest frame and counts the dropped ones, and its frame sink can
+// outlive it.
 #include "EngineTestSupport.h"
 
 #include "mikserstudio/engine/MonitorWindow.h"

@@ -1,3 +1,4 @@
+// The monitor panel's transport controls and how they follow the transport.
 #include "TransportBar.h"
 
 #include "mikserstudio/engine/Timecode.h"

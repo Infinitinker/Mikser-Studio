@@ -1,3 +1,5 @@
+// The program monitor's playback engine: plays the timeline of the project and rebuilds itself when the project
+// changes.
 #pragma once
 
 #include "mikserstudio/engine/MltPlayer.h"

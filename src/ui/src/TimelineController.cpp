@@ -1,3 +1,4 @@
+// The timeline controller: geometry and snapping, and the move, add, remove and seek commands.
 #include "TimelineController.h"
 
 #include "CommandInvoker.h"

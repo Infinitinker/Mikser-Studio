@@ -1,3 +1,5 @@
+// The local API's /v1 HTTP routes: health without a token, the bearer token for the rest, listing and
+// running commands, the status codes of command errors, and the request size limit.
 #include "ApiTestSupport.h"
 
 #include "mikserstudio/api/ApiServer.h"

@@ -1,3 +1,4 @@
+// Timecodes: frames are shown as HH:MM:SS:FF at the rounded frame rate.
 #include "EngineTestSupport.h"
 
 #include "mikserstudio/engine/Timecode.h"

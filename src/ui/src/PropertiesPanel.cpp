@@ -1,3 +1,4 @@
+// The Properties panel: the clip's fields, and the move and trim commands that edits run.
 #include "PropertiesPanel.h"
 
 #include "CommandInvoker.h"

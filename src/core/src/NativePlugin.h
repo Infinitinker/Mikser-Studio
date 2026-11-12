@@ -1,3 +1,4 @@
+// A native plugin library loaded through the plugin ABI: activating it and unloading it again.
 #pragma once
 
 #include "PluginHost.h"

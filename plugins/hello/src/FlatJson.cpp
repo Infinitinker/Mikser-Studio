@@ -1,3 +1,4 @@
+// The hello plugin's tiny JSON reader and writer for flat objects of strings.
 #include "FlatJson.h"
 
 #include <cstdint>

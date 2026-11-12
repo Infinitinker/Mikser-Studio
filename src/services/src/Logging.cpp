@@ -1,3 +1,4 @@
+// The logging categories of the services module.
 #include "Logging.h"
 
 namespace mikserstudio::services {

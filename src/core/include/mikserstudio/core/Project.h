@@ -1,3 +1,5 @@
+// The project: the media bin and timeline model, the media probe interface and the rules that keep them
+// consistent.
 #pragma once
 
 #include <QJsonObject>

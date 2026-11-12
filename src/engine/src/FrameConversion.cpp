@@ -1,3 +1,4 @@
+// Copying an MLT frame's picture into a QImage.
 #include "FrameConversion.h"
 
 #include <framework/mlt.h>  // Declares the C API with C linkage.

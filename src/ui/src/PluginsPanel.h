@@ -1,3 +1,5 @@
+// The Plugins panel: lists the plugins with their status, switches them on and off and edits their
+// settings.
 #pragma once
 
 #include <QWidget>

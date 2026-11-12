@@ -1,3 +1,4 @@
+// Timecode and duration formatting.
 #include "Timecode.h"
 
 #include <algorithm>

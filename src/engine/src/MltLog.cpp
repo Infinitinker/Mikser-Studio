@@ -1,3 +1,4 @@
+// Routing MLT's log output into the engine's logging category.
 #include "MltLog.h"
 
 #include "Logging.h"

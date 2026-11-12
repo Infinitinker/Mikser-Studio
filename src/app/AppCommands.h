@@ -1,3 +1,5 @@
+// The commands that tie modules together and belong to none of them: project.new, project.save, project.open
+// and source.open_media.
 #pragma once
 
 namespace mikserstudio::core {

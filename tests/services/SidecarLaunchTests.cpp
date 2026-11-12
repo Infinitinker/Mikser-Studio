@@ -1,3 +1,5 @@
+// How the sidecar is launched: the READY line gives the port, session tokens are random, and the command
+// line of the default and of a custom program, with the cache folder it requires.
 #include "ServicesTestSupport.h"
 #include "SidecarLaunch.h"
 

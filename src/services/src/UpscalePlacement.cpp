@@ -1,3 +1,4 @@
+// Finding the clip an upscale job works on and placing its result on the video track above it.
 #include "UpscalePlacement.h"
 
 #include "mikserstudio/core/CommandBus.h"

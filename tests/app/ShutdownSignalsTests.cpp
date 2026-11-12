@@ -1,3 +1,5 @@
+// Shutdown signals: a close request from another program quits the app cleanly, whichever thread's
+// event-loop window it reaches, and the handlers install and uninstall.
 #include "ShutdownSignals.h"
 
 #include <catch2/catch_test_macros.hpp>

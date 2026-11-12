@@ -1,3 +1,4 @@
+// Finds the folders of MLT's modules and data: an environment override, next to the executable, the build-time install.
 #pragma once
 
 #include <QString>

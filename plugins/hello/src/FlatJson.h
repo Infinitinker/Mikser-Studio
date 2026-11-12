@@ -1,3 +1,5 @@
+// The hello plugin's tiny JSON reader and writer for the flat string objects the host passes it, so the plugin
+// needs no JSON library.
 #pragma once
 
 #include <map>

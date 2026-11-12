@@ -1,3 +1,5 @@
+// JSON Schema validation: every type and keyword the commands use, JSON Pointer paths for nested problems,
+// and defaults applied at the top level and in nested objects.
 #include "TestSupport.h"
 
 #include "mikserstudio/core/JsonSchema.h"

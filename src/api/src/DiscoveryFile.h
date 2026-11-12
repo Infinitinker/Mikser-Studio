@@ -1,3 +1,5 @@
+// The discovery file (api.json): where it lives and how it is written and removed, so other programs can find
+// the local API's address and session token.
 #pragma once
 
 #include <QJsonObject>

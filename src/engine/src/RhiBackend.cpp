@@ -1,3 +1,4 @@
+// Choosing the QRhi backend of the monitor windows, preparing their surfaces and creating the QRhi.
 #include "RhiBackend.h"
 
 #include "Logging.h"

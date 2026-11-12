@@ -1,3 +1,4 @@
+// The stand-in AI commands: registering them and advancing their fake jobs.
 #include "FakeAiService.h"
 
 #include "mikserstudio/core/CommandBus.h"

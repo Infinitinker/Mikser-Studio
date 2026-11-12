@@ -1,3 +1,5 @@
+// The local API: the versioned /v1 HTTP routes and the /v1/events WebSocket on 127.0.0.1, which run the same
+// commands as the menus and plugins and publish the discovery file.
 #pragma once
 
 #include <QObject>

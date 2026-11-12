@@ -1,3 +1,4 @@
+// Tells which commands the command log and the status bar leave out: read-only ones and UI bookkeeping.
 #pragma once
 
 #include <QString>

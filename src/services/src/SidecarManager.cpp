@@ -1,3 +1,4 @@
+// Starting, watching, restarting and stopping the AI service process.
 #include "mikserstudio/services/SidecarManager.h"
 
 #include "Logging.h"

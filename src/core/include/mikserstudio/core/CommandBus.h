@@ -1,3 +1,5 @@
+// The command bus: the one registry and dispatcher of commands, which menus, shortcuts, the command palette,
+// plugins and the local API all run through.
 #pragma once
 
 #include "mikserstudio/core/Command.h"

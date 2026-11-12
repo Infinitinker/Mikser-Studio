@@ -1,3 +1,4 @@
+// The command palette: the popup that finds a command by fuzzy search and runs it through the command bus.
 #pragma once
 
 #include <QFrame>

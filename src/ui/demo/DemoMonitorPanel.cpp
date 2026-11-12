@@ -1,3 +1,4 @@
+// The stand-in monitor panel: its picture area, timecode and play button.
 #include "DemoMonitorPanel.h"
 
 #include "mikserstudio/core/Project.h"

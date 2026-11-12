@@ -1,3 +1,4 @@
+// The MLT factory: initializing MLT, finding its modules and data, and picking the video compositor.
 #include "mikserstudio/engine/MltRuntime.h"
 
 #include "Logging.h"

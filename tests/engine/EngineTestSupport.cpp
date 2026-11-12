@@ -1,3 +1,5 @@
+// Helpers the engine tests share: the MLT runtime, waiting for a condition while the event loop runs, and
+// the frame sink that records what it receives.
 #include "EngineTestSupport.h"
 
 #include "mikserstudio/engine/MltRuntime.h"

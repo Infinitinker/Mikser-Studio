@@ -1,3 +1,5 @@
+// The transport commands: they are registered under their prefix, drive a fake transport and return its
+// status, stepping clamps to the media, and out-of-range frames are rejected.
 #include "TestSupport.h"
 
 #include "mikserstudio/core/CommandBus.h"

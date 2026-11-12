@@ -1,3 +1,4 @@
+// The plugin panel bridge: it runs commands with the QML contract that plugin panels use.
 #include "mikserstudio/core/CommandBus.h"
 #include "mikserstudio/core/PluginManager.h"
 #include "mikserstudio/core/UndoStack.h"

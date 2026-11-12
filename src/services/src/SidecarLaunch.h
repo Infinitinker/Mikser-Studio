@@ -1,3 +1,5 @@
+// Working out how to launch the AI service process: its command line, environment and session token, and
+// reading its ready line.
 #pragma once
 
 #include "mikserstudio/services/SidecarManager.h"

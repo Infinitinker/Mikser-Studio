@@ -1,3 +1,4 @@
+// File names of saved workspaces: a workspace name encoded as a file name and back, and name checks.
 #pragma once
 
 #include <QString>

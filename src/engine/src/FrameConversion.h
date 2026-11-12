@@ -1,3 +1,4 @@
+// Copies the picture of an MLT frame into a QImage for the monitor.
 #pragma once
 
 #include <framework/mlt.h>  // Declares the C API with C linkage.

@@ -1,3 +1,5 @@
+// The project and timeline commands (importing and removing media, adding, moving and trimming clips, tracks)
+// and how they register on the command bus.
 #pragma once
 
 namespace mikserstudio::core {

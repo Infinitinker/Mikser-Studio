@@ -1,3 +1,5 @@
+// The ai.* commands against a fake service: backends, upscaling that places the result on the timeline with
+// provenance and undo, text generation, failed and canceled jobs, and a sidecar crash.
 #include "ServicesTestSupport.h"
 #include "mikserstudio/core/CommandBus.h"
 #include "mikserstudio/core/Project.h"

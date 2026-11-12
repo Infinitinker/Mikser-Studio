@@ -1,3 +1,5 @@
+// The project model: tracks, media items and clips with their rules, JSON round trips, and the checks a loaded
+// project must pass (ranges, local paths, clip ids and overlaps).
 #include "TestSupport.h"
 
 #include "mikserstudio/core/Project.h"

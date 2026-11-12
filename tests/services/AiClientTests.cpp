@@ -1,3 +1,5 @@
+// The AI client: calls fail at once without an endpoint, requests carry the session token, jobs are submitted,
+// listed and canceled, error answers become messages, and answers for a destroyed context are dropped.
 #include "ServicesTestSupport.h"
 #include "mikserstudio/services/AiClient.h"
 

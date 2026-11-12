@@ -1,3 +1,4 @@
+// The AI panel: the AI command forms, the job list polled from "ai.jobs" and the unavailable state.
 #include "AiPanel.h"
 
 #include "AiJobRow.h"

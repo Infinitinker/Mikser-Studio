@@ -1,3 +1,4 @@
+// Converting the AI service's JSON to the AI types and back.
 #pragma once
 
 #include "mikserstudio/services/AiTypes.h"

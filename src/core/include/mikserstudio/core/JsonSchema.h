@@ -1,3 +1,5 @@
+// Validating JSON against the subset of JSON Schema that command parameters, plugin settings and manifests use,
+// and filling in defaults.
 #pragma once
 
 #include <QJsonObject>

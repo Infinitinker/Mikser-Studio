@@ -1,3 +1,5 @@
+// Building the desktop front end: registering the monitors as panels, importing files given at start-up and
+// saving a screenshot of the main window.
 #include "DesktopApp.h"
 
 #include "Logging.h"

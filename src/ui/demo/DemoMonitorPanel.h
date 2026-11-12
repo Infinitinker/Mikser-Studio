@@ -1,3 +1,4 @@
+// A stand-in monitor panel for the UI demo: names the clip under the playhead instead of decoding it.
 #pragma once
 
 #include <QWidget>

@@ -1,3 +1,4 @@
+// The Log panel: the commands run in this session with their params, results and errors.
 #pragma once
 
 #include <QWidget>

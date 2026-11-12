@@ -1,3 +1,5 @@
+// The MLT runtime: it starts once with the services playback needs, reports a wrong override folder in user
+// terms, and finds its folders without an environment override.
 #include "EngineTestSupport.h"
 
 #include "MltPaths.h"

@@ -1,3 +1,4 @@
+// The media probe used when the playback engine could not start: it fails every import with the engine's reason.
 #pragma once
 
 #include "mikserstudio/core/Project.h"

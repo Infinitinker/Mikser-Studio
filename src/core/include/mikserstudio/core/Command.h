@@ -1,3 +1,5 @@
+// The command: its spec (id, title, parameter schema), its handler, its result and error types, and the
+// undoable edit a command can return.
 #pragma once
 
 #include <QJsonObject>

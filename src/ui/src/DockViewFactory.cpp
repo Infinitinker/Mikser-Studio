@@ -1,3 +1,4 @@
+// Icons for the KDDockWidgets title bar and tab bar buttons, drawn in the theme's text color.
 #include "DockViewFactory.h"
 
 #include "mikserstudio/ui/Theme.h"

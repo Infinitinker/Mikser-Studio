@@ -1,3 +1,4 @@
+// The desktop shell: the main window with its menus, panels, command palette and status bar, built on the command bus.
 #pragma once
 
 #include <QObject>

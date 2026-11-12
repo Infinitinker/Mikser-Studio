@@ -1,3 +1,5 @@
+// The AI panel: it is disabled while the ai.* commands are missing, sends upscale and text jobs, lists them,
+// and shows a failed request inline.
 #include "mikserstudio/core/CommandBus.h"
 #include "mikserstudio/core/Project.h"
 #include "mikserstudio/core/UndoStack.h"

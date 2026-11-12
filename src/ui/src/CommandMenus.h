@@ -1,3 +1,4 @@
+// Generates the menu bar's menus from the registered commands and keeps them in sync with the command bus.
 #pragma once
 
 #include <QHash>

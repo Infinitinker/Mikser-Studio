@@ -1,3 +1,4 @@
+// Opening local files and color resources as MLT producers; every other MLT service string is refused.
 #include "MltResource.h"
 
 #include "mikserstudio/core/Project.h"

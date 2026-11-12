@@ -1,3 +1,4 @@
+// Interactive command runs: the confirmation box and the run on the command bus.
 #include "CommandInvoker.h"
 
 #include "ParamsDialog.h"

@@ -1,3 +1,4 @@
+// A media probe for the UI demo that describes media items by their file extension and name, without decoding.
 #pragma once
 
 #include "mikserstudio/core/Project.h"

@@ -1,3 +1,4 @@
+// The clock of the silent audio output: paces the frames of MLT's null consumer to the frame rate.
 #pragma once
 
 #include "mikserstudio/core/Project.h"

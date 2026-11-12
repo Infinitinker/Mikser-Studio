@@ -1,3 +1,5 @@
+// The shell's saved state: it starts in the Editing workspace and keeps the layout and the last used
+// workspace across sessions.
 #include "mikserstudio/core/CommandBus.h"
 #include "mikserstudio/core/PluginManager.h"
 #include "mikserstudio/core/Project.h"

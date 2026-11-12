@@ -1,3 +1,4 @@
+// Finding plugin folders, validating manifests, activating and deactivating plugins and saving their settings.
 #include "mikserstudio/core/PluginManager.h"
 
 #include "Logging.h"

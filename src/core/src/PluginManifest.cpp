@@ -1,3 +1,4 @@
+// Reading and validating a plugin's mikserstudio-plugin.json manifest.
 #include "mikserstudio/core/PluginManager.h"
 
 #include "mikserstudio/core/JsonSchema.h"

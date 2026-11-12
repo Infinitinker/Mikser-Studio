@@ -1,3 +1,5 @@
+// Helpers the engine tests share: Catch2 printers for Qt types, the MLT runtime, a frame sink that records
+// frames, and waiting for a condition while the event loop runs.
 #pragma once
 
 #include "mikserstudio/engine/FrameSink.h"

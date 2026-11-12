@@ -1,3 +1,4 @@
+// What a local API route answers: a status, a JSON body and headers, and the shape of an error body.
 #pragma once
 
 #include <QHttpHeaders>

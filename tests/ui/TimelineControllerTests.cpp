@@ -1,3 +1,5 @@
+// The timeline controller: deleting several clips is one undo step, failed actions raise toasts, snapping
+// toggles with S, scrolling is clamped, and track rows follow the project.
 #include "TimelineFixture.h"
 #include "TimelineModel.h"
 

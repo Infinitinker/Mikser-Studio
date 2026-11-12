@@ -1,3 +1,5 @@
+// The MLT media probe: color resources, images, audio and the sample video, with durations at the project
+// frame rate and errors explained in user terms.
 #include "EngineTestSupport.h"
 
 #include "mikserstudio/engine/MltMediaProbe.h"

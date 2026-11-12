@@ -1,3 +1,4 @@
+// The media bin commands: project.import_media and project.remove_media, with their undo steps.
 #include "Logging.h"
 #include "ProjectCommandsPrivate.h"
 #include "mikserstudio/core/CommandBus.h"

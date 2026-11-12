@@ -1,3 +1,5 @@
+// The form generated from a JSON Schema: an editor per property type, defaults and initial values, validation
+// problems shown under their fields, and valueChanged on edits.
 #include "mikserstudio/ui/SchemaForm.h"
 
 #include <catch2/catch_test_macros.hpp>

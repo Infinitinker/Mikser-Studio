@@ -1,3 +1,5 @@
+// The local API: listening on the loopback addresses, writing and removing the discovery file, and wiring the
+// router, the HTTP frontend and the event hub.
 #include "mikserstudio/api/ApiServer.h"
 
 #include "Auth.h"

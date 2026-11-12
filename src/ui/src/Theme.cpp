@@ -1,3 +1,4 @@
+// The UI theme: colors and fonts, and the dark native title bars to match.
 #include "mikserstudio/ui/Theme.h"
 
 #include <QApplication>

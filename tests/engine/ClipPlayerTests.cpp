@@ -1,3 +1,5 @@
+// The source clip player: it opens a color resource paused on its first frame, gives stills a finite length,
+// keeps the current file when another cannot be opened, and plays, scrubs and shuttles the sample video.
 #include "EngineTestSupport.h"
 
 #include "mikserstudio/engine/ClipPlayer.h"

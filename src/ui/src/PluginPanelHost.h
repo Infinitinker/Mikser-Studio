@@ -1,3 +1,4 @@
+// Hosts one plugin's QML panel in a Quick widget that sees only the plugin panel bridge.
 #pragma once
 
 #include <QWidget>

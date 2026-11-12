@@ -1,3 +1,4 @@
+// The data of the AI service's API: backends, operations and jobs with their states and outputs.
 #pragma once
 
 #include <QJsonObject>

@@ -1,3 +1,5 @@
+// Helpers the local API tests share: a fixture with a command bus and a server on a free port, and
+// requests with or without the session token.
 #pragma once
 
 #include "mikserstudio/api/ApiServer.h"

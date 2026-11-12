@@ -1,3 +1,4 @@
+// The ids of the panels, as saved workspaces store them.
 #pragma once
 
 #include <QStringView>

@@ -1,3 +1,5 @@
+// The command invoker: commands with a confirmation ask before an interactive run, plugin panels get a
+// canceled error when declined, and read-only commands stay out of the command log and status bar.
 #include "mikserstudio/core/CommandBus.h"
 #include "mikserstudio/core/PluginManager.h"
 #include "mikserstudio/core/UndoStack.h"

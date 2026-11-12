@@ -1,3 +1,4 @@
+// The engine demo's main window: one monitor panel in a dock that can be floated and docked again.
 #pragma once
 
 #include <QMainWindow>

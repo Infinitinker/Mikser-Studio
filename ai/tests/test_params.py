@@ -1,3 +1,5 @@
+"""Operation params: defaults fill only missing properties, and each problem against the JSON Schema is named."""
+
 from typing import Any
 
 import pytest

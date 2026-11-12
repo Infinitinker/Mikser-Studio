@@ -1,3 +1,4 @@
+// The routes of the /v1 local API: maps HTTP requests to command bus calls.
 #pragma once
 
 #include "ApiResponse.h"

@@ -1,3 +1,4 @@
+// The host functions a native plugin calls: registering commands under the plugin's id and reading its settings.
 #include "PluginHost.h"
 
 #include "Logging.h"

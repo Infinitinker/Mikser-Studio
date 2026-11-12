@@ -1,3 +1,4 @@
+// The MLT media probe: opens the media item and reads its kind, duration, frame rate and size.
 #include "mikserstudio/engine/MltMediaProbe.h"
 
 #include "MltProfile.h"
