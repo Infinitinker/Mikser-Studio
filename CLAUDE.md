@@ -120,6 +120,10 @@ mind: every panel can be moved, docked and undocked, and layouts are saved as wo
 - C++23 with Qt 6.8 or newer (developed on 6.12), KDDockWidgets, MLT 7 with FFmpeg and RtAudio, and
   Catch2, built with CMake presets (`debug`, `release`, `ci`, and `package` for the release files) and
   Ninja in MSYS2's UCRT64 environment.
+- Our own code builds with free compilers only: MSYS2's GCC or Clang on Windows, GCC or Clang on
+  Linux, Apple's toolchain on macOS. Build files, CI and docs offer no MSVC or Visual Studio route,
+  not even as an alternative. Prebuilt dependencies and tools, such as python.org's Python and its
+  wheels, may come from any compiler, with the runtime they need.
 - Python 3.13 for the AI service in `ai/`, in a plain `venv` in `ai/.venv`, with Ruff, mypy (strict),
   pytest and import-linter.
 - clang-format and clang-tidy, set up by `.clang-format` and `.clang-tidy`.
