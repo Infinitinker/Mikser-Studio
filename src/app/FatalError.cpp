@@ -19,14 +19,16 @@ namespace {
 
 #ifdef Q_OS_WIN
 // Writes the message to `handle`: as UTF-16 to a console, which would read bytes in its own code page,
-// and as UTF-8 to a pipe or a file. False when it cannot be written.
+// and as UTF-8 to a pipe or a file. WriteConsoleW fails on anything but a console, and it is tried
+// first because telling a console apart by GetConsoleMode needs read access to the handle, which an
+// inherited stderr may lack. False when the message cannot be written.
 bool writeTo(HANDLE handle, const QString& message)
 {
     const QString line = message + u'\n';
-    if (DWORD mode = 0; GetConsoleMode(handle, &mode) != 0) {
-        const std::wstring text = line.toStdWString();
-        DWORD written = 0;
-        return WriteConsoleW(handle, text.data(), static_cast<DWORD>(text.size()), &written, nullptr) != 0;
+    const std::wstring text = line.toStdWString();
+    if (DWORD written = 0;
+        WriteConsoleW(handle, text.data(), static_cast<DWORD>(text.size()), &written, nullptr) != 0) {
+        return true;
     }
     const QByteArray bytes = line.toUtf8();
     DWORD written = 0;
@@ -42,7 +44,8 @@ bool writeToConsole(const QString& message)
         return writeTo(handle, message);
     if (AttachConsole(ATTACH_PARENT_PROCESS) == 0)
         return false;
-    handle = CreateFileW(L"CONOUT$", GENERIC_WRITE, FILE_SHARE_WRITE, nullptr, OPEN_EXISTING, 0, nullptr);
+    handle = CreateFileW(L"CONOUT$", GENERIC_READ | GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE, nullptr,
+                         OPEN_EXISTING, 0, nullptr);
     if (handle == INVALID_HANDLE_VALUE)
         return false;
     const bool written = writeTo(handle, message);
