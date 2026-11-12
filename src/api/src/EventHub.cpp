@@ -58,11 +58,6 @@ void EventHub::addClient(std::unique_ptr<QWebSocket> socket)
     qCDebug(lcApi) << "Events client connected," << m_clients.size() << "connected";
 }
 
-int EventHub::clientCount() const
-{
-    return static_cast<int>(m_clients.size());
-}
-
 void EventHub::closeAll()
 {
     const QList<QWebSocket*> clients = std::exchange(m_clients, {});

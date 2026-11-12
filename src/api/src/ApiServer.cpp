@@ -150,11 +150,6 @@ QString ApiServer::eventsUrl() const
     return isRunning() ? u"ws://127.0.0.1:%1/v1/events"_s.arg(m_port) : QString();
 }
 
-int ApiServer::eventClientCount() const
-{
-    return m_events ? m_events->clientCount() : 0;
-}
-
 void ApiServer::acceptWebSockets()
 {
     while (m_http && m_http->hasPendingWebSocketConnections()) {

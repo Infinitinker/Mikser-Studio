@@ -58,7 +58,6 @@ public:
     [[nodiscard]] QString discoveryFilePath() const;
     [[nodiscard]] QString baseUrl() const;  // "http://127.0.0.1:<port>", empty while stopped.
     [[nodiscard]] QString eventsUrl() const;  // "ws://127.0.0.1:<port>/v1/events", empty while stopped.
-    [[nodiscard]] int eventClientCount() const;
 
 private:
     void acceptWebSockets();

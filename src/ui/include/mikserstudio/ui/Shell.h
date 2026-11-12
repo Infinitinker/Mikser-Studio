@@ -73,11 +73,7 @@ public:
     void show();
     void showCommandPalette();
 
-    [[nodiscard]] QMenu* commandMenu(const QString& category) const;
-    [[nodiscard]] QStringList commandMenuCategories() const;  // In menu bar order.
-    [[nodiscard]] QAction* commandAction(const QString& commandId) const;
     [[nodiscard]] QMenu* windowMenu() const { return m_windowMenu; }
-    [[nodiscard]] QAction* windowMenuAction(const QString& panelId) const;
     [[nodiscard]] QMenu* workspaceMenu() const { return m_workspaceMenu; }
     [[nodiscard]] WorkspaceMenu& workspaces() const;
 

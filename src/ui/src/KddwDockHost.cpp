@@ -384,25 +384,6 @@ QWidget* KddwDockHost::panelWidget(const QString& id) const
     return dock ? dock->widget() : nullptr;
 }
 
-bool KddwDockHost::isPlaceholder(const QString& id) const
-{
-    return qobject_cast<PlaceholderPanel*>(panelWidget(id)) != nullptr;
-}
-
-QStringList KddwDockHost::openPanels() const
-{
-    QStringList ids;
-    for (auto it = m_docks.cbegin(); it != m_docks.cend(); ++it) {
-        if (it.value() && it.value()->isOpen()) {
-            const QString id = panelIdOf(it.key());
-            if (!ids.contains(id))
-                ids.append(id);
-        }
-    }
-    ids.sort();
-    return ids;
-}
-
 KDDockWidgets::Core::DockWidget* KddwDockHost::createDockForLayout(const QString& name)
 {
     if (!s_instance)

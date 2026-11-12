@@ -49,6 +49,26 @@ QStringList menuBarTitles(const QMenuBar& bar)
     return titles;
 }
 
+// The menu of the menu bar with this title, as the user finds it.
+QMenu* menuTitled(const QMenuBar& bar, const QString& title)
+{
+    for (const QAction* action : bar.actions()) {
+        if (action->text() == title)
+            return action->menu();
+    }
+    return nullptr;
+}
+
+// The action of a menu whose data() is `id`: a command id in the command menus, a panel id in Window.
+QAction* actionWithData(const QMenu& menu, const QString& id)
+{
+    for (QAction* action : menu.actions()) {
+        if (action->data().toString() == id)
+            return action;
+    }
+    return nullptr;
+}
+
 struct MenuFixture {
     mikserstudio::core::UndoStack undo;
     mikserstudio::core::CommandBus bus{undo};
@@ -166,32 +186,32 @@ TEST_CASE("Shell generates menus from the bus and lists panels in the Window men
     REQUIRE(registerTestCommand(bus, {.id = u"timeline.split"_s, .title = u"Split clip"_s, .category = u"Timeline"_s}));
 
     mikserstudio::ui::Shell shell(bus, project, plugins, dir.filePath(u"config"_s));
-    CHECK(shell.commandMenuCategories() == QStringList{u"Edit"_s, u"Timeline"_s});
-    CHECK(shell.commandAction(u"timeline.split"_s));
-
-    const QStringList bar = menuBarTitles(*shell.mainWindow()->menuBar());
+    const QMenuBar& menuBar = *shell.mainWindow()->menuBar();
+    const QStringList bar = menuBarTitles(menuBar);
     REQUIRE(bar.size() >= 4);
     CHECK(bar.mid(0, 2) == QStringList{u"Edit"_s, u"Timeline"_s});
+    REQUIRE(menuTitled(menuBar, u"Timeline"_s));
+    CHECK(actionWithData(*menuTitled(menuBar, u"Timeline"_s), u"timeline.split"_s));
     CHECK(bar.indexOf(shell.workspaceMenu()->menuAction()->text()) > 1);
     CHECK(bar.indexOf(shell.windowMenu()->menuAction()->text()) > 1);
 
     REQUIRE(
         registerTestCommand(bus, {.id = u"render.preview"_s, .title = u"Render Preview"_s, .category = u"Render"_s}));
-    CHECK(shell.commandMenuCategories().contains(u"Render"_s));
-    CHECK(shell.commandMenu(u"Render"_s)->actions().contains(shell.commandAction(u"render.preview"_s)));
+    REQUIRE(menuTitled(menuBar, u"Render"_s));
+    CHECK(actionWithData(*menuTitled(menuBar, u"Render"_s), u"render.preview"_s));
     bus.unregisterCommand(u"render.preview"_s);
-    CHECK_FALSE(shell.commandMenuCategories().contains(u"Render"_s));
+    CHECK_FALSE(menuBarTitles(menuBar).contains(u"Render"_s));
 
     // Every core panel is in the Window menu, checked while open.
     for (const QStringView id : {mikserstudio::ui::panel_ids::kMediaBin, mikserstudio::ui::panel_ids::kTimeline,
                                  mikserstudio::ui::panel_ids::kProperties, mikserstudio::ui::panel_ids::kAi,
                                  mikserstudio::ui::panel_ids::kLog, mikserstudio::ui::panel_ids::kPlugins}) {
-        QAction* action = shell.windowMenuAction(id.toString());
+        QAction* action = actionWithData(*shell.windowMenu(), id.toString());
         INFO(id.toString().toStdString());
         REQUIRE(action);
         CHECK(action->isCheckable());
     }
-    QAction* log = shell.windowMenuAction(mikserstudio::ui::panel_ids::kLog.toString());
+    QAction* log = actionWithData(*shell.windowMenu(), mikserstudio::ui::panel_ids::kLog.toString());
     log->trigger();
     CHECK(shell.dockHost().isPanelOpen(mikserstudio::ui::panel_ids::kLog.toString()) == log->isChecked());
 }

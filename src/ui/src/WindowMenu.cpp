@@ -47,6 +47,7 @@ void WindowMenu::rebuild()
         auto* action = m_menu->addAction(panel.title);
         action->setCheckable(true);
         action->setToolTip(panel.id);
+        action->setData(panel.id);
         const QString id = panel.id;
         connect(action, &QAction::triggered, this, [this, id](bool checked) {
             if (checked) {

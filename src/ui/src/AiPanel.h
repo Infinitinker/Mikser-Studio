@@ -37,13 +37,8 @@ public:
     AiPanel(core::CommandBus& bus, const core::ProjectModel& project, const ClipSelection& selection,
             QWidget* parent = nullptr);
 
-    [[nodiscard]] bool isAvailable() const { return m_available; }
-    [[nodiscard]] bool isPolling() const;
-    [[nodiscard]] int jobCount() const { return static_cast<int>(m_rows.size()); }
     [[nodiscard]] QString errorText() const;
     [[nodiscard]] QPushButton* upscaleButton() const { return m_upscale; }
-    [[nodiscard]] QPushButton* generateButton() const { return m_generate; }
-    [[nodiscard]] QPlainTextEdit* promptEditor() const { return m_prompt; }
     [[nodiscard]] QComboBox* scaleEditor() const { return m_scale; }
 
     void upscaleSelected();

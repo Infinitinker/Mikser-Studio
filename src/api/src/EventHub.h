@@ -26,7 +26,6 @@ public:
     ~EventHub() override;
 
     void addClient(std::unique_ptr<QWebSocket> socket);
-    [[nodiscard]] int clientCount() const;
     // Closes every client with "going away".
     void closeAll();
 

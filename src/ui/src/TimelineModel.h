@@ -49,7 +49,6 @@ public:
     [[nodiscard]] QStringList trackOrder() const { return m_trackOrder; }
     [[nodiscard]] int rowOfTrack(const QString& trackId) const;
     [[nodiscard]] QString trackAtRow(int row) const;
-    [[nodiscard]] QString clipIdAt(int row) const;
     [[nodiscard]] int rowOfClip(const QString& clipId) const;
 
 Q_SIGNALS:

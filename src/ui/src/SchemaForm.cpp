@@ -118,10 +118,12 @@ struct SchemaForm::Impl {
                 inner->addRow(node.error);
                 form->addRow(group);
                 node.focusWidget = group;
+                group->setObjectName(node.pointer);  // A field is found by its JSON Pointer.
             } else {
                 const bool optional = !node.required && !node.schema.contains(u"default");
                 node.editor = createFieldEditor(node.schema, optional, [this] { Q_EMIT q->valueChanged(); });
                 node.focusWidget = node.editor->widget();
+                node.focusWidget->setObjectName(node.pointer);
                 node.focusWidget->setToolTip(description);
                 auto* label = new QLabel(node.required ? title + u" *"_s : title);
                 label->setToolTip(description);
@@ -323,17 +325,6 @@ void SchemaForm::clearErrors()
         node.error->hide();
         setInvalid(node.focusWidget, false);
     });
-}
-
-bool SchemaForm::hasFields() const
-{
-    return !d->nodes.empty();
-}
-
-QWidget* SchemaForm::editor(const QString& pointer) const
-{
-    const Node* node = d->find(pointer);
-    return node ? node->focusWidget : nullptr;
 }
 
 QString SchemaForm::errorText(const QString& pointer) const

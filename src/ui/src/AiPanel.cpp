@@ -52,6 +52,7 @@ AiPanel::AiPanel(core::CommandBus& bus, const core::ProjectModel& project, const
     layout->addLayout(makePanelHeader(u"AI"_s));
 
     m_unavailable = makeLabel(u"The AI service is not available."_s, u"placeholder"_s, this);
+    m_unavailable->setObjectName(u"unavailable"_s);
     m_unavailable->setWordWrap(true);
     layout->addWidget(m_unavailable);
 
@@ -85,12 +86,14 @@ AiPanel::AiPanel(core::CommandBus& bus, const core::ProjectModel& project, const
     textLayout->setSpacing(8);
     textLayout->addWidget(makeLabel(u"Generate text"_s, u"heading"_s, textCard));
     m_prompt = new QPlainTextEdit(textCard);
+    m_prompt->setObjectName(u"prompt"_s);
     m_prompt->setPlaceholderText(u"Ask the local language model…"_s);
     m_prompt->setFixedHeight(72);
     m_prompt->setTabChangesFocus(true);
     textLayout->addWidget(m_prompt);
     auto* textRow = new QHBoxLayout;
     m_generate = new QPushButton(u"Generate"_s, textCard);
+    m_generate->setObjectName(u"generate"_s);
     m_generate->setProperty("role", u"primary"_s);
     textRow->addStretch();
     textRow->addWidget(m_generate);
@@ -125,14 +128,10 @@ AiPanel::AiPanel(core::CommandBus& bus, const core::ProjectModel& project, const
     connect(&project, &core::ProjectModel::clipChanged, this, &AiPanel::updateControls);
     connect(&bus, &core::CommandBus::commandRegistered, this, &AiPanel::updateAvailability);
     connect(&bus, &core::CommandBus::commandUnregistered, this, &AiPanel::updateAvailability);
+    m_poll->setObjectName(u"jobPoll"_s);
     m_poll->setInterval(kPollIntervalMs);
     connect(m_poll, &QTimer::timeout, this, &AiPanel::refreshJobs);
     updateAvailability();
-}
-
-bool AiPanel::isPolling() const
-{
-    return m_poll->isActive();
 }
 
 QString AiPanel::errorText() const

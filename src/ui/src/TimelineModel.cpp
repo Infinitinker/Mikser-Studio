@@ -148,11 +148,6 @@ QString TimelineModel::trackAtRow(int row) const
     return m_trackOrder.value(row);
 }
 
-QString TimelineModel::clipIdAt(int row) const
-{
-    return m_clipIds.value(row);
-}
-
 int TimelineModel::rowOfClip(const QString& clipId) const
 {
     return static_cast<int>(m_clipIds.indexOf(clipId));

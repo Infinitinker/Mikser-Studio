@@ -29,8 +29,6 @@ public:
     PropertiesPanel(core::CommandBus& bus, const core::ProjectModel& project, const ClipSelection& selection,
                     QWidget* parent = nullptr);
 
-    [[nodiscard]] QSpinBox* inEditor() const { return m_in; }
-    [[nodiscard]] QSpinBox* outEditor() const { return m_out; }
     [[nodiscard]] QString shownClipId() const { return m_clipId; }
     [[nodiscard]] QString errorText() const;
 

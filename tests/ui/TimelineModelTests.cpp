@@ -117,7 +117,7 @@ TEST_CASE("TimelineModel follows clips added, changed and removed", "[timeline]"
 
     // Every row still points at a clip of the project.
     for (int row = 0; row < f.model.rowCount(); ++row)
-        CHECK(f.project.findClip(f.model.clipIdAt(row)) != nullptr);
+        CHECK(f.project.findClip(f.model.index(row).data(TimelineModel::ClipIdRole).toString()) != nullptr);
 }
 
 TEST_CASE("TimelineModel marks selected clips and resets with the project", "[timeline]")

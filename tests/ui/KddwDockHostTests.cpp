@@ -21,6 +21,12 @@ using mikserstudio::ui::PanelDescriptor;
 
 namespace {
 
+// Whether the panel shows the placeholder for a panel nobody registered.
+bool isPlaceholder(const KddwDockHost& host, const QString& id)
+{
+    return qobject_cast<mikserstudio::ui::PlaceholderPanel*>(host.panelWidget(id)) != nullptr;
+}
+
 PanelDescriptor labelPanel(const QString& id, DockArea area = DockArea::Right, bool unique = true)
 {
     return PanelDescriptor{
@@ -74,11 +80,12 @@ TEST_CASE("KddwDockHost opens, raises and closes panels", "[docking]")
     CHECK(f.host->panelWindow(u"test/a"_s) == f.host->mainWindow());
     REQUIRE(f.host->panelWidget(u"test/a"_s) != nullptr);
     CHECK(f.host->panelWidget(u"test/a"_s)->objectName() == u"test/a"_s);
-    CHECK(f.host->openPanels() == QStringList{u"test/a"_s, u"test/b"_s});
 
-    // Opening a unique panel again only raises it.
+    // Opening a unique panel again only raises it: the same widget stays.
+    QWidget* first = f.host->panelWidget(u"test/a"_s);
     REQUIRE(f.host->openPanel(u"test/a"_s));
-    CHECK(f.host->openPanels().size() == 2);
+    CHECK(f.host->panelWidget(u"test/a"_s) == first);
+    CHECK(f.host->isPanelOpen(u"test/b"_s));
 
     f.host->closePanel(u"test/b"_s);
     f.settle();
@@ -237,9 +244,9 @@ TEST_CASE("KddwDockHost shows placeholders for unknown panels and replaces them 
     QApplication::processEvents();
 
     CHECK(host.isPanelOpen(u"test/a"_s));
-    CHECK_FALSE(host.isPlaceholder(u"test/a"_s));
+    CHECK_FALSE(isPlaceholder(host, u"test/a"_s));
     REQUIRE(host.isPanelOpen(u"plugin.gone/panel"_s));
-    REQUIRE(host.isPlaceholder(u"plugin.gone/panel"_s));
+    REQUIRE(isPlaceholder(host, u"plugin.gone/panel"_s));
     const auto* placeholder = qobject_cast<mikserstudio::ui::PlaceholderPanel*>(
         host.panelWidget(u"plugin.gone/panel"_s));
     REQUIRE(placeholder != nullptr);
@@ -250,7 +257,7 @@ TEST_CASE("KddwDockHost shows placeholders for unknown panels and replaces them 
     // The plugin comes back: the placeholder becomes the real panel in place.
     host.registerPanel(labelPanel(u"plugin.gone/panel"_s, DockArea::Right));
     QApplication::processEvents();
-    CHECK_FALSE(host.isPlaceholder(u"plugin.gone/panel"_s));
+    CHECK_FALSE(isPlaceholder(host, u"plugin.gone/panel"_s));
     CHECK(host.isPanelOpen(u"plugin.gone/panel"_s));
     CHECK(host.panelWidget(u"plugin.gone/panel"_s)->objectName() == u"plugin.gone/panel"_s);
 
@@ -258,7 +265,7 @@ TEST_CASE("KddwDockHost shows placeholders for unknown panels and replaces them 
     host.unregisterPanel(u"plugin.gone/panel"_s);
     QApplication::processEvents();
     CHECK_FALSE(host.isPanelOpen(u"plugin.gone/panel"_s));
-    CHECK(host.isPlaceholder(u"plugin.gone/panel"_s));
+    CHECK(isPlaceholder(host, u"plugin.gone/panel"_s));
 }
 
 TEST_CASE("KddwDockHost saves, lists and loads named workspaces", "[docking]")

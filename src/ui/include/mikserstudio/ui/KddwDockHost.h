@@ -76,8 +76,6 @@ public:
     [[nodiscard]] QWidget* panelWindow(const QString& id) const override;
     // The content widget of the first instance (null when the panel was never opened).
     [[nodiscard]] QWidget* panelWidget(const QString& id) const;
-    [[nodiscard]] bool isPlaceholder(const QString& id) const;
-    [[nodiscard]] QStringList openPanels() const;  // Panel ids, sorted.
 
 private:
     using Dock = KDDockWidgets::QtWidgets::DockWidget;

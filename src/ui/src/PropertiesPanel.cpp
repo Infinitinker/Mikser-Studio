@@ -97,9 +97,11 @@ PropertiesPanel::PropertiesPanel(core::CommandBus& bus, const core::ProjectModel
     form->addRow(u"Position"_s, positionCell);
 
     m_in = frameSpinBox(details);
+    m_in->setObjectName(u"in"_s);
     m_in->setToolTip(u"First source frame used (timeline.trim_clip)."_s);
     form->addRow(u"In"_s, m_in);
     m_out = frameSpinBox(details);
+    m_out->setObjectName(u"out"_s);
     m_out->setToolTip(u"Source frame after the last one used (timeline.trim_clip)."_s);
     m_trimTimecode = makeLabel({}, u"hint"_s, details);
     auto* outCell = new QWidget(details);

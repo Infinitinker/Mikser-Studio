@@ -210,26 +210,6 @@ void Shell::showCommandPalette()
     m_palette->popup();
 }
 
-QMenu* Shell::commandMenu(const QString& category) const
-{
-    return m_commandMenus->menu(category);
-}
-
-QStringList Shell::commandMenuCategories() const
-{
-    return m_commandMenus->categories();
-}
-
-QAction* Shell::commandAction(const QString& commandId) const
-{
-    return m_commandMenus->action(commandId);
-}
-
-QAction* Shell::windowMenuAction(const QString& panelId) const
-{
-    return m_windowMenuController->panelAction(panelId);
-}
-
 WorkspaceMenu& Shell::workspaces() const
 {
     return *m_workspaceMenuController;
