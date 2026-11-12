@@ -112,7 +112,7 @@ def main() -> int:
     for problem in problems:
         print(problem)
     if problems:
-        print(f"{len(problems)} include(s) go the wrong way; see \"Import directions\" in docs/architecture.md.")
+        print(f'{len(problems)} include(s) go the wrong way; see "Import directions" in docs/architecture.md.')
         return 1
     print("Every include goes the right way.")
     return 0
