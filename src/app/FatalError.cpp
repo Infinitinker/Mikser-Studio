@@ -8,7 +8,6 @@
 #ifdef Q_OS_WIN
 #include <windows.h>
 
-#include <cstdio>
 #include <string>
 #endif
 
@@ -19,21 +18,36 @@ namespace mikserstudio::app {
 namespace {
 
 #ifdef Q_OS_WIN
+// Writes the message to `handle`: as UTF-16 to a console, which would read bytes in its own code page,
+// and as UTF-8 to a pipe or a file. False when it cannot be written.
+bool writeTo(HANDLE handle, const QString& message)
+{
+    const QString line = message + u'\n';
+    if (DWORD mode = 0; GetConsoleMode(handle, &mode) != 0) {
+        const std::wstring text = line.toStdWString();
+        DWORD written = 0;
+        return WriteConsoleW(handle, text.data(), static_cast<DWORD>(text.size()), &written, nullptr) != 0;
+    }
+    const QByteArray bytes = line.toUtf8();
+    DWORD written = 0;
+    return WriteFile(handle, bytes.constData(), static_cast<DWORD>(bytes.size()), &written, nullptr) != 0;
+}
+
 // Writes the message to stderr when it goes somewhere, else to the console of the process that started
 // this one. False when there is neither.
 bool writeToConsole(const QString& message)
 {
     HANDLE handle = GetStdHandle(STD_ERROR_HANDLE);
-    const bool hasStderr = handle != nullptr && handle != INVALID_HANDLE_VALUE &&
-                           GetFileType(handle) != FILE_TYPE_UNKNOWN;
-    if (!hasStderr) {
-        FILE* console = nullptr;
-        if (AttachConsole(ATTACH_PARENT_PROCESS) == 0 || freopen_s(&console, "CONOUT$", "w", stderr) != 0)
-            return false;
-    }
-    std::fprintf(stderr, "%s\n", qPrintable(message));
-    std::fflush(stderr);
-    return true;
+    if (handle != nullptr && handle != INVALID_HANDLE_VALUE && GetFileType(handle) != FILE_TYPE_UNKNOWN)
+        return writeTo(handle, message);
+    if (AttachConsole(ATTACH_PARENT_PROCESS) == 0)
+        return false;
+    handle = CreateFileW(L"CONOUT$", GENERIC_WRITE, FILE_SHARE_WRITE, nullptr, OPEN_EXISTING, 0, nullptr);
+    if (handle == INVALID_HANDLE_VALUE)
+        return false;
+    const bool written = writeTo(handle, message);
+    CloseHandle(handle);
+    return written;
 }
 #endif
 
