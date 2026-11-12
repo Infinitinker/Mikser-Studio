@@ -10,11 +10,11 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/Infinitinker/Mikser-Studio/releases/latest"><img src="https://img.shields.io/github/v/release/Infinitinker/Mikser-Studio?label=Download" alt="Latest release"></a>
-  <a href="https://github.com/Infinitinker/Mikser-Studio/actions/workflows/checks.yml"><img src="https://img.shields.io/github/actions/workflow/status/Infinitinker/Mikser-Studio/checks.yml?branch=main&label=Checks" alt="Checks on main"></a>
-  <a href="LICENSE"><img src="https://img.shields.io/badge/License-GPL--3.0--or--later-blue" alt="License: GPL-3.0-or-later"></a>
-  <img src="https://img.shields.io/badge/Platform-Windows-555" alt="Platform: Windows">
-  <img src="https://img.shields.io/badge/Works-offline-2ea44f" alt="Works offline">
+  <a href="https://github.com/Infinitinker/Mikser-Studio/releases/latest"><img src="https://img.shields.io/github/v/release/Infinitinker/Mikser-Studio" alt="Latest release"></a>
+  <a href="https://github.com/Infinitinker/Mikser-Studio/actions/workflows/checks.yml"><img src="https://img.shields.io/github/actions/workflow/status/Infinitinker/Mikser-Studio/checks.yml?branch=main&label=checks" alt="Checks on main"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-GPL--3.0--or--later-blue" alt="License: GPL-3.0-or-later"></a>
+  <img src="https://img.shields.io/badge/platform-Windows-555" alt="Platform: Windows">
+  <img src="https://img.shields.io/badge/works-offline-2ea44f" alt="Works offline">
 </p>
 
 Mikser Studio is a desktop studio for video and sound. You put clips on a timeline, watch them in GPU-drawn monitors and arrange the panels the way you work, and AI models run next to the editor, on your own computer, to work on what you made. It is in early development: the editing core, the panels, the local API and plugins are there, the first AI features run when Mikser Studio runs from source, and much more is planned.
