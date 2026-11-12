@@ -111,7 +111,7 @@ messages.
   (namespaces, plugin and panel ids, the Python package `mikserstudio_ai`), `MikserStudio::` for
   CMake targets and `MIKSERSTUDIO_` for macros and environment variables. Programs people run are
   `mikser-studio*`. Projects are `.mikser` files. The app id is `io.github.infinitinker.mikserstudio`
-  (`src/app/AppId.h`); it must never change after a release.
+  (`kAppId` in `mikserstudio/core/Instance.h`); it must never change after a release.
 - Namespaces follow folders: `mikserstudio::core`, `mikserstudio::engine`, `mikserstudio::ui`, ... Public headers live in
   `<module>/include/mikserstudio/<module>/`, private code in `<module>/src/`.
 - Errors are explicit: return `std::expected<T, QString>` (or `CommandError`) with an English message

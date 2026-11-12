@@ -141,7 +141,9 @@ TEST_CASE("A program that cannot be run fails without restarts", "[services][sid
 TEST_CASE("A sidecar that keeps exiting is restarted with backoff, then given up", "[services][sidecar]")
 {
     QTemporaryDir dir;
-    SidecarManager sidecar(fakeOptions(dir, {u"--mode"_s, u"exit"_s}));
+    SidecarOptions options = fakeOptions(dir, {u"--mode"_s, u"exit"_s});
+    options.logFile = dir.filePath(u"logs/mikser-studio.log"_s);
+    SidecarManager sidecar(options);
     StateLog log(sidecar);
     sidecar.start();
     REQUIRE(waitFor([&] { return sidecar.state() == SidecarState::Failed; }));
@@ -154,6 +156,8 @@ TEST_CASE("A sidecar that keeps exiting is restarted with backoff, then given up
         u"The AI service exited before it was ready (exit code 3): fake sidecar: refusing to start. Restarting it (attempt 1 of 2)."_s);
     CHECK(sidecar.errorString().startsWith(
         u"The AI service exited before it was ready (exit code 3): fake sidecar: refusing to start. Mikser Studio gave up after 2 restarts"_s));
+    CHECK(sidecar.errorString().endsWith(
+        u"the details are in the log, %1."_s.arg(QDir::toNativeSeparators(options.logFile))));
 
     sidecar.start();  // From Failed, start() tries again with a full budget.
     CHECK(sidecar.state() == SidecarState::Starting);

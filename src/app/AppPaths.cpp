@@ -1,23 +1,16 @@
-// Finding the settings, cache, plugins and ai/ folders from the environment overrides, the standard locations
+// Finding the per-user, plugins and ai/ folders from the environment overrides, the standard locations
 // and the install layout.
 #include "AppPaths.h"
 
 #include <QCoreApplication>
 #include <QDir>
 #include <QFileInfo>
-#include <QStandardPaths>
 
 using namespace Qt::StringLiterals;
 
 namespace mikserstudio::app {
 
 namespace {
-
-QString fromEnvOr(const char* name, const QString& fallback)
-{
-    const QString value = qEnvironmentVariable(name);
-    return value.isEmpty() ? fallback : QDir(value).absolutePath();
-}
 
 QString exeSuffix()
 {
@@ -39,10 +32,7 @@ AppPaths AppPaths::resolve()
 {
     const QDir appDir(QCoreApplication::applicationDirPath());
     AppPaths paths;
-    paths.configDir = fromEnvOr("MIKSERSTUDIO_CONFIG_DIR",
-                                QStandardPaths::writableLocation(QStandardPaths::AppConfigLocation));
-    paths.cacheDir = fromEnvOr("MIKSERSTUDIO_CACHE_DIR",
-                               QStandardPaths::writableLocation(QStandardPaths::CacheLocation));
+    paths.user = core::UserFolders::resolve();
     paths.pluginsDir = appDir.filePath(u"plugins"_s);
 
     // Installed: <exe>/ai. Build tree: the source checkout recorded at configure time.

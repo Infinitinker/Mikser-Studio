@@ -40,6 +40,8 @@ struct SidecarOptions {
     QString cacheDirectory;
     // Optional path of ffmpeg for the builtin backend; empty lets the sidecar find it on PATH.
     QString ffmpegPath;
+    // The app's log, which has the service's output, for the messages that point to it; may be empty.
+    QString logFile;
     QProcessEnvironment environment = QProcessEnvironment::systemEnvironment();
 
     // A cold first start, importing Python and the backends, can take a while.

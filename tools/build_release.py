@@ -1,5 +1,5 @@
-"""Builds the Windows release files of Mikser Studio from the release build (cmake --preset release, then
-cmake --build --preset release) into build/dist:
+"""Builds the Windows release files of Mikser Studio from the release build (cmake --preset release
+-DMIKSERSTUDIO_INSTALLED_APP=ON, then cmake --build --preset release) into build/dist:
 
 - MikserStudio-<version>-windows-x64.zip: the program with everything it needs from MSYS2
   (tools/msys2_packages.py) and THIRD-PARTY-NOTICES.txt, unpacked and run anywhere;
@@ -32,6 +32,7 @@ from notices import NOTICES, render
 NAME = "MikserStudio"
 """The product's name without spaces, as release files are named."""
 BUILD = Path("build/release")
+CONFIGURE = "run cmake --preset release -DMIKSERSTUDIO_INSTALLED_APP=ON"
 STAGE = Path("build/stage") / NAME
 DIST = Path("build/dist")
 PROGRAM = STAGE / "bin/mikser-studio.exe"
@@ -57,9 +58,10 @@ def version() -> str:
 def install() -> None:
     """The program and the bundled plugins, as CMake installs them."""
     if not (BUILD / "build.ninja").is_file():
-        raise SystemExit(
-            f"No release build in {BUILD}: run cmake --preset release, then cmake --build --preset release."
-        )
+        raise SystemExit(f"No release build in {BUILD}: {CONFIGURE}, then cmake --build --preset release.")
+    # Without it the release would run as Mikser Studio Dev (src/core/include/mikserstudio/core/Instance.h).
+    if "MIKSERSTUDIO_INSTALLED_APP:BOOL=ON" not in (BUILD / "CMakeCache.txt").read_text(encoding="utf-8"):
+        raise SystemExit(f"The build in {BUILD} would run as Mikser Studio Dev: {CONFIGURE}, then build it again.")
     shutil.rmtree(STAGE.parent, ignore_errors=True)
     subprocess.run(["cmake", "--install", str(BUILD), "--prefix", str(STAGE)], check=True)
 

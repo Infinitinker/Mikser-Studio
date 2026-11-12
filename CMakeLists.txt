@@ -26,6 +26,7 @@ option(MIKSERSTUDIO_WITH_SERVICES "Build the sidecar services (AI bridge)" ON)
 option(MIKSERSTUDIO_WITH_UI "Build the desktop UI" ON)
 option(MIKSERSTUDIO_WITH_PLUGINS "Build the bundled example plugins" ON)
 option(MIKSERSTUDIO_BUILD_TESTS "Build the test suite" ON)
+option(MIKSERSTUDIO_INSTALLED_APP "Run as the installed Mikser Studio, not Mikser Studio Dev, when MIKSERSTUDIO_INSTANCE is unset. Only the release build sets it (docs/releasing.md)." OFF)
 
 find_package(Qt6 6.8 REQUIRED COMPONENTS Core)
 qt_standard_project_setup(REQUIRES 6.8)

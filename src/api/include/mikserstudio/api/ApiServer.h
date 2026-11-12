@@ -26,7 +26,7 @@ inline constexpr qsizetype kMaxRequestBodyBytes = qsizetype{1024} * 1024;
 struct ApiServerOptions {
     quint16 port = 0;  // 0 picks a free (ephemeral) port.
     QString token;  // Empty: a random token is generated. Otherwise 16+ visible ASCII chars.
-    QString discoveryFile;  // Empty: QStandardPaths::AppLocalDataLocation + "/api.json".
+    QString discoveryFile;  // Where to write api.json: the app passes core::UserFolders::discoveryFile. Required.
 };
 
 // The local, versioned API: /v1 HTTP routes plus the /v1/events WebSocket on the same port.

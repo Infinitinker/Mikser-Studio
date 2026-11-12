@@ -11,11 +11,13 @@
 #include "Screenshot.h"
 
 #include "mikserstudio/core/CommandBus.h"
+#include "mikserstudio/core/Instance.h"
 #include "mikserstudio/core/PluginManager.h"
 #include "mikserstudio/core/Project.h"
 #include "mikserstudio/core/ProjectCommands.h"
 #include "mikserstudio/core/Transport.h"
 #include "mikserstudio/core/UndoStack.h"
+#include "mikserstudio/core/UserFolders.h"
 #include "mikserstudio/ui/ClipSelection.h"
 #include "mikserstudio/ui/KddwDockHost.h"
 #include "mikserstudio/ui/PanelIds.h"
@@ -26,7 +28,6 @@
 #include <QCommandLineParser>
 #include <QDir>
 #include <QMainWindow>
-#include <QStandardPaths>
 #include <QTimer>
 
 #include <cstdio>
@@ -81,8 +82,10 @@ int main(int argc, char** argv)
 {
     ui::prepareApplication();
     QApplication app(argc, argv);
-    QApplication::setApplicationName(u"mikser-studio-ui-demo"_s);
-    QApplication::setOrganizationName(u"Mikser Studio"_s);
+    // The demo is part of a build from source, so it is Mikser Studio Dev and keeps its files in a
+    // folder of its own there: it never touches an installed Mikser Studio, nor the Dev app's workspaces.
+    if (const auto dev = core::instanceNamed(u"dev"_s, core::UnsetInstance::Dev); dev)
+        core::applyInstance(*dev);
     ui::applyTheme(app);
 
     QCommandLineParser parser;
@@ -98,7 +101,7 @@ int main(int argc, char** argv)
 
     const QString configDir = parser.isSet(configOption)
                                   ? QDir(parser.value(configOption)).absolutePath()
-                                  : QStandardPaths::writableLocation(QStandardPaths::AppConfigLocation);
+                                  : QDir(core::UserFolders::resolve().config).filePath(u"ui-demo"_s);
 
     core::UndoStack undo;
     core::CommandBus bus(undo);

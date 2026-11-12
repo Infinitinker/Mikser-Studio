@@ -4,6 +4,7 @@
 
 #include "AppCommands.h"
 #include "AppPaths.h"
+#include "LogFile.h"
 #include "Logging.h"
 #include "UnavailableProbe.h"
 
@@ -24,8 +25,9 @@ services::SidecarOptions sidecarOptions(const AppPaths& paths)
 {
     services::SidecarOptions options;
     options.aiDirectory = paths.aiDir;
-    options.cacheDirectory = QDir(paths.cacheDir).filePath(u"ai"_s);
+    options.cacheDirectory = QDir(paths.user.cache).filePath(u"ai"_s);
     options.ffmpegPath = paths.ffmpegPath;
+    options.logFile = LogFile::pathIn(paths.user.logs);
     return options;
 }
 
@@ -34,7 +36,8 @@ services::SidecarOptions sidecarOptions(const AppPaths& paths)
 Studio::Studio(const AppPaths& paths, StudioOptions options)
     : m_options(options)
     , m_sidecar(sidecarOptions(paths))
-    , m_plugins(m_bus, QDir(paths.configDir).filePath(u"plugins"_s))
+    , m_discoveryFile(paths.user.discoveryFile)
+    , m_plugins(m_bus, QDir(paths.user.config).filePath(u"plugins"_s))
 {
     const auto audio = options.audio ? engine::AudioOutput::Device : engine::AudioOutput::Silent;
     if (const auto runtime = engine::MltRuntime::initialize(); runtime) {
@@ -84,6 +87,7 @@ void Studio::start()
     if (m_options.api) {
         api::ApiServerOptions apiOptions;
         apiOptions.port = m_options.apiPort;
+        apiOptions.discoveryFile = m_discoveryFile;
         m_api = std::make_unique<api::ApiServer>(m_bus, apiOptions);
         if (const auto port = m_api->start(); port)
             qCInfo(lcApp) << "API listening on 127.0.0.1:" << *port << "discovery file:" << m_api->discoveryFilePath();

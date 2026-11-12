@@ -4,15 +4,14 @@ find_package(Qt6 REQUIRED COMPONENTS Widgets)
 add_executable(mikser-studio WIN32
     AppCommands.cpp
     AppCommands.h
-    AppId.h
     AppPaths.cpp
     AppPaths.h
     DesktopApp.cpp
     DesktopApp.h
-    Instance.cpp
-    Instance.h
     Logging.cpp
     Logging.h
+    LogFile.cpp
+    LogFile.h
     ShutdownSignals.cpp
     ShutdownSignals.h
     Studio.cpp

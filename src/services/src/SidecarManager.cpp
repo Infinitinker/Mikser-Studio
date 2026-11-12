@@ -4,6 +4,7 @@
 #include "Logging.h"
 #include "SidecarLaunch.h"
 
+#include <QDir>
 #include <QNetworkAccessManager>
 #include <QNetworkProxy>
 #include <QNetworkReply>
@@ -240,10 +241,13 @@ void SidecarManager::restartAfter(const QString& problem)
     discardProcess(false);
     m_baseUrl.clear();
     if (m_restarts >= m_options.maxRestarts) {
-        fail(
-            u"The AI service %1. Mikser Studio gave up after %2 restarts; run an AI command to try again, and see the log (mikserstudio.services.sidecar) for details."_s
-                .arg(problem)
-                .arg(m_restarts));
+        const QString log = m_options.logFile.isEmpty()
+                                ? u"Mikser Studio’s log"_s
+                                : u"the log, %1"_s.arg(QDir::toNativeSeparators(m_options.logFile));
+        fail(u"The AI service %1. Mikser Studio gave up after %2 restarts. Run an AI command to try again; "
+             u"the details are in %3."_s.arg(problem)
+                 .arg(m_restarts)
+                 .arg(log));
         return;
     }
     const auto delay = m_options.restartDelay * (1LL << std::min(m_restarts, 20));

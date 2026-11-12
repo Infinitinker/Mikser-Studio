@@ -41,7 +41,7 @@ Until then, Mikser Studio runs from source, as [docs/development.md](docs/develo
 ## Questions
 
 **Where are my settings?**
-On Windows, in `%LOCALAPPDATA%\Mikser Studio`: your workspaces and settings, the cache with the AI's results in `cache`, and `api.json`, which tells other programs on your computer how to reach the local API while Mikser Studio runs. They stay when you update Mikser Studio.
+On Windows, in `%LOCALAPPDATA%\Mikser Studio`: your workspaces and settings, the cache with the AI's results in `cache`, the logs in `logs`, and `api.json`, which tells other programs on your computer how to reach the local API while Mikser Studio runs. They stay when you update Mikser Studio.
 
 **Where are the AI features?**
 A release of Mikser Studio doesn't include them yet; its AI commands say so. They run when Mikser Studio runs from source, as [docs/development.md](docs/development.md) describes, and come to the releases later.

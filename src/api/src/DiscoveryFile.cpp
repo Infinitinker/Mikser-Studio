@@ -9,17 +9,10 @@
 #include <QFileInfo>
 #include <QJsonDocument>
 #include <QSaveFile>
-#include <QStandardPaths>
 
 using namespace Qt::StringLiterals;
 
 namespace mikserstudio::api {
-
-QString defaultDiscoveryFilePath()
-{
-    const QString folder = QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation);
-    return folder.isEmpty() ? QString() : folder + u"/api.json"_s;
-}
 
 std::expected<void, QString> writeDiscoveryFile(const QString& path, const QJsonObject& contents)
 {

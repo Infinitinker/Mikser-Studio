@@ -67,6 +67,7 @@ private:
     services::SidecarManager m_sidecar;
     services::AiClient m_aiClient;
 
+    QString m_discoveryFile;
     core::PluginManager m_plugins;
     std::unique_ptr<api::ApiServer> m_api;
 };

@@ -40,8 +40,9 @@ While the server runs, it writes a JSON file (atomically, with `QSaveFile`):
 }
 ```
 
-Default location: `QStandardPaths::AppLocalDataLocation` + `/api.json`, with the application name
-`Mikser Studio` (the app sets no organization name, so there is no extra folder level):
+Location: `api.json` in the data folder of the Mikser Studio that runs (`core::UserFolders`,
+`QStandardPaths::AppLocalDataLocation` for the instance's name, or `MIKSERSTUDIO_DATA_DIR`). For the
+installed app, named `Mikser Studio` (it sets no organization name, so there is no extra folder level):
 
 | OS | Path |
 |---|---|
@@ -49,9 +50,9 @@ Default location: `QStandardPaths::AppLocalDataLocation` + `/api.json`, with the
 | macOS | `~/Library/Application Support/Mikser Studio/api.json` |
 | Linux | `~/.local/share/Mikser Studio/api.json` |
 
-The app run from source (`start.bat`) and the app under the end-to-end tests are named `Mikser Studio
-Dev` and `Mikser Studio E2E` (`MIKSERSTUDIO_INSTANCE`, see
-[development.md](development.md#instances)), so their files are in folders of those names instead.
+A build from source and the app under the end-to-end tests are named `Mikser Studio Dev` and `Mikser
+Studio E2E` (see [development.md](development.md#instances)), so their files are in folders of those
+names instead.
 
 The file is removed when the server stops or the app exits normally. If the app crashes the file
 stays behind: check that `pid` is still running (or that `GET /v1/health` answers) before trusting

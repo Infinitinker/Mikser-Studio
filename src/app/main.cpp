@@ -6,20 +6,26 @@
 
 #include "AppPaths.h"
 #include "DesktopApp.h"
-#include "Instance.h"
+#include "LogFile.h"
 #include "Logging.h"
 #include "ShutdownSignals.h"
 #include "Studio.h"
 
+#include "mikserstudio/core/Instance.h"
 #include "mikserstudio/ui/Theme.h"
 
 #include <QApplication>
 #include <QCommandLineParser>
 #include <QCoreApplication>
+#include <QDir>
 #include <QGuiApplication>
 #include <QIcon>
+#include <QMessageBox>
+
+#include <cstdio>
 
 #include <cstring>
+#include <expected>
 #include <memory>
 #include <optional>
 
@@ -86,34 +92,47 @@ std::optional<CommandLine> parseCommandLine(const QCoreApplication& app)
     return line;
 }
 
-// The instance's name and app id (Instance.h), or false, logged, for an unknown MIKSERSTUDIO_INSTANCE.
-bool setIdentity()
+// Names the app after its instance (core/Instance.h). An unknown MIKSERSTUDIO_INSTANCE is an error,
+// returned for the caller to show: a build without a console has nowhere else to show it.
+std::expected<void, QString> setIdentity()
 {
-    const auto instance = app::currentInstance();
-    if (!instance) {
-        qCCritical(app::lcApp).noquote() << instance.error();
-        return false;
-    }
-    // No organization name, so QStandardPaths gives "<AppData>/Mikser Studio" rather than a nested
-    // folder. The domain is the reversed app id, which macOS uses for the bundle's preferences.
-    QCoreApplication::setApplicationName(instance->name);
-    QCoreApplication::setOrganizationDomain(u"infinitinker.github.io"_s);
+    const auto instance = core::currentInstance();
+    if (!instance)
+        return std::unexpected(instance.error());
+    core::applyInstance(*instance);
     QCoreApplication::setApplicationVersion(QStringLiteral(MIKSERSTUDIO_VERSION));
     // Wayland matches windows to the .desktop file by this name; it must stay the app id forever.
     QGuiApplication::setDesktopFileName(instance->appId);
-    return true;
+    return {};
+}
+
+// The log file in the instance's logs folder; without one, Mikser Studio runs on and says why.
+std::unique_ptr<app::LogFile> openLog(const app::AppPaths& paths)
+{
+    auto log = app::LogFile::open(paths.user.logs);
+    if (!log) {
+        qCWarning(app::lcApp).noquote() << log.error();
+        return nullptr;
+    }
+    qCInfo(app::lcApp).noquote() << QCoreApplication::applicationName() << QCoreApplication::applicationVersion()
+                                 << "started; the log is" << QDir::toNativeSeparators((*log)->path());
+    return std::move(*log);
 }
 
 int runHeadless(int argc, char** argv)
 {
     QCoreApplication app(argc, argv);
-    if (!setIdentity())
+    if (const auto identity = setIdentity(); !identity) {
+        std::fprintf(stderr, "%s\n", qPrintable(identity.error()));
         return 2;
+    }
     const auto line = parseCommandLine(app);
     if (!line)
         return 2;
+    const app::AppPaths paths = app::AppPaths::resolve();
+    const auto log = openLog(paths);  // Outlives the studio, so its teardown is logged.
     const app::ShutdownSignals shutdown;  // Outlives the studio, so Ctrl+C runs its teardown.
-    app::Studio studio(app::AppPaths::resolve(), {.audio = false, .api = true, .apiPort = line->apiPort});
+    app::Studio studio(paths, {.audio = false, .api = true, .apiPort = line->apiPort});
     studio.start();
     if (!studio.apiServer() || !studio.apiServer()->isRunning())
         return 1;
@@ -125,8 +144,11 @@ int runDesktop(int argc, char** argv)
 {
     ui::prepareApplication();
     QApplication app(argc, argv);
-    if (!setIdentity())
+    if (const auto identity = setIdentity(); !identity) {
+        std::fprintf(stderr, "%s\n", qPrintable(identity.error()));
+        QMessageBox::critical(nullptr, u"Mikser Studio"_s, identity.error());
         return 2;
+    }
     ui::applyTheme(app);
     QApplication::setWindowIcon(QIcon(u":/mikserstudio/icon.svg"_s));
     const auto line = parseCommandLine(app);
@@ -134,10 +156,11 @@ int runDesktop(int argc, char** argv)
         return 2;
 
     const app::AppPaths paths = app::AppPaths::resolve();
+    const auto log = openLog(paths);
     const app::ShutdownSignals shutdown;
     app::Studio studio(paths, {.audio = true, .api = line->api, .apiPort = line->apiPort});
     studio.start();
-    app::DesktopApp desktop(studio, paths.configDir, line->desktop);
+    app::DesktopApp desktop(studio, paths.user.config, line->desktop);
     desktop.show();
     return QApplication::exec();
 }

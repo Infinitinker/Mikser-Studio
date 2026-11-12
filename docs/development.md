@@ -55,7 +55,7 @@ and test one module on its own; `src/app` is built only when all of them are on.
 ### Run
 
 `start.bat` starts the built app from the checkout (the `release` build if there is one, else the
-`debug` build), with MSYS2's libraries on `PATH`, as **Mikser Studio Dev**. Arguments are passed on:
+`debug` build), with MSYS2's libraries on `PATH`. Arguments are passed on:
 
 ```bat
 start.bat
@@ -79,21 +79,35 @@ shuts down cleanly, so plugins are deactivated, the AI service is stopped and th
 handy for checking UI changes. Debug builds are console programs so the log is visible; set
 `QT_FORCE_STDERR_LOGGING=1` in MSYS2 shells.
 
+Every run also writes its log, with the AI service's output in it, to `mikser-studio.log` in the
+instance's `logs` folder (`%LOCALAPPDATA%\Mikser Studio Dev\logs` on Windows). Each start moves the
+last log to `mikser-studio.1.log`, and so on up to `mikser-studio.4.log`; a log that grows past 10 MB
+moves aside the same way.
+
 ### Instances
 
-`MIKSERSTUDIO_INSTANCE` says which Mikser Studio runs, each with its own name and app id, so its own
-per-user folders (settings, cache, the API's discovery file):
+Which Mikser Studio runs decides its name and app id, so its own per-user folders (settings, cache,
+logs, the API's discovery file). A build from source is **Mikser Studio Dev**, however it is started:
+only the release build, configured with `MIKSERSTUDIO_INSTALLED_APP` ([releasing.md](releasing.md)),
+is the installed app. `MIKSERSTUDIO_INSTANCE` chooses another:
 
 | `MIKSERSTUDIO_INSTANCE` | Name | App id | Used by |
 |---|---|---|---|
-| unset | Mikser Studio | `io.github.infinitinker.mikserstudio` | the installed app |
-| `dev` | Mikser Studio Dev | `io.github.infinitinker.mikserstudio.dev` | `start.bat` |
+| unset, in a build from source | Mikser Studio Dev | `io.github.infinitinker.mikserstudio.dev` | `start.bat`, the program run directly, the UI demo |
+| unset, in the release | Mikser Studio | `io.github.infinitinker.mikserstudio` | the installed app |
+| `dev` | Mikser Studio Dev | `io.github.infinitinker.mikserstudio.dev` | |
 | `e2e` | Mikser Studio E2E | `io.github.infinitinker.mikserstudio.e2e` | the end-to-end tests |
 
 So the app run from source or under test never touches an installed Mikser Studio's files. On
-Windows its folder is `%LOCALAPPDATA%\Mikser Studio Dev` or `%LOCALAPPDATA%\Mikser Studio E2E`.
+Windows its folder is `%LOCALAPPDATA%\Mikser Studio Dev` or `%LOCALAPPDATA%\Mikser Studio E2E`; the UI
+demo keeps its files in the `ui-demo` folder of Mikser Studio Dev's. Any other value of
+`MIKSERSTUDIO_INSTANCE` stops Mikser Studio with a message that says what to set.
 
-Other environment overrides: `MIKSERSTUDIO_CONFIG_DIR`, `MIKSERSTUDIO_CACHE_DIR`, `MIKSERSTUDIO_AI_DIR`,
+The per-user folders come from `core::UserFolders`, which the environment can override:
+`MIKSERSTUDIO_CONFIG_DIR` (settings), `MIKSERSTUDIO_DATA_DIR` (the discovery file and the logs) and
+`MIKSERSTUDIO_CACHE_DIR` (the cache).
+
+Other environment overrides: `MIKSERSTUDIO_AI_DIR`,
 `MIKSERSTUDIO_MLT_REPOSITORY`, `MIKSERSTUDIO_MLT_DATA`, `MIKSERSTUDIO_MONITOR_RHI` (`d3d11|d3d12|vulkan|opengl|metal|null`),
 `MIKSERSTUDIO_AUDIO_OUTPUT` (`rtaudio|sdl2_audio|silent`).
 

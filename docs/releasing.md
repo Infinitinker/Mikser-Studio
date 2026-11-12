@@ -23,17 +23,22 @@ GitHub, under the tag `v<version>`:
 - `MikserStudio-<version>-third-party-notices.md`: the same notices, to read without downloading the
   app.
 
-It needs the release build (the `release` preset), MSYS2's packages as
+It needs the release build (the `release` preset with `MIKSERSTUDIO_INSTALLED_APP` on), MSYS2's packages as
 [development.md](development.md#windows-msys2-ucrt64) lists them, and Inno Setup 7, found where its
 installer puts it or wherever the `ISCC` environment variable points. From Git Bash or an MSYS2 UCRT64
 shell, with the UCRT64 tools first on `PATH`:
 
 ```sh
 export PATH=/c/msys64/ucrt64/bin:$PATH
-cmake --preset release
+cmake --preset release -DMIKSERSTUDIO_INSTALLED_APP=ON
 cmake --build --preset release
 python tools/build_release.py
 ```
+
+`MIKSERSTUDIO_INSTALLED_APP` makes the program the installed Mikser Studio when `MIKSERSTUDIO_INSTANCE`
+is unset. Every other build runs as Mikser Studio Dev, with folders of its own, so a build from source
+never touches an installed copy's files; `build_release.py` refuses a build without it. Configure the
+`release` preset without it again before running that build from source.
 
 The version is the one in `CMakeLists.txt`'s `project()`, Mikser Studio's only version.
 

@@ -45,7 +45,7 @@ ApiServer::ApiServer(core::CommandBus& bus, Options options, QObject* parent)
     : QObject(parent)
     , m_bus(bus)
     , m_token(options.token.isEmpty() ? generateToken() : std::move(options.token))
-    , m_discoveryFile(options.discoveryFile.isEmpty() ? defaultDiscoveryFilePath() : std::move(options.discoveryFile))
+    , m_discoveryFile(std::move(options.discoveryFile))
     , m_requestedPort(options.port)
 {
 }
@@ -65,7 +65,7 @@ std::expected<quint16, QString> ApiServer::start()
         return std::unexpected(valid.error());
     if (m_discoveryFile.isEmpty()) {
         return std::unexpected(
-            u"There is no folder for the API discovery file. Set the application name or pass a path."_s);
+            u"The API has no discovery file to write. Pass its path in ApiServerOptions::discoveryFile."_s);
     }
 
     const QByteArray token = m_token.toUtf8();

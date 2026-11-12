@@ -129,10 +129,15 @@ TEST_CASE("The discovery file is readable only by the current user", "[api][disc
     CHECK_FALSE(QFileInfo::exists(path));
 }
 
-TEST_CASE("The default discovery file lives in the app's local data folder", "[api][discovery]")
+TEST_CASE("start() refuses to run without a discovery file to write", "[api][discovery]")
 {
-    const QString path = mikserstudio::api::defaultDiscoveryFilePath();
-    CHECK(path.endsWith(u"/MikserStudioApiTests/api.json"_s));
+    mikserstudio::core::UndoStack undo;
+    mikserstudio::core::CommandBus bus(undo);
+    mikserstudio::api::ApiServer server(bus, {.port = 0, .token = {}, .discoveryFile = {}});
+    const auto started = server.start();
+    REQUIRE_FALSE(started.has_value());
+    CHECK(started.error().contains(u"no discovery file"_s));
+    CHECK_FALSE(server.isRunning());
 }
 
 TEST_CASE("start() fails cleanly when the discovery file cannot be written", "[api][discovery]")
