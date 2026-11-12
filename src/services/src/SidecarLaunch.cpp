@@ -44,8 +44,13 @@ std::expected<SidecarLaunch, QString> resolveSidecarLaunch(const SidecarOptions&
         .workingDirectory = QFileInfo(options.cacheDirectory).absoluteFilePath(),
     };
     if (launch.program.isEmpty()) {
+        // A release has no AI service yet (docs/releasing.md): say so rather than name an empty folder.
+        if (options.aiDirectory.isEmpty()) {
+            return std::unexpected(
+                u"The AI features are not part of this version of Mikser Studio yet: they come with a later version."_s);
+        }
         const QFileInfo project(QDir(options.aiDirectory).filePath(u"pyproject.toml"_s));
-        if (options.aiDirectory.isEmpty() || !project.isFile()) {
+        if (!project.isFile()) {
             return std::unexpected(
                 u"The AI service could not start: its folder \"%1\" was not found. Reinstall Mikser Studio."_s.arg(
                     QDir::toNativeSeparators(options.aiDirectory)));

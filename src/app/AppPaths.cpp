@@ -19,6 +19,15 @@ QString fromEnvOr(const char* name, const QString& fallback)
     return value.isEmpty() ? fallback : QDir(value).absolutePath();
 }
 
+QString exeSuffix()
+{
+#ifdef Q_OS_WIN
+    return u".exe"_s;
+#else
+    return {};
+#endif
+}
+
 bool isAiProject(const QString& dir)
 {
     return QFileInfo::exists(QDir(dir).filePath(u"pyproject.toml"_s));
@@ -46,6 +55,9 @@ AppPaths AppPaths::resolve()
     } else if (isAiProject(sourceAi)) {
         paths.aiDir = sourceAi;
     }
+    // The AI service runs ffmpeg; one shipped with Mikser Studio wins over any on PATH.
+    if (const QFileInfo ffmpeg(appDir.filePath(u"ffmpeg"_s + exeSuffix())); ffmpeg.isFile())
+        paths.ffmpegPath = ffmpeg.absoluteFilePath();
     return paths;
 }
 

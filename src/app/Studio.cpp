@@ -25,6 +25,7 @@ services::SidecarOptions sidecarOptions(const AppPaths& paths)
     services::SidecarOptions options;
     options.aiDirectory = paths.aiDir;
     options.cacheDirectory = QDir(paths.cacheDir).filePath(u"ai"_s);
+    options.ffmpegPath = paths.ffmpegPath;
     return options;
 }
 
@@ -59,7 +60,7 @@ Studio::Studio(const AppPaths& paths, StudioOptions options)
     }
 
     if (paths.aiDir.isEmpty())
-        qCWarning(lcApp) << "The AI service folder (ai/) was not found; AI commands will report it.";
+        qCInfo(lcApp) << "No AI service in this build (ai/ was not found): the AI commands say so.";
     services::registerAiCommands(m_bus, m_project, m_sidecar, m_aiClient);
 
     m_plugins.addSearchPath(paths.pluginsDir);

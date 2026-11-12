@@ -53,6 +53,15 @@ TEST_CASE("The default command runs mikserstudio-ai from the ai folder's environ
         CHECK(launch.error().contains(u"was not found. Reinstall Mikser Studio."_s));
     }
 
+    SECTION("in a build without the AI service")
+    {
+        options.aiDirectory.clear();
+        const auto launch = resolveSidecarLaunch(options, "token");
+        REQUIRE_FALSE(launch);
+        CHECK(launch.error().contains(u"not part of this version of Mikser Studio yet"_s));
+        CHECK_FALSE(launch.error().contains(u"\"\""_s));
+    }
+
     QFile pyproject(QDir(ai).filePath(u"pyproject.toml"_s));
     REQUIRE(pyproject.open(QIODevice::WriteOnly));
     pyproject.close();

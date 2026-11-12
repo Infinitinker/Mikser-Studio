@@ -16,13 +16,13 @@
   <img src="https://img.shields.io/badge/Works-offline-2ea44f" alt="Works offline">
 </p>
 
-Mikser Studio is a desktop studio for video and sound. You put clips on a timeline, watch them in GPU-drawn monitors and arrange the panels the way you work, and AI models run next to the editor, on your own computer, to work on what you made. It is in early development: the editing core, the panels, the local API, plugins and the first AI features are there, and much more is planned.
+Mikser Studio is a desktop studio for video and sound. You put clips on a timeline, watch them in GPU-drawn monitors and arrange the panels the way you work, and AI models run next to the editor, on your own computer, to work on what you made. It is in early development: the editing core, the panels, the local API and plugins are there, the first AI features run when Mikser Studio runs from source, and much more is planned.
 
 ## What it does
 
 - 🎬 **Plays and edits video and sound** on a timeline with video and audio tracks, with a source monitor for one clip and a program monitor for the whole timeline, both drawn on the GPU.
 - 🪟 **Lets you arrange the studio**: every panel can be moved, docked, undocked and stacked into tabs, and the layout is kept for next time.
-- 🤖 **Runs AI on your clips**: upscale a clip, or generate text with a local [Ollama](https://ollama.com) model. AI runs in a process of its own, so a model that fails never takes the editor down.
+- 🤖 **Runs AI on your clips**: upscale a clip, or generate text with a local [Ollama](https://ollama.com) model. AI runs in a process of its own, so a model that fails never takes the editor down. For now this works only when Mikser Studio runs from source: a release doesn't include the AI features yet.
 - ⌨️ **Does everything through commands**: menus, shortcuts and the command palette (**Ctrl+K**) run the same commands, and every change can be undone.
 - 🧩 **Grows with plugins**: a plugin adds commands, settings and panels without changing Mikser Studio itself.
 - 🔌 **Can be driven from outside**: other programs and scripts on your computer can run its commands through a local API.
@@ -43,8 +43,11 @@ Until then, Mikser Studio runs from source, as [docs/development.md](docs/develo
 **Where are my settings?**
 On Windows, in `%LOCALAPPDATA%\Mikser Studio`: the window layout and settings, the cache with the AI's results in `cache`, and `api.json`, which tells other programs on your computer how to reach the local API while Mikser Studio runs. They stay when you update Mikser Studio.
 
+**Where are the AI features?**
+A release of Mikser Studio doesn't include them yet; its AI commands say so. They run when Mikser Studio runs from source, as [docs/development.md](docs/development.md) describes, and come to the releases later.
+
 **Do I need Ollama?**
-Only to generate text with AI. The other features, upscaling among them, work without it.
+Only to generate text with AI. Upscaling works without it.
 
 **Windows says "Windows protected your PC".**
 Mikser Studio is not code-signed yet, so Windows SmartScreen doesn't know it. Choose **More info**, then **Run anyway**.

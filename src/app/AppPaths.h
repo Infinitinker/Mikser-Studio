@@ -11,6 +11,7 @@ struct AppPaths {
     QString cacheDir;  // Generated media (AI results), proxies.
     QString pluginsDir;  // Bundled plugins, <exe>/plugins.
     QString aiDir;  // The ai/ Python package; empty when it cannot be found.
+    QString ffmpegPath;  // An ffmpeg program shipped next to the executable, for the AI service; else empty.
 
     // MIKSERSTUDIO_CONFIG_DIR / MIKSERSTUDIO_CACHE_DIR / MIKSERSTUDIO_AI_DIR override the defaults.
     [[nodiscard]] static AppPaths resolve();
