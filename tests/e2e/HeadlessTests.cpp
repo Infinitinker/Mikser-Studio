@@ -22,6 +22,10 @@
 
 #include <algorithm>
 
+#ifdef Q_OS_WIN
+#include <windows.h>
+#endif
+
 using namespace Qt::StringLiterals;
 
 namespace {
@@ -65,6 +69,41 @@ Reply get(const QString& url, const QString& token = {})
     reply->deleteLater();
     return result;
 }
+
+#ifdef Q_OS_WIN
+struct WindowSearch {
+    DWORD pid = 0;
+    QStringList found;
+};
+
+void addIfOwned(HWND window, WindowSearch& search, QStringView kind)
+{
+    DWORD owner = 0;
+    GetWindowThreadProcessId(window, &owner);
+    if (owner != search.pid)
+        return;
+    wchar_t name[128] = {};
+    GetClassNameW(window, name, 128);
+    search.found.append(u"%1 window of class %2"_s.arg(kind, QString::fromWCharArray(name)));
+}
+
+// The windows of process `pid`, as `taskkill` chooses among them: top-level ones first, then
+// message-only ones. Says where a close request went when the app did not close.
+QStringList windowsOf(qint64 pid)
+{
+    WindowSearch search{.pid = static_cast<DWORD>(pid), .found = {}};
+    EnumWindows(
+        [](HWND window, LPARAM data) -> BOOL {
+            addIfOwned(window, *reinterpret_cast<WindowSearch*>(data), u"top-level");
+            return TRUE;
+        },
+        reinterpret_cast<LPARAM>(&search));
+    HWND window = nullptr;
+    while ((window = FindWindowExW(HWND_MESSAGE, window, nullptr, nullptr)))
+        addIfOwned(window, search, u"message-only");
+    return search.found;
+}
+#endif
 
 // mikser-studio --headless as the E2E instance, with its settings and cache in a temporary folder.
 class HeadlessStudio {
@@ -123,6 +162,16 @@ public:
         return m_process.waitForFinished(kStopTimeoutMs);
     }
 
+    // The app's windows, where a close request from `taskkill` can go.
+    [[nodiscard]] QString windows() const
+    {
+#ifdef Q_OS_WIN
+        return windowsOf(m_process.processId()).join(u", "_s);
+#else
+        return {};
+#endif
+    }
+
     [[nodiscard]] int exitCode() const { return m_process.exitCode(); }
     [[nodiscard]] QProcess::ExitStatus exitStatus() const { return m_process.exitStatus(); }
     QString output() { return QString::fromUtf8(m_process.readAll()); }
@@ -160,8 +209,11 @@ TEST_CASE("The headless studio answers its API and removes its discovery file wh
         return command.toObject().value(u"id"_s).toString() == u"edit.undo"_s;
     }));
 
-    REQUIRE(studio.stop());
+    const QString windows = studio.windows();
+    const bool stopped = studio.stop();
+    INFO("Its windows when asked to close: " << windows.toStdString());
     INFO(studio.output().toStdString());
+    REQUIRE(stopped);
     CHECK(studio.exitStatus() == QProcess::NormalExit);
     CHECK(studio.exitCode() == 0);
     CHECK_FALSE(QFile::exists(discoveryFilePath()));
