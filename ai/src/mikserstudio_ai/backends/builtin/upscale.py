@@ -7,7 +7,7 @@ a real AI video.upscale. Lanczos only interpolates pixels; it adds no detail.
 
 from collections.abc import Mapping
 from pathlib import Path
-from typing import Any
+from typing import Any, TypedDict
 
 from mikserstudio_ai.backend import BackendError, JobContext, Operation, Outcome, Output
 from mikserstudio_ai.backends.builtin.ffmpeg import Ffmpeg
@@ -34,6 +34,13 @@ OPERATION = Operation(
         "additionalProperties": False,
     },
 )
+
+
+class UpscaleResult(TypedDict):
+    """The size of the upscaled video, in the job's result."""
+
+    width: int
+    height: int
 
 
 async def upscale(ffmpeg: Ffmpeg, params: Mapping[str, Any], context: JobContext) -> Outcome:
@@ -94,5 +101,5 @@ async def upscale(ffmpeg: Ffmpeg, params: Mapping[str, Any], context: JobContext
                 "note": "Lanczos scaling placeholder, not an AI model.",
             },
         },
-        data={"width": width, "height": height},
+        data=UpscaleResult(width=width, height=height),
     )

@@ -169,9 +169,14 @@ Rules for `run()`:
 - Raise `BackendError("…")` with a message for the user for expected failures.
 - Cancellation arrives as `asyncio.CancelledError`: kill child processes (see
   `mikserstudio_ai.processes.kill`), delete partial outputs, re-raise.
-- Return provenance in `Outcome.provenance` (`tools` with versions, `model` with name and hash, seed,
-  workflow…). The job manager adds `jobId`, `backend`, `op`, `params`, `createdAt` and the service
-  version. Start child processes with `creationflags=NO_WINDOW` so no console windows pop up on
+- Return provenance in `Outcome.provenance`, a `BackendProvenance`: `tools` with their versions,
+  `model` with its name and digest, `method` for how the result was made. A new kind of provenance
+  (a seed, a workflow) is added to `BackendProvenance` first. The job manager adds `jobId`,
+  `backend`, `op`, `params`, `createdAt` and the service version (`provenance.Provenance`).
+- Return the operation's own result fields, such as the generated `text`, in `Outcome.data`, typed
+  with a `TypedDict` of the backend's (`UpscaleResult`, `GenerateResult`). Clients find them in the
+  job's `result` next to `outputs` and `provenance`.
+- Start child processes with `creationflags=NO_WINDOW` so no console windows pop up on
   Windows.
 
 An operation id can be offered by several backends (e.g. a future `comfyui` `video.upscale`); the

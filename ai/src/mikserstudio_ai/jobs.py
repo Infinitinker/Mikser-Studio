@@ -9,8 +9,8 @@ from enum import StrEnum
 from pathlib import Path
 from typing import Any
 
-from mikserstudio_ai.backend import Backend, BackendError, JobContext, JsonObject
-from mikserstudio_ai.provenance import make_provenance, utc_now
+from mikserstudio_ai.backend import Backend, BackendError, JobContext, JsonObject, Output
+from mikserstudio_ai.provenance import Provenance, make_provenance, utc_now
 
 logger = logging.getLogger(__name__)
 
@@ -34,6 +34,23 @@ class JobFinishedError(Exception):
     """The job has already finished, so it cannot be canceled."""
 
 
+@dataclass(frozen=True, slots=True)
+class JobResult:
+    """What a job that succeeded produced. In JSON, the operation's own fields sit next to "outputs" and
+    "provenance"."""
+
+    outputs: list[Output]
+    provenance: Provenance
+    data: Mapping[str, object] = field(default_factory=dict)
+
+    def to_json(self) -> JsonObject:
+        return {
+            **self.data,
+            "outputs": [output.to_json() for output in self.outputs],
+            "provenance": self.provenance,
+        }
+
+
 @dataclass(slots=True)
 class Job:
     id: str
@@ -46,7 +63,7 @@ class Job:
     created_at: str = field(default_factory=utc_now)
     started_at: str | None = None
     finished_at: str | None = None
-    result: JsonObject | None = None
+    result: JobResult | None = None
     error: str | None = None
 
     def to_json(self) -> JsonObject:
@@ -61,7 +78,7 @@ class Job:
             "createdAt": self.created_at,
             "startedAt": self.started_at,
             "finishedAt": self.finished_at,
-            "result": self.result,
+            "result": self.result.to_json() if self.result else None,
             "error": self.error,
         }
 
@@ -141,11 +158,11 @@ class JobManager:
                 job.message = message
 
         outcome = await backend.run(job.op, job.params, JobContext(job.id, output_dir, report))
-        job.result = {
-            **outcome.data,
-            "outputs": [output.to_json() for output in outcome.outputs],
-            "provenance": make_provenance(job.id, backend.id, job.op, job.params, outcome.provenance),
-        }
+        job.result = JobResult(
+            outputs=outcome.outputs,
+            provenance=make_provenance(job.id, backend.id, job.op, job.params, outcome.provenance),
+            data=outcome.data,
+        )
         job.progress = 1.0
         self._finish(job, JobState.SUCCEEDED, "Done")
         logger.info("%s succeeded", job.id)

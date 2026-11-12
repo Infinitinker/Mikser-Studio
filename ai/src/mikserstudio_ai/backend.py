@@ -8,7 +8,7 @@ the JobManager do that, so adding a backend is one module plus one entry point.
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Protocol, runtime_checkable
+from typing import Any, Protocol, TypedDict, runtime_checkable
 
 type JsonObject = dict[str, Any]
 
@@ -48,15 +48,24 @@ class Output:
         return {"path": self.path.as_posix(), "kind": self.kind}
 
 
+class BackendProvenance(TypedDict, total=False):
+    """What a backend adds to a job's provenance (provenance.Provenance); each key is optional."""
+
+    tools: dict[str, str]  # The programs used and their versions: {"ffmpeg": "7.1.1"}.
+    model: JsonObject  # The model used: "name", "digest" and what else the backend knows of it.
+    method: JsonObject  # How the result was made when it says more than the model: filter, encoder.
+
+
 @dataclass(frozen=True, slots=True)
 class Outcome:
     """What a finished operation produced."""
 
     outputs: list[Output]
-    # Merged into the job's provenance: tool versions ("tools") and the model used ("model").
-    provenance: JsonObject = field(default_factory=dict)
-    # Extra result fields for the client, e.g. the generated "text".
-    data: JsonObject = field(default_factory=dict)
+    # Merged into the job's provenance.
+    provenance: BackendProvenance = field(default_factory=lambda: BackendProvenance())
+    # The operation's own result fields for the client, such as the generated "text". Their keys depend
+    # on the operation, so each backend types them for its operations.
+    data: Mapping[str, object] = field(default_factory=dict)
 
 
 @dataclass(frozen=True, slots=True)

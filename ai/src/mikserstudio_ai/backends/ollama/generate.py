@@ -2,12 +2,20 @@
 
 import logging
 from collections.abc import Mapping
-from typing import Any
+from typing import Any, TypedDict
 
 from mikserstudio_ai.backend import BackendError, JobContext, Operation, Outcome, Output
 from mikserstudio_ai.backends.ollama.client import Model, OllamaClient, OllamaError
 
 logger = logging.getLogger(__name__)
+
+
+class GenerateResult(TypedDict):
+    """The answer and the model that gave it, in the job's result."""
+
+    text: str
+    model: str
+
 
 THINK_END = "</think>"
 
@@ -64,7 +72,7 @@ async def generate(client: OllamaClient, params: Mapping[str, Any], context: Job
             "tools": {"ollama": version},
             "model": {"name": model.name, "digest": model.digest, **_model_details(model)},
         },
-        data={"text": text, "model": model.name},
+        data=GenerateResult(text=text, model=model.name),
     )
 
 
