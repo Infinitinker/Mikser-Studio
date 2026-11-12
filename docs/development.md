@@ -94,9 +94,9 @@ only the `package` preset's build, which sets `MIKSERSTUDIO_INSTALLED_APP`
 
 | `MIKSERSTUDIO_INSTANCE` | Name | App id | Used by |
 |---|---|---|---|
-| unset, in a build from source | Mikser Studio Dev | `io.github.infinitinker.mikserstudio.dev` | `start.bat`, the program run directly, the UI demo |
+| unset, in a build from source | Mikser Studio Dev | `io.github.infinitinker.mikserstudio.dev` | the program run directly, the UI demo |
 | unset, in the `package` build | Mikser Studio | `io.github.infinitinker.mikserstudio` | the installed app |
-| `dev` | Mikser Studio Dev | `io.github.infinitinker.mikserstudio.dev` | |
+| `dev` | Mikser Studio Dev | `io.github.infinitinker.mikserstudio.dev` | `start.bat` |
 | `e2e` | Mikser Studio E2E | `io.github.infinitinker.mikserstudio.e2e` | the end-to-end tests |
 
 So the app run from source or under test never touches an installed Mikser Studio's files. On

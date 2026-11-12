@@ -212,12 +212,13 @@ Each text message is one JSON object with a `type`:
 ## Embedding (C++)
 
 ```cpp
-mikserstudio::api::ApiServer api(bus, {.port = 0, .token = {}, .discoveryFile = {}});
+const mikserstudio::core::UserFolders folders = mikserstudio::core::UserFolders::resolve();
+mikserstudio::api::ApiServer api(bus, {.port = 0, .token = {}, .discoveryFile = folders.discoveryFile});
 if (auto port = api.start(); !port)
     qCWarning(lcApp) << port.error();
 ```
 
 `ApiServer` must be created and started on the thread that owns the `CommandBus` (the main thread),
-and destroyed before the bus. `start()` returns the bound port or an English error (port taken,
+and destroyed before the bus. `start()` returns the bound port or an English error (no discovery file given, port taken,
 discovery file not writable, malformed fixed token). `stop()` is idempotent and is called by the
 destructor.
