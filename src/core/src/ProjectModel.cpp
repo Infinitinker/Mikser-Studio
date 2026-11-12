@@ -60,7 +60,8 @@ std::optional<QString> clipProblem(const Clip& clip, const MediaItem* media, con
     if (clip.position < 0)
         return u"A clip cannot start before frame 0 (got %1)."_s.arg(clip.position);
     if (clip.in < 0 || clip.out <= clip.in)
-        return u"Clip in/out points %1-%2 are invalid: in must be >= 0 and out greater than in."_s.arg(clip.in).arg(clip.out);
+        return u"Clip in/out points %1-%2 are invalid: in must be >= 0 and out greater than in."_s.arg(clip.in).arg(
+            clip.out);
     if (clip.out > kMaxFrame)
         return u"Out point %1 is past frame %2, the last frame Mikser Studio supports."_s.arg(clip.out).arg(kMaxFrame);
     if (media->info.kind != MediaKind::Image && clip.out > media->info.durationFrames) {
@@ -89,8 +90,7 @@ QString overlapProblem(const Clip& other)
 
 bool isAllowedMediaPath(const QString& path)
 {
-    static const QRegularExpression color(
-        uR"(^color:(#[0-9A-Fa-f]{6}|#[0-9A-Fa-f]{8}|0x[0-9A-Fa-f]{8}|[A-Za-z]+)$)"_s);
+    static const QRegularExpression color(uR"(^color:(#[0-9A-Fa-f]{6}|#[0-9A-Fa-f]{8}|0x[0-9A-Fa-f]{8}|[A-Za-z]+)$)"_s);
     if (color.match(path).hasMatch())
         return true;
     const QString normalized = QDir::fromNativeSeparators(path);
@@ -155,9 +155,8 @@ std::expected<MediaItem, QString> ProjectModel::removeMedia(const QString& id)
         return std::unexpected(u"There is no media with id \"%1\" in the project."_s.arg(id));
     const auto users = std::ranges::count(m_clips, id, &Clip::mediaId);
     if (users > 0) {
-        return std::unexpected(u"\"%1\" is used by %2 clip(s) on the timeline. Remove those clips first."_s
-                                   .arg(it->name)
-                                   .arg(users));
+        return std::unexpected(
+            u"\"%1\" is used by %2 clip(s) on the timeline. Remove those clips first."_s.arg(it->name).arg(users));
     }
     MediaItem removed = std::move(*it);
     m_media.erase(it);

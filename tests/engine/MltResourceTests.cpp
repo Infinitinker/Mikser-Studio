@@ -62,7 +62,8 @@ TEST_CASE("Local MLT documents are refused, local media and colors open", "[reso
     const QString document = dir.filePath(u"remote.MLT"_s);
     QFile file(document);
     REQUIRE(file.open(QIODevice::WriteOnly));
-    file.write(R"(<mlt><producer id="p"><property name="resource">http://127.0.0.1:9/t.mp4</property></producer></mlt>)");
+    file.write(
+        R"(<mlt><producer id="p"><property name="resource">http://127.0.0.1:9/t.mp4</property></producer></mlt>)");
     file.close();
     const auto refused = openProducer(*profile, document);
     REQUIRE_FALSE(refused.has_value());

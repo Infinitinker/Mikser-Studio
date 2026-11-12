@@ -10,10 +10,8 @@ namespace mikserstudio::services {
 namespace {
 
 constexpr std::array kStates{
-    std::pair{AiJobState::Queued, u"queued"},
-    std::pair{AiJobState::Running, u"running"},
-    std::pair{AiJobState::Succeeded, u"succeeded"},
-    std::pair{AiJobState::Failed, u"failed"},
+    std::pair{AiJobState::Queued, u"queued"},       std::pair{AiJobState::Running, u"running"},
+    std::pair{AiJobState::Succeeded, u"succeeded"}, std::pair{AiJobState::Failed, u"failed"},
     std::pair{AiJobState::Canceled, u"canceled"},
 };
 

@@ -42,8 +42,8 @@ struct BusFixture {
                                      .shortcut = u"Ctrl+N"_s,
                                      .confirmation = kQuestion},
                                     &guardedRuns));
-        REQUIRE(registerTestCommand(bus, {.id = u"demo.plain"_s, .title = u"Plain"_s, .category = u"Demo"_s},
-                                    &plainRuns));
+        REQUIRE(
+            registerTestCommand(bus, {.id = u"demo.plain"_s, .title = u"Plain"_s, .category = u"Demo"_s}, &plainRuns));
     }
 };
 
@@ -118,8 +118,8 @@ TEST_CASE("Read-only commands stay out of the command log and the status bar", "
 {
     mikserstudio::core::UndoStack undo;
     mikserstudio::core::CommandBus bus(undo);
-    REQUIRE(registerTestCommand(bus, {.id = u"ai.jobs"_s, .title = u"List AI Jobs"_s, .category = u"AI"_s,
-                                      .readOnly = true}));
+    REQUIRE(registerTestCommand(
+        bus, {.id = u"ai.jobs"_s, .title = u"List AI Jobs"_s, .category = u"AI"_s, .readOnly = true}));
     REQUIRE(registerTestCommand(bus, {.id = u"program.seek"_s, .title = u"Seek"_s, .category = u"Program"_s}));
     REQUIRE(registerTestCommand(bus, {.id = u"demo.run"_s, .title = u"Run Demo"_s, .category = u"Demo"_s}));
 

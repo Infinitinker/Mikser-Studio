@@ -48,7 +48,8 @@ const QJsonObject& manifestSchema()
                 }
             }
         }
-    })json").object();
+    })json")
+                                          .object();
     return schema;
 }
 
@@ -57,7 +58,8 @@ std::expected<void, QString> checkEntry(const QString& kind, const QString& entr
     if (kind == u"native") {
         static const QRegularExpression libraryName(u"^[A-Za-z0-9_][A-Za-z0-9_.-]*$"_s);
         if (!libraryName.match(entry).hasMatch() || entry.contains(u".."))
-            return std::unexpected(u"/entry: must be the library file name without folder or extension, e.g. \"hello\""_s);
+            return std::unexpected(
+                u"/entry: must be the library file name without folder or extension, e.g. \"hello\""_s);
         return {};
     }
     static const QRegularExpression pythonEntry(u"^[A-Za-z_][A-Za-z0-9_.]*:[A-Za-z_][A-Za-z0-9_]*$"_s);
@@ -81,9 +83,10 @@ std::expected<QList<PanelContribution>, QString> parsePanels(const QJsonArray& p
         const QString pointer = u"/panels/%1"_s.arg(i);
         if (ids.contains(contribution.id))
             return std::unexpected(pointer + u"/id: panel id \"%1\" is used twice"_s.arg(contribution.id));
-        if (!QDir::isRelativePath(contribution.qml) || contribution.qml.split(u'/').contains(u".."_s)
-            || contribution.qml.contains(u'\\') || contribution.qml.contains(u':')) {
-            return std::unexpected(pointer + u"/qml: must be a path inside the plugin folder using '/', e.g. \"panel.qml\""_s);
+        if (!QDir::isRelativePath(contribution.qml) || contribution.qml.split(u'/').contains(u".."_s) ||
+            contribution.qml.contains(u'\\') || contribution.qml.contains(u':')) {
+            return std::unexpected(pointer +
+                                   u"/qml: must be a path inside the plugin folder using '/', e.g. \"panel.qml\""_s);
         }
         ids.insert(contribution.id);
         result.append(std::move(contribution));
@@ -101,9 +104,10 @@ std::expected<PluginManifest, QString> parsePluginManifest(const QJsonObject& js
 
     const int apiVersion = manifest.value(u"apiVersion").toInt();
     if (apiVersion != kPluginApiVersion) {
-        return std::unexpected(u"/apiVersion: the plugin needs plugin API version %1 but this version of Mikser Studio provides version %2; "
-                               "install a plugin build made for this Mikser Studio version"_s.arg(apiVersion)
-                                   .arg(kPluginApiVersion));
+        return std::unexpected(
+            u"/apiVersion: the plugin needs plugin API version %1 but this version of Mikser Studio provides version %2; "
+            "install a plugin build made for this Mikser Studio version"_s.arg(apiVersion)
+                .arg(kPluginApiVersion));
     }
     const QString kind = manifest.value(u"kind").toString();
     const QString entry = manifest.value(u"entry").toString();

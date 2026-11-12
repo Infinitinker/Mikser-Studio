@@ -1,0 +1,71 @@
+# How the C++ code is formatted: WebKit's style (Qt's own is close to it) with the code's own choices
+# on top, measured on the code as it was written. Check with clang-format --dry-run --Werror, or apply
+# with clang-format -i.
+BasedOnStyle: WebKit
+
+# Indents of 4 spaces, with access modifiers (public:, private:) at the class's own level and namespaces
+# not indented; lines of up to 120 characters, like the Python code. Long string literals are never
+# split: an interface text reads better whole.
+IndentWidth: 4
+ContinuationIndentWidth: 4
+AccessModifierOffset: -4
+NamespaceIndentation: None
+FixNamespaceComments: true
+IndentCaseLabels: false
+ColumnLimit: 120
+BreakStringLiterals: false
+
+# The * and & go with the type: char** argv, const QString& path.
+PointerAlignment: Left
+
+# A function's brace goes on a line of its own; classes, control statements and lambdas keep theirs on
+# the line. An empty function body is {} on lines of their own.
+BreakBeforeBraces: Custom
+BraceWrapping:
+  AfterFunction: true
+  AfterClass: false
+  AfterStruct: false
+  AfterNamespace: false
+  AfterControlStatement: Never
+  AfterEnum: false
+  BeforeElse: false
+  BeforeLambdaBody: false
+  SplitEmptyFunction: true
+
+# Constructor initializers one per line, each starting with its comma, as in Qt's code.
+BreakConstructorInitializers: BeforeComma
+ConstructorInitializerIndentWidth: 4
+PackConstructorInitializers: Never
+
+# Only functions defined in their class, short enums and lambdas go on one line; the bodies of if,
+# loops, case labels and other blocks always go on lines of their own.
+AllowShortFunctionsOnASingleLine: Inline
+AllowShortIfStatementsOnASingleLine: Never
+AllowShortBlocksOnASingleLine: Never
+AllowShortLoopsOnASingleLine: false
+AllowShortCaseLabelsOnASingleLine: false
+AllowShortLambdasOnASingleLine: All
+AllowShortEnumsOnASingleLine: true
+
+# Arguments that don't fit go on as many lines as needed, lined up after the opening parenthesis;
+# operators end a line rather than start the next one. A break after = or before a return type is a
+# last resort.
+AlignAfterOpenBracket: Align
+AlignOperands: Align
+BinPackArguments: true
+AllowAllArgumentsOnNextLine: true
+BreakBeforeBinaryOperators: None
+PenaltyBreakAssignment: 100
+PenaltyReturnTypeOnItsOwnLine: 1000
+
+# Braced lists as function calls: QJsonObject{{u"id"_s, id}}, with no space before the brace.
+Cpp11BracedListStyle: true
+SpaceBeforeCpp11BracedList: false
+
+# Comments after code are two spaces from it.
+SpacesBeforeTrailingComments: 2
+
+# Includes keep their groups, separated by blank lines (the file's own header, the module's headers,
+# other modules' headers, Qt and other libraries, the C++ standard library), sorted within each group.
+IncludeBlocks: Preserve
+SortIncludes: CaseSensitive

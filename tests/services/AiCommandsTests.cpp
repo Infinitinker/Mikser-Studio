@@ -74,9 +74,13 @@ struct AiFixture {
 
     QString addClip(const QString& file, const QString& trackId, qint64 position, qint64 in = 10, qint64 out = 70)
     {
-        const QString mediaId = run(u"project.import_media"_s, {{u"path"_s, writeFile(file)}}).value(u"mediaId").toString();
-        return run(u"timeline.add_clip"_s, {{u"mediaId"_s, mediaId}, {u"trackId"_s, trackId}, {u"position"_s, position},
-                                            {u"in"_s, in}, {u"out"_s, out}})
+        const QString mediaId =
+            run(u"project.import_media"_s, {{u"path"_s, writeFile(file)}}).value(u"mediaId").toString();
+        return run(u"timeline.add_clip"_s, {{u"mediaId"_s, mediaId},
+                                            {u"trackId"_s, trackId},
+                                            {u"position"_s, position},
+                                            {u"in"_s, in},
+                                            {u"out"_s, out}})
             .value(u"clipId")
             .toString();
     }
@@ -245,8 +249,9 @@ TEST_CASE("An upscale that finishes after the project was replaced leaves the ne
 
     const QJsonObject job = fixture.waitFinished(jobId);
     CHECK(job.value(u"state").toString() == u"failed"_s);
-    CHECK(job.value(u"error").toString() ==
-          u"The project was replaced before the upscale finished, so the result was not added to it. Open the original project and run the upscale again."_s);
+    CHECK(
+        job.value(u"error").toString() ==
+        u"The project was replaced before the upscale finished, so the result was not added to it. Open the original project and run the upscale again."_s);
     CHECK(fixture.project.toJson() == saved);
     CHECK_FALSE(fixture.undo.canUndo());
 
@@ -308,8 +313,9 @@ TEST_CASE("A failed sidecar job fails the AI job with its message", "[services][
 TEST_CASE("ai.generate_text returns the answer in the job result", "[services][commands]")
 {
     AiFixture fixture;
-    const QString jobId =
-        fixture.run(u"ai.generate_text"_s, {{u"prompt"_s, u"hi"_s}, {u"model"_s, u"tiny"_s}}).value(u"jobId").toString();
+    const QString jobId = fixture.run(u"ai.generate_text"_s, {{u"prompt"_s, u"hi"_s}, {u"model"_s, u"tiny"_s}})
+                              .value(u"jobId")
+                              .toString();
     const QJsonObject job = fixture.waitFinished(jobId);
     REQUIRE(job.value(u"state").toString() == u"succeeded"_s);
     CHECK(job.value(u"result").toObject().value(u"text").toString() == u"echo: hi"_s);
@@ -321,7 +327,8 @@ TEST_CASE("ai.generate_text returns the answer in the job result", "[services][c
 TEST_CASE("A job the sidecar refuses fails with the sidecar's reason", "[services][commands]")
 {
     AiFixture fixture;
-    const QString jobId = fixture.run(u"ai.generate_text"_s, {{u"prompt"_s, u"unavailable"_s}}).value(u"jobId").toString();
+    const QString jobId =
+        fixture.run(u"ai.generate_text"_s, {{u"prompt"_s, u"unavailable"_s}}).value(u"jobId").toString();
     const QJsonObject job = fixture.waitFinished(jobId);
     CHECK(job.value(u"state").toString() == u"failed"_s);
     CHECK(job.value(u"error").toString() == u"Ollama is not running."_s);
@@ -357,13 +364,14 @@ TEST_CASE("A sidecar crash fails the jobs it was running", "[services][commands]
 {
     QTemporaryDir counter;
     // The fake crashes when it is first polled, so the job is always in the sidecar by then.
-    AiFixture fixture({u"--mode"_s, u"crash-on-poll"_s, u"--crash-times"_s, u"1"_s, u"--counter"_s,
-                       counter.filePath(u"count"_s)});
+    AiFixture fixture(
+        {u"--mode"_s, u"crash-on-poll"_s, u"--crash-times"_s, u"1"_s, u"--counter"_s, counter.filePath(u"count"_s)});
     const QString jobId = fixture.run(u"ai.generate_text"_s, {{u"prompt"_s, u"hold"_s}}).value(u"jobId").toString();
     const QJsonObject job = fixture.waitFinished(jobId);
     CHECK_FALSE(job.value(u"remoteId").toString().isEmpty());
     CHECK(job.value(u"state").toString() == u"failed"_s);
-    CHECK(job.value(u"error").toString() == u"The AI service stopped while the job was running. Start the job again."_s);
+    CHECK(job.value(u"error").toString() ==
+          u"The AI service stopped while the job was running. Start the job again."_s);
 
     // The restarted service takes new jobs.
     const QString next = fixture.run(u"ai.generate_text"_s, {{u"prompt"_s, u"again"_s}}).value(u"jobId").toString();
@@ -376,8 +384,10 @@ TEST_CASE("When the service cannot start, waiting jobs fail with its message", "
     const QString jobId = fixture.run(u"ai.generate_text"_s, {{u"prompt"_s, u"hi"_s}}).value(u"jobId").toString();
     const QJsonObject job = fixture.waitFinished(jobId);
     CHECK(job.value(u"state").toString() == u"failed"_s);
-    CHECK(job.value(u"error").toString() == u"The AI service could not start: its Python environment \"%1\" was not found. Create it as docs/development.md describes and restart Mikser Studio."_s
-                                                  .arg(QDir::toNativeSeparators(fixture.dir.filePath(u".venv"_s))));
+    CHECK(
+        job.value(u"error").toString() ==
+        u"The AI service could not start: its Python environment \"%1\" was not found. Create it as docs/development.md describes and restart Mikser Studio."_s
+            .arg(QDir::toNativeSeparators(fixture.dir.filePath(u".venv"_s))));
     CHECK(fixture.run(u"ai.status"_s).value(u"state").toString() == u"failed"_s);
 
     auto backends = fixture.bus.execute(u"ai.backends"_s);

@@ -26,7 +26,7 @@ struct SidecarLaunch {
 // Builds the command line and environment for one launch, or a user-facing error such as
 // "The AI service could not start: its Python environment ... was not found. ...".
 [[nodiscard]] std::expected<SidecarLaunch, QString> resolveSidecarLaunch(const SidecarOptions& options,
-                                                                        const QByteArray& token);
+                                                                         const QByteArray& token);
 
 // 32 random bytes from the OS CSPRNG, base64url without padding (43 characters).
 [[nodiscard]] QByteArray newSidecarToken();

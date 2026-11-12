@@ -15,18 +15,15 @@
 #include <mutex>
 #include <optional>
 
-template <>
-struct Catch::StringMaker<QString> {
+template <> struct Catch::StringMaker<QString> {
     static std::string convert(const QString& value) { return '"' + value.toStdString() + '"'; }
 };
 
-template <>
-struct Catch::StringMaker<QColor> {
+template <> struct Catch::StringMaker<QColor> {
     static std::string convert(const QColor& value) { return value.name(QColor::HexArgb).toStdString(); }
 };
 
-template <>
-struct Catch::StringMaker<QSize> {
+template <> struct Catch::StringMaker<QSize> {
     static std::string convert(const QSize& value)
     {
         return std::to_string(value.width()) + 'x' + std::to_string(value.height());

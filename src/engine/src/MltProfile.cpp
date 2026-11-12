@@ -23,8 +23,8 @@ std::unique_ptr<Mlt::Profile> makeProfile(core::Rational frameRate, int width, i
 
 bool profileMatches(Mlt::Profile& profile, core::Rational frameRate, int width, int height)
 {
-    return profile.frame_rate_num() == frameRate.num && profile.frame_rate_den() == frameRate.den
-           && profile.width() == width && profile.height() == height;
+    return profile.frame_rate_num() == frameRate.num && profile.frame_rate_den() == frameRate.den &&
+           profile.width() == width && profile.height() == height;
 }
 
 }  // namespace mikserstudio::engine

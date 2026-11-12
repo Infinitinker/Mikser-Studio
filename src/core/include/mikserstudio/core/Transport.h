@@ -32,8 +32,8 @@ public:
 
     virtual void play() = 0;
     virtual void pause() = 0;
-    virtual void seek(FramePos frame) = 0;   // Clamped to [0, duration).
-    virtual void setSpeed(double speed) = 0; // 1 = normal, negative = reverse, 0 = pause (J/K/L).
+    virtual void seek(FramePos frame) = 0;  // Clamped to [0, duration).
+    virtual void setSpeed(double speed) = 0;  // 1 = normal, negative = reverse, 0 = pause (J/K/L).
 
 Q_SIGNALS:
     void positionChanged(qint64 frame);

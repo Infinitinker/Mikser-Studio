@@ -99,8 +99,8 @@ std::expected<const MltRuntime*, QString> MltRuntime::create()
         return std::unexpected(message);
     }
 
-    qCInfo(lcEngine).noquote() << "MLT" << QString::fromUtf8(mlt_version_get_string()) << "modules:"
-                               << describe(*repository) << "data:" << describe(*data)
+    qCInfo(lcEngine).noquote() << "MLT" << QString::fromUtf8(mlt_version_get_string())
+                               << "modules:" << describe(*repository) << "data:" << describe(*data)
                                << "video compositor:" << runtime->m_videoCompositor;
     return runtime.release();  // Lives for the whole process, like the MLT factory.
 }

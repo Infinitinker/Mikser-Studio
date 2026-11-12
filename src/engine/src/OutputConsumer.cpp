@@ -41,8 +41,8 @@ QStringList OutputConsumer::candidatesFor(AudioOutput audio, const MltRuntime& r
     if (devices.contains(forced) && runtime.hasConsumer(forced))
         return {forced, kSilent};
     if (!forced.isEmpty())
-        qCWarning(lcPlayback).noquote() << u"Ignoring MIKSERSTUDIO_AUDIO_OUTPUT="_s + forced
-                                               + u"; use rtaudio, sdl2_audio or silent (if this MLT has them)"_s;
+        qCWarning(lcPlayback).noquote() << u"Ignoring MIKSERSTUDIO_AUDIO_OUTPUT="_s + forced +
+                                               u"; use rtaudio, sdl2_audio or silent (if this MLT has them)"_s;
 
     QStringList candidates;
     for (const QString& service : devices) {

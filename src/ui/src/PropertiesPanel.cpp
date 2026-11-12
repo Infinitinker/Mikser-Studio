@@ -146,11 +146,10 @@ void PropertiesPanel::commitPosition()
     const core::Clip* clip = m_project.findClip(m_clipId);
     if (!clip || m_position->value() == clip->position)
         return;
-    const auto run = executeInteractive(m_bus, u"timeline.move_clip"_s,
-                                        QJsonObject{{u"clipId"_s, clip->id},
-                                                    {u"trackId"_s, clip->trackId},
-                                                    {u"position"_s, m_position->value()}},
-                                        this);
+    const auto run = executeInteractive(
+        m_bus, u"timeline.move_clip"_s,
+        QJsonObject{{u"clipId"_s, clip->id}, {u"trackId"_s, clip->trackId}, {u"position"_s, m_position->value()}},
+        this);
     if (run && !*run)
         showError(run->error().message);
     else if (run)
@@ -228,7 +227,8 @@ void PropertiesPanel::refresh()
     m_in->setValue(toInt(clip->in));
     m_out->setValue(toInt(clip->out));
 
-    m_positionTimecode->setText(u"%1 → %2"_s.arg(formatTimecode(clip->position, rate), formatTimecode(clip->end(), rate)));
+    m_positionTimecode->setText(
+        u"%1 → %2"_s.arg(formatTimecode(clip->position, rate), formatTimecode(clip->end(), rate)));
     m_trimTimecode->setText(u"Source %1 → %2"_s.arg(formatTimecode(clip->in, rate), formatTimecode(clip->out, rate)));
     m_duration->setText(u"%1  (%2 frames)"_s.arg(formatTimecode(clip->length(), rate)).arg(clip->length()));
     m_stack->setCurrentIndex(1);

@@ -116,8 +116,9 @@ TEST_CASE("A missing Python environment fails at once with the setup hint", "[se
     StateLog log(sidecar);
     sidecar.start();
     CHECK(sidecar.state() == SidecarState::Failed);
-    const QString expected = u"The AI service could not start: its Python environment \"%1\" was not found. Create it as docs/development.md describes and restart Mikser Studio."_s
-                                 .arg(QDir::toNativeSeparators(dir.filePath(u".venv"_s)));
+    const QString expected =
+        u"The AI service could not start: its Python environment \"%1\" was not found. Create it as docs/development.md describes and restart Mikser Studio."_s
+            .arg(QDir::toNativeSeparators(dir.filePath(u".venv"_s)));
     CHECK(sidecar.errorString() == expected);
     CHECK(log.errors == QStringList{expected});
 }
@@ -146,8 +147,9 @@ TEST_CASE("A sidecar that keeps exiting is restarted with backoff, then given up
     CHECK(log.states.count(SidecarState::Restarting) == 2);
     CHECK(log.states.count(SidecarState::Starting) == 3);
     REQUIRE(log.errors.size() == 3);
-    CHECK(log.errors[0] ==
-          u"The AI service exited before it was ready (exit code 3): fake sidecar: refusing to start. Restarting it (attempt 1 of 2)."_s);
+    CHECK(
+        log.errors[0] ==
+        u"The AI service exited before it was ready (exit code 3): fake sidecar: refusing to start. Restarting it (attempt 1 of 2)."_s);
     CHECK(sidecar.errorString().startsWith(
         u"The AI service exited before it was ready (exit code 3): fake sidecar: refusing to start. Mikser Studio gave up after 2 restarts"_s));
 
@@ -172,8 +174,8 @@ TEST_CASE("A sidecar that never gets ready times out", "[services][sidecar]")
 TEST_CASE("A crash after start-up is followed by a restart", "[services][sidecar]")
 {
     QTemporaryDir dir;
-    SidecarManager sidecar(fakeOptions(
-        dir, {u"--mode"_s, u"crash-after-ready"_s, u"--crash-times"_s, u"1"_s, u"--counter"_s, dir.filePath(u"count"_s)}));
+    SidecarManager sidecar(fakeOptions(dir, {u"--mode"_s, u"crash-after-ready"_s, u"--crash-times"_s, u"1"_s,
+                                             u"--counter"_s, dir.filePath(u"count"_s)}));
     StateLog log(sidecar);
     sidecar.start();
     REQUIRE(waitFor([&] { return log.states.count(SidecarState::Running) == 2; }));
@@ -182,8 +184,9 @@ TEST_CASE("A crash after start-up is followed by a restart", "[services][sidecar
     CHECK(log.states == QList{SidecarState::Starting, SidecarState::Running, SidecarState::Restarting,
                               SidecarState::Starting, SidecarState::Running});
     REQUIRE(log.errors.size() == 1);
-    CHECK(log.errors[0] ==
-          u"The AI service stopped unexpectedly (exit code 1): fake sidecar: crashing on purpose. Restarting it (attempt 1 of 2)."_s);
+    CHECK(
+        log.errors[0] ==
+        u"The AI service stopped unexpectedly (exit code 1): fake sidecar: crashing on purpose. Restarting it (attempt 1 of 2)."_s);
     CHECK(sidecar.errorString().isEmpty());  // Cleared once it runs again.
 }
 

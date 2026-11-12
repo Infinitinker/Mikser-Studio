@@ -44,7 +44,8 @@ PluginPanelHost::PluginPanelHost(core::CommandBus& bus, const core::PluginManage
 
     const QString path = QDir(pluginDirectory).filePath(panel.qml);
     if (!QFileInfo::exists(path)) {
-        showError(u"The panel file %1 of %2 is missing. Reinstall the plugin."_s.arg(QDir::toNativeSeparators(path), pluginId));
+        showError(u"The panel file %1 of %2 is missing. Reinstall the plugin."_s.arg(QDir::toNativeSeparators(path),
+                                                                                     pluginId));
         return;
     }
     connect(m_quick, &QQuickWidget::statusChanged, this, [this, pluginId](QQuickWidget::Status status) {

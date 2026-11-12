@@ -172,8 +172,9 @@ bool Shell::saveState()
     // QWidget keeps "maximized" while the window is minimized; the layout saves only "minimized".
     const QJsonObject state{{u"workspace"_s, m_dockHost->currentWorkspace()},
                             {u"maximized"_s, mainWindow()->isMaximized()}};
-    const bool ok = layout.open(QIODevice::WriteOnly) && layout.write(m_dockHost->saveLayout()) >= 0 && layout.commit()
-        && shell.open(QIODevice::WriteOnly) && shell.write(QJsonDocument(state).toJson()) >= 0 && shell.commit();
+    const bool ok = layout.open(QIODevice::WriteOnly) && layout.write(m_dockHost->saveLayout()) >= 0 &&
+                    layout.commit() && shell.open(QIODevice::WriteOnly) &&
+                    shell.write(QJsonDocument(state).toJson()) >= 0 && shell.commit();
     if (!ok)
         qCWarning(lcShell) << "Could not save the window layout to" << m_configDir;
     return ok;
@@ -277,7 +278,8 @@ void Shell::syncPluginPanels()
             const QString directory = state.manifest.directory;
             m_dockHost->registerPanel({id, panel.title, toDockArea(panel.defaultArea), true,
                                        [this, pluginId, directory, panel](QWidget* parent) {
-                                           return new PluginPanelHost(m_bus, m_plugins, pluginId, directory, panel, parent);
+                                           return new PluginPanelHost(m_bus, m_plugins, pluginId, directory, panel,
+                                                                      parent);
                                        }});
             m_pluginPanels.insert(id);
         }

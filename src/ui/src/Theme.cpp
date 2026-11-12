@@ -56,12 +56,12 @@ ThemeTokens makeDarkTheme()
     t.clipAudio = QColor(0x3a, 0x93, 0x70);
     t.clipImage = QColor(0x85, 0x62, 0xc2);
 
-    t.fontFamily = firstInstalled({u"Segoe UI Variable Text"_s, u"Segoe UI"_s, u"Inter"_s, u"Noto Sans"_s,
-                                   u"SF Pro Text"_s, u"Cantarell"_s},
-                                  QFontDatabase::GeneralFont);
-    t.monoFontFamily = firstInstalled({u"Cascadia Mono"_s, u"JetBrains Mono"_s, u"Consolas"_s,
-                                       u"DejaVu Sans Mono"_s, u"Menlo"_s},
-                                      QFontDatabase::FixedFont);
+    t.fontFamily = firstInstalled(
+        {u"Segoe UI Variable Text"_s, u"Segoe UI"_s, u"Inter"_s, u"Noto Sans"_s, u"SF Pro Text"_s, u"Cantarell"_s},
+        QFontDatabase::GeneralFont);
+    t.monoFontFamily = firstInstalled(
+        {u"Cascadia Mono"_s, u"JetBrains Mono"_s, u"Consolas"_s, u"DejaVu Sans Mono"_s, u"Menlo"_s},
+        QFontDatabase::FixedFont);
     return t;
 }
 

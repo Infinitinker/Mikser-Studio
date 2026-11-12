@@ -51,7 +51,8 @@ std::optional<CommandLine> parseCommandLine(const QCoreApplication& app)
     parser.addHelpOption();
     parser.addVersionOption();
     parser.addPositionalArgument(u"files"_s, u"Media files to import and place on the timeline."_s, u"[files...]"_s);
-    const QCommandLineOption headless(u"headless"_s, u"Run without a window; control Mikser Studio through the local API."_s);
+    const QCommandLineOption headless(u"headless"_s,
+                                      u"Run without a window; control Mikser Studio through the local API."_s);
     const QCommandLineOption noApi(u"no-api"_s, u"Do not start the local API."_s);
     const QCommandLineOption apiPort(u"api-port"_s, u"Port of the local API (default: any free port)."_s, u"port"_s);
     const QCommandLineOption play(u"play"_s, u"Start playing the timeline after start-up."_s);

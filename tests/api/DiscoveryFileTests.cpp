@@ -48,8 +48,8 @@ bool onlyCurrentUserHasAccess(const QString& path)
     std::wstring nativePath = path.toStdWString();
     PACL dacl = nullptr;
     PSECURITY_DESCRIPTOR descriptor = nullptr;
-    if (GetNamedSecurityInfoW(nativePath.data(), SE_FILE_OBJECT, DACL_SECURITY_INFORMATION, nullptr, nullptr,
-                              &dacl, nullptr, &descriptor) != ERROR_SUCCESS)
+    if (GetNamedSecurityInfoW(nativePath.data(), SE_FILE_OBJECT, DACL_SECURITY_INFORMATION, nullptr, nullptr, &dacl,
+                              nullptr, &descriptor) != ERROR_SUCCESS)
         return false;
     SECURITY_DESCRIPTOR_CONTROL control = 0;
     DWORD revision = 0;
@@ -57,8 +57,7 @@ bool onlyCurrentUserHasAccess(const QString& path)
     bool result = dacl != nullptr && (control & SE_DACL_PROTECTED) != 0 && dacl->AceCount == 1;
     if (result) {
         void* ace = nullptr;
-        result = GetAce(dacl, 0, &ace) != 0 &&
-                 static_cast<ACE_HEADER*>(ace)->AceType == ACCESS_ALLOWED_ACE_TYPE &&
+        result = GetAce(dacl, 0, &ace) != 0 && static_cast<ACE_HEADER*>(ace)->AceType == ACCESS_ALLOWED_ACE_TYPE &&
                  EqualSid(&static_cast<ACCESS_ALLOWED_ACE*>(ace)->SidStart, user->User.Sid) != 0;
     }
     LocalFree(descriptor);
@@ -85,8 +84,9 @@ TEST_CASE("The discovery file describes the running server and is removed on sto
     CHECK(QDir(fixture.dir.path()).entryList(QDir::Files | QDir::Hidden) == QStringList{u"api.json"_s});
 
     // A tool that reads only the discovery file can call the API.
-    const auto reply = mikserstudio::tests::sendRequest("GET", QUrl(discovery.value(u"baseUrl"_s).toString() + u"/v1/commands"_s),
-                                                 {}, "Bearer " + discovery.value(u"token"_s).toString().toUtf8());
+    const auto reply = mikserstudio::tests::sendRequest(
+        "GET", QUrl(discovery.value(u"baseUrl"_s).toString() + u"/v1/commands"_s), {},
+        "Bearer " + discovery.value(u"token"_s).toString().toUtf8());
     CHECK(reply.status == 200);
 
     SECTION("stop() removes it")

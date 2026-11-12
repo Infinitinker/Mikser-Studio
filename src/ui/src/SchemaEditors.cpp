@@ -95,9 +95,9 @@ public:
         qsizetype index = 0;
         for (qsizetype i = 0; i < m_values.size(); ++i) {
             const auto& candidate = m_values.at(i);
-            const bool same = candidate && value
-                && (*candidate == *value
-                    || (candidate->isDouble() && value->isDouble() && candidate->toDouble() == value->toDouble()));
+            const bool same = candidate && value &&
+                              (*candidate == *value || (candidate->isDouble() && value->isDouble() &&
+                                                        candidate->toDouble() == value->toDouble()));
             if (same || (!candidate && !value)) {
                 index = i;
                 break;
@@ -230,10 +230,7 @@ public:
             return std::nullopt;
         return QJsonValue(m_box->isChecked());
     }
-    void setValue(const std::optional<QJsonValue>& value) override
-    {
-        m_box->setChecked(value && value->toBool());
-    }
+    void setValue(const std::optional<QJsonValue>& value) override { m_box->setChecked(value && value->toBool()); }
 
 private:
     QCheckBox* m_box;

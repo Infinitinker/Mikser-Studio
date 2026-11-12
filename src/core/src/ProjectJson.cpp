@@ -169,23 +169,16 @@ QJsonObject mediaToJson(const MediaItem& item)
 QJsonObject trackToJson(const Track& track)
 {
     return QJsonObject{
-        {u"id"_s, track.id},
-        {u"kind"_s, toString(track.kind)},
-        {u"name"_s, track.name},
-        {u"muted"_s, track.muted},
-        {u"hidden"_s, track.hidden},
+        {u"id"_s, track.id},       {u"kind"_s, toString(track.kind)}, {u"name"_s, track.name},
+        {u"muted"_s, track.muted}, {u"hidden"_s, track.hidden},
     };
 }
 
 QJsonObject clipToJson(const Clip& clip)
 {
     return QJsonObject{
-        {u"id"_s, clip.id},
-        {u"mediaId"_s, clip.mediaId},
-        {u"trackId"_s, clip.trackId},
-        {u"position"_s, clip.position},
-        {u"in"_s, clip.in},
-        {u"out"_s, clip.out},
+        {u"id"_s, clip.id}, {u"mediaId"_s, clip.mediaId}, {u"trackId"_s, clip.trackId}, {u"position"_s, clip.position},
+        {u"in"_s, clip.in}, {u"out"_s, clip.out},
     };
 }
 

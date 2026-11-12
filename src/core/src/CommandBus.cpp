@@ -19,8 +19,8 @@ CommandResult runHandler(const CommandHandler& handler, const QString& id, const
         return handler(params);
     } catch (const std::exception& exception) {
         return commandFailure(CommandErrorCode::Failed,
-                              u"Command \"%1\" stopped with an internal error: %2. Please report this problem."_s
-                                  .arg(id, QString::fromLocal8Bit(exception.what())));
+                              u"Command \"%1\" stopped with an internal error: %2. Please report this problem."_s.arg(
+                                  id, QString::fromLocal8Bit(exception.what())));
     }
 }
 
@@ -28,9 +28,10 @@ CommandHandler undoRedoHandler(UndoStack& stack, bool undo)
 {
     return [&stack, undo](const QJsonObject&) -> CommandResult {
         if (stack.isGrouping()) {
-            return commandFailure(CommandErrorCode::NotAvailable,
-                                  u"%1 is not available while a combined change is being recorded. Wait until the running command has finished."_s
-                                      .arg(undo ? u"Undo"_s : u"Redo"_s));
+            return commandFailure(
+                CommandErrorCode::NotAvailable,
+                u"%1 is not available while a combined change is being recorded. Wait until the running command has finished."_s
+                    .arg(undo ? u"Undo"_s : u"Redo"_s));
         }
         const QString text = undo ? stack.undoText() : stack.redoText();
         const bool done = undo ? stack.undo() : stack.redo();
@@ -49,26 +50,28 @@ CommandBus::CommandBus(UndoStack& undoStack, QObject* parent)
     , m_undoStack(undoStack)
 {
     qRegisterMetaType<CommandError>();
-    registerCommand(CommandSpec{
-                        .id = u"edit.undo"_s,
-                        .title = u"Undo"_s,
-                        .description = u"Reverts the last change."_s,
-                        .category = u"Edit"_s,
-                        .paramsSchema = {},
-                        .shortcut = u"Ctrl+Z"_s,
-                        .undoable = false,
-                    },
-                    undoRedoHandler(m_undoStack, true));
-    registerCommand(CommandSpec{
-                        .id = u"edit.redo"_s,
-                        .title = u"Redo"_s,
-                        .description = u"Applies the last undone change again."_s,
-                        .category = u"Edit"_s,
-                        .paramsSchema = {},
-                        .shortcut = u"Ctrl+Shift+Z"_s,
-                        .undoable = false,
-                    },
-                    undoRedoHandler(m_undoStack, false));
+    registerCommand(
+        CommandSpec{
+            .id = u"edit.undo"_s,
+            .title = u"Undo"_s,
+            .description = u"Reverts the last change."_s,
+            .category = u"Edit"_s,
+            .paramsSchema = {},
+            .shortcut = u"Ctrl+Z"_s,
+            .undoable = false,
+        },
+        undoRedoHandler(m_undoStack, true));
+    registerCommand(
+        CommandSpec{
+            .id = u"edit.redo"_s,
+            .title = u"Redo"_s,
+            .description = u"Applies the last undone change again."_s,
+            .category = u"Edit"_s,
+            .paramsSchema = {},
+            .shortcut = u"Ctrl+Shift+Z"_s,
+            .undoable = false,
+        },
+        undoRedoHandler(m_undoStack, false));
 }
 
 CommandBus::~CommandBus() = default;
@@ -133,9 +136,10 @@ std::expected<QJsonObject, CommandError> CommandBus::execute(const QString& id, 
 
     const auto it = m_commands.find(id);
     if (it == m_commands.end()) {
-        return fail({CommandErrorCode::UnknownCommand,
-                     u"Unknown command \"%1\". Open the command palette or call GET /v1/commands to see the available commands."_s
-                         .arg(id)});
+        return fail(
+            {CommandErrorCode::UnknownCommand,
+             u"Unknown command \"%1\". Open the command palette or call GET /v1/commands to see the available commands."_s
+                 .arg(id)});
     }
     // Copies, because a handler may unregister commands (e.g. a plugin deactivating itself).
     const bool undoable = it->second.spec.undoable;
@@ -144,8 +148,8 @@ std::expected<QJsonObject, CommandError> CommandBus::execute(const QString& id, 
 
     if (const QStringList problems = JsonSchema::validate(effective, it->second.spec.paramsSchema);
         !problems.isEmpty()) {
-        return fail({CommandErrorCode::InvalidParams,
-                     u"Invalid parameters for \"%1\": %2"_s.arg(id, problems.join(u"; "_s))});
+        return fail(
+            {CommandErrorCode::InvalidParams, u"Invalid parameters for \"%1\": %2"_s.arg(id, problems.join(u"; "_s))});
     }
 
     CommandResult outcome = runHandler(handler, id, effective);

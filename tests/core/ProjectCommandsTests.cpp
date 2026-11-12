@@ -31,13 +31,27 @@ public:
             return std::unexpected(u"unsupported codec"_s);
         const auto frames = [rate](double seconds) { return static_cast<FramePos>(seconds * rate.toDouble()); };
         if (file.suffix() == u"wav")
-            return MediaInfo{.kind = MediaKind::Audio, .durationFrames = frames(4), .frameRate = {0, 0}, .hasAudio = true,
-                             .audioSampleRate = 44100, .audioChannels = 2};
+            return MediaInfo{.kind = MediaKind::Audio,
+                             .durationFrames = frames(4),
+                             .frameRate = {0, 0},
+                             .hasAudio = true,
+                             .audioSampleRate = 44100,
+                             .audioChannels = 2};
         if (file.suffix() == u"png")
-            return MediaInfo{.kind = MediaKind::Image, .durationFrames = 1, .width = 640, .height = 480, .frameRate = {0, 0},
+            return MediaInfo{.kind = MediaKind::Image,
+                             .durationFrames = 1,
+                             .width = 640,
+                             .height = 480,
+                             .frameRate = {0, 0},
                              .hasVideo = true};
-        return MediaInfo{.kind = MediaKind::Video, .durationFrames = frames(10), .width = 1920, .height = 1080,
-                         .frameRate = {30, 1}, .hasVideo = true, .hasAudio = true, .audioSampleRate = 44100,
+        return MediaInfo{.kind = MediaKind::Video,
+                         .durationFrames = frames(10),
+                         .width = 1920,
+                         .height = 1080,
+                         .frameRate = {30, 1},
+                         .hasVideo = true,
+                         .hasAudio = true,
+                         .audioSampleRate = 44100,
                          .audioChannels = 2};
     }
 
@@ -150,7 +164,8 @@ TEST_CASE("project.import_media reports missing and unreadable files", "[project
 
 #ifdef Q_OS_WIN
     // Network shares are refused before the file is touched (project files cannot hold them).
-    const auto share = f.bus.execute(u"project.import_media"_s, QJsonObject{{u"path"_s, u"//server.invalid/share/clip.mp4"_s}});
+    const auto share = f.bus.execute(u"project.import_media"_s,
+                                     QJsonObject{{u"path"_s, u"//server.invalid/share/clip.mp4"_s}});
     REQUIRE_FALSE(share);
     CHECK(share.error().message.contains(u"network share"_s));
     CHECK_FALSE(f.probe.probedPaths.contains(u"//server.invalid/share/clip.mp4"_s));
@@ -231,8 +246,8 @@ TEST_CASE("timeline.add_clip defaults in/out to the whole media", "[project][com
                                        QJsonObject{{u"mediaId"_s, video}, {u"trackId"_s, u"V1"_s}, {u"position"_s, 0}});
     REQUIRE_FALSE(overlap);
     CHECK(overlap.error().code == CommandErrorCode::Failed);
-    const auto badParams = f.bus.execute(u"timeline.add_clip"_s,
-                                         QJsonObject{{u"mediaId"_s, video}, {u"trackId"_s, u"V1"_s}, {u"position"_s, -3}});
+    const auto badParams = f.bus.execute(
+        u"timeline.add_clip"_s, QJsonObject{{u"mediaId"_s, video}, {u"trackId"_s, u"V1"_s}, {u"position"_s, -3}});
     REQUIRE_FALSE(badParams);
     CHECK(badParams.error().code == CommandErrorCode::InvalidParams);
     const auto unknownMedia = f.bus.execute(
@@ -250,8 +265,8 @@ TEST_CASE("timeline.remove_clip undo restores the exact clip", "[project][comman
 {
     Fixture f;
     const QString video = f.import(u"clip.mp4"_s);
-    const QString id = f.addClip(QJsonObject{{u"mediaId"_s, video}, {u"trackId"_s, u"V2"_s}, {u"position"_s, 12},
-                                             {u"in"_s, 7}, {u"out"_s, 99}});
+    const QString id = f.addClip(
+        QJsonObject{{u"mediaId"_s, video}, {u"trackId"_s, u"V2"_s}, {u"position"_s, 12}, {u"in"_s, 7}, {u"out"_s, 99}});
     const Clip original = *f.project.findClip(id);
 
     REQUIRE(f.bus.execute(u"timeline.remove_clip"_s, QJsonObject{{u"clipId"_s, id}}));
@@ -275,11 +290,12 @@ TEST_CASE("timeline.move_clip and timeline.trim_clip are undoable", "[project][c
 {
     Fixture f;
     const QString video = f.import(u"clip.mp4"_s);
-    const QString id = f.addClip(QJsonObject{{u"mediaId"_s, video}, {u"trackId"_s, u"V1"_s}, {u"position"_s, 0},
-                                             {u"out"_s, 100}});
+    const QString id = f.addClip(
+        QJsonObject{{u"mediaId"_s, video}, {u"trackId"_s, u"V1"_s}, {u"position"_s, 0}, {u"out"_s, 100}});
     f.addClip(QJsonObject{{u"mediaId"_s, video}, {u"trackId"_s, u"V1"_s}, {u"position"_s, 400}});
 
-    REQUIRE(f.bus.execute(u"timeline.move_clip"_s, QJsonObject{{u"clipId"_s, id}, {u"trackId"_s, u"V2"_s}, {u"position"_s, 40}}));
+    REQUIRE(f.bus.execute(u"timeline.move_clip"_s,
+                          QJsonObject{{u"clipId"_s, id}, {u"trackId"_s, u"V2"_s}, {u"position"_s, 40}}));
     CHECK(f.project.findClip(id)->trackId == u"V2"_s);
     CHECK(f.project.findClip(id)->position == 40);
     CHECK(f.stack.undoText() == u"Move Clip"_s);
@@ -306,7 +322,8 @@ TEST_CASE("timeline.move_clip and timeline.trim_clip are undoable", "[project][c
     f.redo();
     CHECK(f.project.findClip(id)->out == 80);
 
-    const auto tooLong = f.bus.execute(u"timeline.trim_clip"_s, QJsonObject{{u"clipId"_s, id}, {u"in"_s, 0}, {u"out"_s, 301}});
+    const auto tooLong = f.bus.execute(u"timeline.trim_clip"_s,
+                                       QJsonObject{{u"clipId"_s, id}, {u"in"_s, 0}, {u"out"_s, 301}});
     REQUIRE_FALSE(tooLong);
     const auto missing = f.bus.execute(u"timeline.trim_clip"_s, QJsonObject{{u"clipId"_s, id}, {u"in"_s, 0}});
     REQUIRE_FALSE(missing);
@@ -321,7 +338,8 @@ TEST_CASE("A whole editing session undoes back to an empty project", "[project][
     const QString audio = f.import(u"song.wav"_s);
     const QString clip = f.addClip(QJsonObject{{u"mediaId"_s, video}, {u"trackId"_s, u"V1"_s}, {u"position"_s, 0}});
     f.addClip(QJsonObject{{u"mediaId"_s, audio}, {u"trackId"_s, u"A1"_s}, {u"position"_s, 0}});
-    REQUIRE(f.bus.execute(u"timeline.move_clip"_s, QJsonObject{{u"clipId"_s, clip}, {u"trackId"_s, u"V1"_s}, {u"position"_s, 10}}));
+    REQUIRE(f.bus.execute(u"timeline.move_clip"_s,
+                          QJsonObject{{u"clipId"_s, clip}, {u"trackId"_s, u"V1"_s}, {u"position"_s, 10}}));
     REQUIRE(f.bus.execute(u"timeline.trim_clip"_s, QJsonObject{{u"clipId"_s, clip}, {u"in"_s, 1}, {u"out"_s, 2}}));
     REQUIRE(f.bus.execute(u"timeline.remove_clip"_s, QJsonObject{{u"clipId"_s, clip}}));
     const QJsonObject edited = f.project.toJson();

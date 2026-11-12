@@ -254,8 +254,7 @@ void MltPlayer::load(std::unique_ptr<Mlt::Producer> producer, core::FramePos dur
 {
     if (!d->output) {
         d->output = std::make_unique<OutputConsumer>(
-            *d->profile, d->frameRate, OutputConsumer::candidatesFor(d->audio, d->runtime),
-            [this](mlt_frame frame) {
+            *d->profile, d->frameRate, OutputConsumer::candidatesFor(d->audio, d->runtime), [this](mlt_frame frame) {
                 const core::FramePos shown = mlt_frame_get_position(frame);
                 if (!d->accept(shown))
                     return;

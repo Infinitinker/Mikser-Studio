@@ -29,8 +29,8 @@ void writeWav(const QString& path, int sampleRate, int channels, int seconds)
     out.writeRawData("RIFF", 4);
     out << quint32(36 + dataBytes);
     out.writeRawData("WAVEfmt ", 8);
-    out << quint32(16) << quint16(1) << static_cast<quint16>(channels) << static_cast<quint32>(sampleRate)
-        << byteRate << blockAlign << quint16(16);
+    out << quint32(16) << quint16(1) << static_cast<quint16>(channels) << static_cast<quint32>(sampleRate) << byteRate
+        << blockAlign << quint16(16);
     out.writeRawData("data", 4);
     out << dataBytes;
     const QByteArray silence(static_cast<qsizetype>(dataBytes), '\0');

@@ -40,8 +40,8 @@ bool saveWindowScreenshot(QWidget* window, const QString& path)
         return false;
     const QRect frame = window->frameGeometry();
     const QPoint origin = screen->geometry().topLeft();
-    const QPixmap pixels =
-        screen->grabWindow(0, frame.x() - origin.x(), frame.y() - origin.y(), frame.width(), frame.height());
+    const QPixmap pixels = screen->grabWindow(0, frame.x() - origin.x(), frame.y() - origin.y(), frame.width(),
+                                              frame.height());
     return pixels.save(path);
 }
 
@@ -109,9 +109,9 @@ void DesktopApp::importStartupFiles()
         }
         const QString mediaId = imported->value(u"mediaId"_s).toString();
         const qint64 end = m_studio.project().duration();
-        const auto placed = bus.execute(u"timeline.add_clip"_s, QJsonObject{{u"mediaId"_s, mediaId},
-                                                                            {u"trackId"_s, u"V1"_s},
-                                                                            {u"position"_s, end}});
+        const auto placed = bus.execute(
+            u"timeline.add_clip"_s,
+            QJsonObject{{u"mediaId"_s, mediaId}, {u"trackId"_s, u"V1"_s}, {u"position"_s, end}});
         if (!placed)
             qCWarning(lcApp) << "Could not place" << path << "on the timeline:" << placed.error().message;
         if (first && bus.contains(u"source.open_media"_s)) {

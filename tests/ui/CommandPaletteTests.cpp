@@ -64,9 +64,8 @@ TEST_CASE("CommandPaletteModel lists everything by category and title for an emp
 {
     CommandPaletteModel model;
     model.setSpecs(sampleSpecs());
-    CHECK(model.ids()
-          == QStringList{u"ai.upscale_clip"_s, u"edit.undo"_s, u"project.import_media"_s, u"timeline.add_clip"_s,
-                         u"timeline.remove_clip"_s});
+    CHECK(model.ids() == QStringList{u"ai.upscale_clip"_s, u"edit.undo"_s, u"project.import_media"_s,
+                                     u"timeline.add_clip"_s, u"timeline.remove_clip"_s});
     const QModelIndex first = model.index(0);
     CHECK(model.data(first, Qt::DisplayRole) == u"Upscale Clip"_s);
     CHECK(model.data(first, CommandPaletteModel::CategoryRole) == u"AI"_s);

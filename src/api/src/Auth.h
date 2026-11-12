@@ -18,8 +18,8 @@ namespace mikserstudio::api {
 [[nodiscard]] bool constantTimeEquals(QByteArrayView given, QByteArrayView expected);
 
 enum class TokenSource {
-    HeaderOnly,       // "Authorization: Bearer <token>".
-    HeaderOrQuery,    // Also "?token=<token>" (browsers cannot set headers on WebSockets).
+    HeaderOnly,  // "Authorization: Bearer <token>".
+    HeaderOrQuery,  // Also "?token=<token>" (browsers cannot set headers on WebSockets).
 };
 
 [[nodiscard]] bool isAuthorized(const QHttpServerRequest& request, const QByteArray& token, TokenSource source);

@@ -130,20 +130,10 @@ QVariant TimelineModel::data(const QModelIndex& index, int role) const
 QHash<int, QByteArray> TimelineModel::roleNames() const
 {
     return {
-        {ClipIdRole, "clipId"},
-        {MediaIdRole, "mediaId"},
-        {NameRole, "name"},
-        {TrackIdRole, "trackId"},
-        {TrackRowRole, "trackRow"},
-        {PositionRole, "position"},
-        {LengthRole, "length"},
-        {InRole, "inPoint"},
-        {OutRole, "outPoint"},
-        {KindRole, "kind"},
-        {ColorRole, "clipColor"},
-        {SelectedRole, "selected"},
-        {GeneratedRole, "generated"},
-        {TrackOffRole, "trackOff"},
+        {ClipIdRole, "clipId"},       {MediaIdRole, "mediaId"},   {NameRole, "name"},       {TrackIdRole, "trackId"},
+        {TrackRowRole, "trackRow"},   {PositionRole, "position"}, {LengthRole, "length"},   {InRole, "inPoint"},
+        {OutRole, "outPoint"},        {KindRole, "kind"},         {ColorRole, "clipColor"}, {SelectedRole, "selected"},
+        {GeneratedRole, "generated"}, {TrackOffRole, "trackOff"},
     };
 }
 

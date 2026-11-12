@@ -56,15 +56,21 @@ struct MenuFixture {
 
     MenuFixture()
     {
-        REQUIRE(registerTestCommand(bus, {.id = u"timeline.split"_s, .title = u"Split Clip"_s,
-                                          .category = u"Timeline"_s, .shortcut = u"S"_s,
-                                          .editText = u"Split Clip"_s},
+        REQUIRE(registerTestCommand(bus,
+                                    {.id = u"timeline.split"_s,
+                                     .title = u"Split Clip"_s,
+                                     .category = u"Timeline"_s,
+                                     .shortcut = u"S"_s,
+                                     .editText = u"Split Clip"_s},
                                     &runs));
-        REQUIRE(registerTestCommand(bus, {.id = u"project.rename"_s, .title = u"Rename Project"_s,
-                                          .category = u"Project"_s, .paramsSchema = requiredNameSchema()}));
+        REQUIRE(registerTestCommand(bus, {.id = u"project.rename"_s,
+                                          .title = u"Rename Project"_s,
+                                          .category = u"Project"_s,
+                                          .paramsSchema = requiredNameSchema()}));
         REQUIRE(registerTestCommand(bus, {.id = u"ai.caption"_s, .title = u"Caption Clip"_s, .category = u"AI"_s}));
-        REQUIRE(registerTestCommand(bus, {.id = u"file.new_project"_s, .title = u"New Project"_s,
-                                          .category = u"File"_s, .shortcut = u"Ctrl+N"_s}));
+        REQUIRE(registerTestCommand(
+            bus,
+            {.id = u"file.new_project"_s, .title = u"New Project"_s, .category = u"File"_s, .shortcut = u"Ctrl+N"_s}));
     }
 };
 
@@ -128,13 +134,13 @@ TEST_CASE("CommandMenus follows commands registered and unregistered later", "[m
     menus.setInsertBefore(workspace->menuAction());
     CHECK(menuBarTitles(f.menuBar).last() == u"Workspace"_s);
 
-    REQUIRE(registerTestCommand(f.bus, {.id = u"color.auto_balance"_s, .title = u"Auto Balance"_s,
-                                        .category = u"Color"_s}));
-    REQUIRE(registerTestCommand(f.bus, {.id = u"timeline.join"_s, .title = u"Join Clips"_s,
-                                        .category = u"Timeline"_s}));
+    REQUIRE(registerTestCommand(f.bus,
+                                {.id = u"color.auto_balance"_s, .title = u"Auto Balance"_s, .category = u"Color"_s}));
+    REQUIRE(
+        registerTestCommand(f.bus, {.id = u"timeline.join"_s, .title = u"Join Clips"_s, .category = u"Timeline"_s}));
     CHECK(menus.categories() == QStringList{u"File"_s, u"Project"_s, u"Edit"_s, u"Timeline"_s, u"AI"_s, u"Color"_s});
-    CHECK(menuBarTitles(f.menuBar)
-          == QStringList{u"File"_s, u"Project"_s, u"Edit"_s, u"Timeline"_s, u"AI"_s, u"Color"_s, u"Workspace"_s});
+    CHECK(menuBarTitles(f.menuBar) ==
+          QStringList{u"File"_s, u"Project"_s, u"Edit"_s, u"Timeline"_s, u"AI"_s, u"Color"_s, u"Workspace"_s});
     // Sorted by title inside the menu.
     CHECK(actionTexts(menus.menu(u"Timeline"_s)) == QStringList{u"Join Clips"_s, u"Split Clip"_s});
 
@@ -167,7 +173,8 @@ TEST_CASE("Shell generates menus from the bus and lists panels in the Window men
     CHECK(bar.indexOf(shell.workspaceMenu()->menuAction()->text()) > 1);
     CHECK(bar.indexOf(shell.windowMenu()->menuAction()->text()) > 1);
 
-    REQUIRE(registerTestCommand(bus, {.id = u"render.preview"_s, .title = u"Render Preview"_s, .category = u"Render"_s}));
+    REQUIRE(
+        registerTestCommand(bus, {.id = u"render.preview"_s, .title = u"Render Preview"_s, .category = u"Render"_s}));
     CHECK(shell.commandMenuCategories().contains(u"Render"_s));
     CHECK(shell.commandMenu(u"Render"_s)->actions().contains(shell.commandAction(u"render.preview"_s)));
     bus.unregisterCommand(u"render.preview"_s);

@@ -26,7 +26,7 @@ namespace {
 
 const auto kSeekCommand = u"program.seek"_s;
 constexpr double kMinRulerSpacing = 90.0;  // Pixels between labelled ruler ticks.
-constexpr qint64 kTailSeconds = 10;         // Room to scroll past the last clip.
+constexpr qint64 kTailSeconds = 10;  // Room to scroll past the last clip.
 
 }  // namespace
 
@@ -290,15 +290,16 @@ bool TimelineController::moveClip(const QString& clipId, const QString& trackId,
         return false;
     if (clip->trackId == trackId && clip->position == position)
         return true;
-    return run(u"timeline.move_clip"_s,
-               QJsonObject{{u"clipId"_s, clipId}, {u"trackId"_s, trackId}, {u"position"_s, std::max<qint64>(0, position)}});
+    return run(
+        u"timeline.move_clip"_s,
+        QJsonObject{{u"clipId"_s, clipId}, {u"trackId"_s, trackId}, {u"position"_s, std::max<qint64>(0, position)}});
 }
 
 bool TimelineController::addClip(const QString& mediaId, const QString& trackId, qint64 position)
 {
-    const auto result = runForResult(u"timeline.add_clip"_s, QJsonObject{{u"mediaId"_s, mediaId},
-                                                                         {u"trackId"_s, trackId},
-                                                                         {u"position"_s, std::max<qint64>(0, position)}});
+    const auto result = runForResult(
+        u"timeline.add_clip"_s,
+        QJsonObject{{u"mediaId"_s, mediaId}, {u"trackId"_s, trackId}, {u"position"_s, std::max<qint64>(0, position)}});
     if (!result)
         return false;
     m_selection.select(result->value(u"clipId").toString());
@@ -433,7 +434,8 @@ void TimelineController::setPixelsPerFrame(double value)
 double TimelineController::maxScrollX() const
 {
     const qint64 fps = std::max<qint64>(1, std::llround(frameRate()));
-    const double content = static_cast<double>(std::max(duration(), m_playhead) + kTailSeconds * fps) * m_pixelsPerFrame;
+    const double content = static_cast<double>(std::max(duration(), m_playhead) + kTailSeconds * fps) *
+                           m_pixelsPerFrame;
     return std::max(0.0, content - m_viewportWidth);
 }
 

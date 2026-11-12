@@ -17,8 +17,8 @@ public:
         : m_text(std::move(text))
     {
     }
-    void undo() override {}
-    void redo() override {}
+    void undo() override { }
+    void redo() override { }
     [[nodiscard]] QString text() const override { return m_text; }
 
 private:

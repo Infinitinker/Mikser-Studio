@@ -178,8 +178,7 @@ struct SchemaForm::Impl {
         return object;
     }
 
-    template<typename Visitor>
-    static void visit(std::vector<Node>& level, const Visitor& visitor)
+    template <typename Visitor> static void visit(std::vector<Node>& level, const Visitor& visitor)
     {
         for (Node& node : level) {
             visitor(node);
@@ -187,8 +186,7 @@ struct SchemaForm::Impl {
         }
     }
 
-    template<typename Visitor>
-    static void visit(const std::vector<Node>& level, const Visitor& visitor)
+    template <typename Visitor> static void visit(const std::vector<Node>& level, const Visitor& visitor)
     {
         for (const Node& node : level) {
             visitor(node);

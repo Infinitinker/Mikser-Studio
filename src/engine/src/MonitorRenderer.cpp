@@ -19,10 +19,7 @@ namespace {
 
 // Triangle strip covering clip space: x, y, u, v. Texture row 0 is the top of the image.
 constexpr std::array<float, 16> kQuad = {
-    -1.0f, -1.0f, 0.0f, 1.0f,
-    1.0f, -1.0f, 1.0f, 1.0f,
-    -1.0f, 1.0f, 0.0f, 0.0f,
-    1.0f, 1.0f, 1.0f, 0.0f,
+    -1.0f, -1.0f, 0.0f, 1.0f, 1.0f, -1.0f, 1.0f, 1.0f, -1.0f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 0.0f,
 };
 constexpr quint32 kVertexStride = 4 * sizeof(float);
 constexpr quint32 kTransformSize = 16 * sizeof(float);
@@ -256,7 +253,8 @@ std::expected<QImage, QString> MonitorRenderer::toImage(const QRhiReadbackResult
     const QSize size = result.pixelSize;
     const qsizetype stride = static_cast<qsizetype>(size.width()) * 4;
     if (format == QImage::Format_Invalid || size.isEmpty() || result.data.size() < stride * size.height())
-        return std::unexpected(u"The %1 monitor returned pixels in a format Mikser Studio cannot read back."_s.arg(backendName()));
+        return std::unexpected(
+            u"The %1 monitor returned pixels in a format Mikser Studio cannot read back."_s.arg(backendName()));
 
     // The view borrows the readback buffer; copy before it goes away.
     const QImage view(reinterpret_cast<const uchar*>(result.data.constData()), size.width(), size.height(), stride,

@@ -46,12 +46,11 @@ class MediaProbe {
 public:
     virtual ~MediaProbe() = default;
     // `projectFrameRate` is the rate durationFrames must be expressed in.
-    [[nodiscard]] virtual std::expected<MediaInfo, QString> probe(const QString& path,
-                                                                  Rational projectFrameRate) = 0;
+    [[nodiscard]] virtual std::expected<MediaInfo, QString> probe(const QString& path, Rational projectFrameRate) = 0;
 };
 
 struct MediaItem {
-    QString id;    // Stable unique id ("media-<uuid>").
+    QString id;  // Stable unique id ("media-<uuid>").
     QString path;  // Absolute path, '/' separators (see isAllowedMediaPath()).
     QString name;  // Display name, defaults to the file name.
     MediaInfo info;
@@ -70,12 +69,12 @@ struct Track {
 };
 
 struct Clip {
-    QString id;       // "clip-<uuid>".
+    QString id;  // "clip-<uuid>".
     QString mediaId;
     QString trackId;
     FramePos position = 0;  // Timeline frame where the clip starts.
-    FramePos in = 0;        // First source frame used (inclusive).
-    FramePos out = 0;       // Source frame after the last one used (exclusive).
+    FramePos in = 0;  // First source frame used (inclusive).
+    FramePos out = 0;  // Source frame after the last one used (exclusive).
     [[nodiscard]] FramePos length() const { return out - in; }
     [[nodiscard]] FramePos end() const { return position + length(); }
 };

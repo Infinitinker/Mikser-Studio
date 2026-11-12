@@ -64,7 +64,7 @@ private:
 
     const core::ProjectModel& m_project;
     const ClipSelection& m_selection;
-    QStringList m_clipIds;     // Row order.
+    QStringList m_clipIds;  // Row order.
     QStringList m_trackOrder;  // Top to bottom.
 };
 

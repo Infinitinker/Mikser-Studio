@@ -57,7 +57,8 @@ QJsonObject settings(const MikserStudioHostApiV1* host)
     return QJsonDocument::fromJson(json).object();
 }
 
-int echo(void* userData, const char* params, size_t length, const MikserStudioStringSink* result, const MikserStudioStringSink*)
+int echo(void* userData, const char* params, size_t length, const MikserStudioStringSink* result,
+         const MikserStudioStringSink*)
 {
     const auto* state = static_cast<const State*>(userData);
     const QJsonObject reply{
@@ -68,7 +69,8 @@ int echo(void* userData, const char* params, size_t length, const MikserStudioSt
     return 0;
 }
 
-int run(void* userData, const char* params, size_t length, const MikserStudioStringSink* result, const MikserStudioStringSink* error)
+int run(void* userData, const char* params, size_t length, const MikserStudioStringSink* result,
+        const MikserStudioStringSink* error)
 {
     const auto* state = static_cast<const State*>(userData);
     const QJsonObject input = parse(params, length);
@@ -81,7 +83,8 @@ int run(void* userData, const char* params, size_t length, const MikserStudioStr
 int lastError(void* userData, const char*, size_t, const MikserStudioStringSink* result, const MikserStudioStringSink*)
 {
     const auto* state = static_cast<const State*>(userData);
-    write(result, QJsonDocument(QJsonObject{{u"error"_s, QString::fromUtf8(state->lastError)}}).toJson(QJsonDocument::Compact));
+    write(result,
+          QJsonDocument(QJsonObject{{u"error"_s, QString::fromUtf8(state->lastError)}}).toJson(QJsonDocument::Compact));
     return 0;
 }
 
@@ -164,7 +167,8 @@ void deactivate(void* pluginState)
     delete state;
 }
 
-constexpr MikserStudioPluginV1 kPlugin{sizeof(MikserStudioPluginV1), MIKSERSTUDIO_PLUGIN_API_VERSION, &activate, &deactivate};
+constexpr MikserStudioPluginV1 kPlugin{sizeof(MikserStudioPluginV1), MIKSERSTUDIO_PLUGIN_API_VERSION, &activate,
+                                       &deactivate};
 
 }  // namespace
 

@@ -66,11 +66,10 @@ TEST_CASE("The events socket pushes command.executed and undo.changed", "[api][e
     REQUIRE(client.waitForEvent(u"command.executed"_s));
     REQUIRE(client.waitForEvent(u"undo.changed"_s));
 
-    CHECK(client.find(u"command.executed"_s) ==
-          QJsonObject{{u"type"_s, u"command.executed"_s},
-                      {u"id"_s, u"test.increment"_s},
-                      {u"params"_s, QJsonObject{{u"by"_s, 2}}},
-                      {u"result"_s, QJsonObject{{u"value"_s, 2}}}});
+    CHECK(client.find(u"command.executed"_s) == QJsonObject{{u"type"_s, u"command.executed"_s},
+                                                            {u"id"_s, u"test.increment"_s},
+                                                            {u"params"_s, QJsonObject{{u"by"_s, 2}}},
+                                                            {u"result"_s, QJsonObject{{u"value"_s, 2}}}});
     CHECK(client.find(u"undo.changed"_s) == QJsonObject{{u"type"_s, u"undo.changed"_s},
                                                         {u"canUndo"_s, true},
                                                         {u"canRedo"_s, false},
@@ -90,8 +89,7 @@ TEST_CASE("The events socket pushes command.executed and undo.changed", "[api][e
     CHECK(client.find(u"command.executed"_s).value(u"id"_s).toString() == u"edit.undo"_s);
 }
 
-TEST_CASE("The events socket pushes failures and registry changes, also for commands run in-process",
-          "[api][events]")
+TEST_CASE("The events socket pushes failures and registry changes, also for commands run in-process", "[api][events]")
 {
     ApiFixture fixture;
     EventClient client;
@@ -112,8 +110,9 @@ TEST_CASE("The events socket pushes failures and registry changes, also for comm
     mikserstudio::core::CommandSpec late;
     late.id = u"test.late"_s;
     late.title = u"Late"_s;
-    REQUIRE(fixture.bus.registerCommand(
-        late, [](const QJsonObject&) -> mikserstudio::core::CommandResult { return mikserstudio::core::CommandOutcome{}; }));
+    REQUIRE(fixture.bus.registerCommand(late, [](const QJsonObject&) -> mikserstudio::core::CommandResult {
+        return mikserstudio::core::CommandOutcome{};
+    }));
     REQUIRE(client.waitForEvent(u"command.registered"_s));
     CHECK(client.find(u"command.registered"_s).value(u"id"_s).toString() == u"test.late"_s);
 

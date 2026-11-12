@@ -58,8 +58,8 @@ TEST_CASE("JsonSchema checks enum and const", "[schema]")
 {
     CHECK(check(u"left"_s, R"({"enum": ["left", "right", 3]})").isEmpty());
     CHECK(check(3.0, R"({"enum": ["left", "right", 3]})").isEmpty());
-    CHECK(check(u"up"_s, R"({"enum": ["left", "right", 3]})")
-          == QStringList{u"(root): must be one of: \"left\", \"right\", 3"_s});
+    CHECK(check(u"up"_s, R"({"enum": ["left", "right", 3]})") ==
+          QStringList{u"(root): must be one of: \"left\", \"right\", 3"_s});
     CHECK(check(json(R"({"a": [1, {"b": 2}]})"), R"({"enum": [{"a": [1, {"b": 2}]}]})").isEmpty());
     CHECK_FALSE(check(json(R"({"a": [1, {"b": 3}]})"), R"({"enum": [{"a": [1, {"b": 2}]}]})").isEmpty());
 
@@ -93,8 +93,8 @@ TEST_CASE("JsonSchema checks string length in code points and patterns", "[schem
 
     CHECK(check(u"clip-12"_s, R"({"pattern": "^clip-[0-9]+$"})").isEmpty());
     CHECK(check(u"xx clip-12"_s, R"({"pattern": "clip-[0-9]+"})").isEmpty());
-    CHECK(check(u"media-1"_s, R"({"pattern": "^clip-[0-9]+$"})")
-          == QStringList{u"(root): must match the pattern ^clip-[0-9]+$"_s});
+    CHECK(check(u"media-1"_s, R"({"pattern": "^clip-[0-9]+$"})") ==
+          QStringList{u"(root): must match the pattern ^clip-[0-9]+$"_s});
     const QStringList broken = check(u"x"_s, R"({"pattern": "("})");
     REQUIRE(broken.size() == 1);
     CHECK(broken[0].contains(u"not a valid regular expression"_s));
@@ -116,10 +116,10 @@ TEST_CASE("JsonSchema checks object properties, required and additionalPropertie
     CHECK(extra[0].startsWith(u"/color: is not allowed"_s));
     CHECK(extra[0].contains(u"name, size"_s));
 
-    CHECK(check(json(R"({"x": 1})"), R"({"type": "object", "additionalProperties": false})")
-          == QStringList{u"/x: is not allowed; this object takes no properties"_s});
-    CHECK(check(json(R"({"x": 1, "y": "s"})"), R"({"type": "object", "additionalProperties": {"type": "integer"}})")
-          == QStringList{u"/y: must be an integer"_s});
+    CHECK(check(json(R"({"x": 1})"), R"({"type": "object", "additionalProperties": false})") ==
+          QStringList{u"/x: is not allowed; this object takes no properties"_s});
+    CHECK(check(json(R"({"x": 1, "y": "s"})"), R"({"type": "object", "additionalProperties": {"type": "integer"}})") ==
+          QStringList{u"/y: must be an integer"_s});
     CHECK(check(json(R"({"x": 1})"), R"({"type": "object"})").isEmpty());
 }
 
@@ -173,8 +173,8 @@ TEST_CASE("JsonSchema applies defaults at the top level and in nested objects", 
         }
     })");
     CHECK(JsonSchema::applyDefaults({}, schema) == json(R"({"name": "world", "style": {"bold": true, "size": 12}})"));
-    CHECK(JsonSchema::applyDefaults(json(R"({"name": "you", "style": {"bold": false}})"), schema)
-          == json(R"({"name": "you", "style": {"bold": false, "size": 12}})"));
+    CHECK(JsonSchema::applyDefaults(json(R"({"name": "you", "style": {"bold": false}})"), schema) ==
+          json(R"({"name": "you", "style": {"bold": false, "size": 12}})"));
     CHECK(JsonSchema::applyDefaults(json(R"({"count": 3})"), schema).value(u"count").toInt() == 3);
     CHECK(JsonSchema::applyDefaults(json(R"({"a": 1})"), {}) == json(R"({"a": 1})"));
 }

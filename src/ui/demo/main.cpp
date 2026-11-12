@@ -42,9 +42,10 @@ constexpr int kFloatSettleMs = 900;
 void registerMonitor(ui::KddwDockHost& host, QStringView id, const QString& title, core::Transport& transport,
                      const core::ProjectModel& project)
 {
-    host.registerPanel({id.toString(), title, ui::DockArea::Center, true, [title, &transport, &project](QWidget* parent) {
-                            return new ui::demo::DemoMonitorPanel(title, transport, project, parent);
-                        }});
+    host.registerPanel(
+        {id.toString(), title, ui::DockArea::Center, true, [title, &transport, &project](QWidget* parent) {
+             return new ui::demo::DemoMonitorPanel(title, transport, project, parent);
+         }});
 }
 
 void takeScreenshot(ui::Shell& shell, const QString& path, const QString& floatPanel)
@@ -96,8 +97,8 @@ int main(int argc, char** argv)
     parser.process(app);
 
     const QString configDir = parser.isSet(configOption)
-        ? QDir(parser.value(configOption)).absolutePath()
-        : QStandardPaths::writableLocation(QStandardPaths::AppConfigLocation);
+                                  ? QDir(parser.value(configOption)).absolutePath()
+                                  : QStandardPaths::writableLocation(QStandardPaths::AppConfigLocation);
 
     core::UndoStack undo;
     core::CommandBus bus(undo);

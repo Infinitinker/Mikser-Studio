@@ -21,13 +21,11 @@
 #include <memory>
 #include <optional>
 
-template <>
-struct Catch::StringMaker<QString> {
+template <> struct Catch::StringMaker<QString> {
     static std::string convert(const QString& value) { return '"' + value.toStdString() + '"'; }
 };
 
-template <>
-struct Catch::StringMaker<QJsonObject> {
+template <> struct Catch::StringMaker<QJsonObject> {
     static std::string convert(const QJsonObject& value)
     {
         return QJsonDocument(value).toJson(QJsonDocument::Compact).toStdString();

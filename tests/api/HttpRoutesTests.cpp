@@ -213,10 +213,10 @@ TEST_CASE("Request bodies over 1 MiB are rejected", "[api][http]")
         QTcpSocket socket;
         socket.connectToHost(QHostAddress::LocalHost, fixture.server->port());
         REQUIRE(socket.waitForConnected(5000));
-        socket.write("POST /v1/commands/test.increment HTTP/1.1\r\nHost: 127.0.0.1\r\nAuthorization: " +
-                     fixture.bearer() + "\r\nContent-Length: " +
-                     QByteArray::number(64 * mikserstudio::api::kMaxRequestBodyBytes) +
-                     "\r\nExpect: 100-continue\r\n\r\n");
+        socket.write(
+            "POST /v1/commands/test.increment HTTP/1.1\r\nHost: 127.0.0.1\r\nAuthorization: " + fixture.bearer() +
+            "\r\nContent-Length: " + QByteArray::number(64 * mikserstudio::api::kMaxRequestBodyBytes) +
+            "\r\nExpect: 100-continue\r\n\r\n");
         REQUIRE(mikserstudio::tests::waitFor([&] { return socket.canReadLine(); }));
         CHECK(socket.readLine().startsWith("HTTP/1.1 413"));
     }

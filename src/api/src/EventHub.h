@@ -11,7 +11,7 @@ class QWebSocket;
 namespace mikserstudio::core {
 class CommandBus;
 struct CommandError;
-}
+}  // namespace mikserstudio::core
 
 namespace mikserstudio::api {
 

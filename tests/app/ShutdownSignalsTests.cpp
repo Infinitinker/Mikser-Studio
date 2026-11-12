@@ -91,8 +91,7 @@ bool closeRequestQuits(HWND window)
 
 }  // namespace
 
-TEST_CASE("A close request from another program quits cleanly on any thread's event-loop window",
-          "[app][shutdown]")
+TEST_CASE("A close request from another program quits cleanly on any thread's event-loop window", "[app][shutdown]")
 {
     // Sections rerun this from the top; the first one is the run where `before` really predates
     // the guard, so it comes first.

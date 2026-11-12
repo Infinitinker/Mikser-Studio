@@ -13,8 +13,7 @@ namespace mikserstudio::services {
 namespace {
 
 const QString kWaitingForService = u"Waiting for the AI service to start"_s;
-const QString kLostWithService =
-    u"The AI service stopped while the job was running. Start the job again."_s;
+const QString kLostWithService = u"The AI service stopped while the job was running. Start the job again."_s;
 
 }  // namespace
 
@@ -83,16 +82,17 @@ std::expected<AiJobState, core::CommandError> AiJobTracker::cancel(const QString
     }
 
     job->message = u"Canceling"_s;
-    m_client.cancelJob(job->remoteId, this, [this, jobId, generation = m_generation](std::expected<AiJobInfo, QString> answer) {
-        Job* canceled = find(jobId);
-        if (!canceled || generation != m_generation || isFinished(canceled->state))
-            return;
-        if (answer)
-            apply(*canceled, *answer);
-        else
-            qCWarning(lcAi).noquote() << "Could not cancel" << jobId << "-" << answer.error();
-        Q_EMIT jobsChanged();
-    });
+    m_client.cancelJob(job->remoteId, this,
+                       [this, jobId, generation = m_generation](std::expected<AiJobInfo, QString> answer) {
+                           Job* canceled = find(jobId);
+                           if (!canceled || generation != m_generation || isFinished(canceled->state))
+                               return;
+                           if (answer)
+                               apply(*canceled, *answer);
+                           else
+                               qCWarning(lcAi).noquote() << "Could not cancel" << jobId << "-" << answer.error();
+                           Q_EMIT jobsChanged();
+                       });
     Q_EMIT jobsChanged();
     return job->state;
 }
@@ -185,28 +185,29 @@ void AiJobTracker::sendToSidecar(Job& job)
     job.submitting = true;
     job.message = u"Sending to the AI service"_s;
     const QString id = job.id;
-    m_client.submitJob(job.op, job.params, this, [this, id, generation = m_generation](std::expected<QString, QString> answer) {
-        Job* sent = find(id);
-        if (!sent || generation != m_generation)
-            return;
-        sent->submitting = false;
-        if (!answer) {
-            if (!isFinished(sent->state))
-                finish(*sent, AiJobState::Failed, u"Failed"_s, answer.error());
-            Q_EMIT jobsChanged();
-            return;
-        }
-        sent->remoteId = *answer;
-        if (sent->state == AiJobState::Canceled) {
-            m_client.cancelJob(sent->remoteId, this, [](std::expected<AiJobInfo, QString>) {});
-            return;
-        }
-        sent->message = u"Queued in the AI service"_s;
-        qCInfo(lcAi).noquote() << "AI job" << id << "is" << sent->remoteId << "in the sidecar";
-        if (!m_pollTimer.isActive())
-            m_pollTimer.start();
-        Q_EMIT jobsChanged();
-    });
+    m_client.submitJob(job.op, job.params, this,
+                       [this, id, generation = m_generation](std::expected<QString, QString> answer) {
+                           Job* sent = find(id);
+                           if (!sent || generation != m_generation)
+                               return;
+                           sent->submitting = false;
+                           if (!answer) {
+                               if (!isFinished(sent->state))
+                                   finish(*sent, AiJobState::Failed, u"Failed"_s, answer.error());
+                               Q_EMIT jobsChanged();
+                               return;
+                           }
+                           sent->remoteId = *answer;
+                           if (sent->state == AiJobState::Canceled) {
+                               m_client.cancelJob(sent->remoteId, this, [](std::expected<AiJobInfo, QString>) { });
+                               return;
+                           }
+                           sent->message = u"Queued in the AI service"_s;
+                           qCInfo(lcAi).noquote() << "AI job" << id << "is" << sent->remoteId << "in the sidecar";
+                           if (!m_pollTimer.isActive())
+                               m_pollTimer.start();
+                           Q_EMIT jobsChanged();
+                       });
 }
 
 void AiJobTracker::poll()
@@ -295,7 +296,8 @@ AiJobTracker::Job* AiJobTracker::find(const QString& id)
 
 bool AiJobTracker::hasRemoteActiveJobs() const
 {
-    return std::ranges::any_of(m_jobs, [](const Job& job) { return !isFinished(job.state) && !job.remoteId.isEmpty(); });
+    return std::ranges::any_of(m_jobs,
+                               [](const Job& job) { return !isFinished(job.state) && !job.remoteId.isEmpty(); });
 }
 
 QJsonObject AiJobTracker::toJson(const Job& job)

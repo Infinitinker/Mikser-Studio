@@ -28,8 +28,7 @@ class AiClient final : public QObject {
     Q_OBJECT
 
 public:
-    template <typename T>
-    using Callback = std::function<void(std::expected<T, QString>)>;
+    template <typename T> using Callback = std::function<void(std::expected<T, QString>)>;
 
     explicit AiClient(QObject* parent = nullptr);
     ~AiClient() override;

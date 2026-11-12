@@ -135,9 +135,9 @@ ApiResponse Router::executeCommand(const QHttpServerRequest& request, const QStr
 {
     const QByteArray body = request.body();
     if (body.size() > kMaxRequestBodyBytes) {
-        return errorResponse(HttpStatus::PayloadTooLarge, u"payload_too_large"_s,
-                             u"The request body is larger than %1 bytes. Pass large data as file paths."_s.arg(
-                                 kMaxRequestBodyBytes));
+        return errorResponse(
+            HttpStatus::PayloadTooLarge, u"payload_too_large"_s,
+            u"The request body is larger than %1 bytes. Pass large data as file paths."_s.arg(kMaxRequestBodyBytes));
     }
     QJsonObject params;
     if (!body.trimmed().isEmpty()) {

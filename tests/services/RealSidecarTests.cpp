@@ -97,10 +97,12 @@ TEST_CASE("ai.upscale_clip runs on the real sidecar and lands on the timeline", 
     QTemporaryDir dir;
     const QString clipPath = dir.filePath(u"tiny.mp4"_s);
     QProcess encode;
-    encode.start(ffmpeg, {u"-hide_banner"_s, u"-loglevel"_s, u"error"_s, u"-y"_s, u"-f"_s, u"lavfi"_s, u"-i"_s,
-                          u"testsrc=size=160x90:rate=30:duration=1"_s, u"-f"_s, u"lavfi"_s, u"-i"_s,
-                          u"sine=frequency=440:duration=1"_s, u"-c:v"_s, u"libx264"_s, u"-pix_fmt"_s, u"yuv420p"_s,
-                          u"-c:a"_s, u"aac"_s, u"-shortest"_s, clipPath});
+    encode.start(ffmpeg,
+                 {u"-hide_banner"_s, u"-loglevel"_s, u"error"_s,     u"-y"_s,
+                  u"-f"_s,           u"lavfi"_s,     u"-i"_s,        u"testsrc=size=160x90:rate=30:duration=1"_s,
+                  u"-f"_s,           u"lavfi"_s,     u"-i"_s,        u"sine=frequency=440:duration=1"_s,
+                  u"-c:v"_s,         u"libx264"_s,   u"-pix_fmt"_s,  u"yuv420p"_s,
+                  u"-c:a"_s,         u"aac"_s,       u"-shortest"_s, clipPath});
     REQUIRE(encode.waitForFinished(60000));
     REQUIRE(encode.exitCode() == 0);
 
@@ -113,9 +115,13 @@ TEST_CASE("ai.upscale_clip runs on the real sidecar and lands on the timeline", 
     AiClient client;
     registerAiCommands(bus, project, sidecar, client);
 
-    const QString mediaId = bus.execute(u"project.import_media"_s, {{u"path"_s, clipPath}})->value(u"mediaId").toString();
-    const QString clipId = bus.execute(u"timeline.add_clip"_s, {{u"mediaId"_s, mediaId}, {u"trackId"_s, u"V1"_s},
-                                                                {u"position"_s, 12}, {u"in"_s, 0}, {u"out"_s, 30}})
+    const QString mediaId =
+        bus.execute(u"project.import_media"_s, {{u"path"_s, clipPath}})->value(u"mediaId").toString();
+    const QString clipId = bus.execute(u"timeline.add_clip"_s, {{u"mediaId"_s, mediaId},
+                                                                {u"trackId"_s, u"V1"_s},
+                                                                {u"position"_s, 12},
+                                                                {u"in"_s, 0},
+                                                                {u"out"_s, 30}})
                                ->value(u"clipId")
                                .toString();
     const auto submitted = bus.execute(u"ai.upscale_clip"_s, {{u"clipId"_s, clipId}, {u"scale"_s, 2}});

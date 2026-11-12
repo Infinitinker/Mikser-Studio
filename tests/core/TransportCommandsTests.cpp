@@ -90,7 +90,8 @@ TEST_CASE("Transport commands are registered under the prefix", "[transport]")
 TEST_CASE("Transport commands drive the transport and return its status", "[transport]")
 {
     Fixture f;
-    CHECK(f.run(u"status"_s) == json(R"({"position": 0, "duration": 100, "state": "stopped", "frameRate": {"num": 25, "den": 1}})"));
+    CHECK(f.run(u"status"_s) ==
+          json(R"({"position": 0, "duration": 100, "state": "stopped", "frameRate": {"num": 25, "den": 1}})"));
 
     CHECK(f.run(u"play"_s).value(u"state").toString() == u"playing"_s);
     CHECK(f.run(u"pause"_s).value(u"state").toString() == u"paused"_s);

@@ -104,9 +104,12 @@ TEST_CASE("Panel contributions are checked", "[plugins][manifest]")
     CHECK(errorFor(panels(R"({"p": [{"id": "a", "title": "A", "qml": "../a.qml"}]})")).contains(u"/panels/0/qml"_s));
     CHECK(errorFor(panels(R"({"p": [{"id": "a", "title": "A", "qml": "C:/a.qml"}]})")).contains(u"/panels/0/qml"_s));
     CHECK(errorFor(panels(R"({"p": [{"id": "a", "title": "A", "qml": "/abs/a.qml"}]})")).contains(u"/panels/0/qml"_s));
-    CHECK(errorFor(panels(R"({"p": [{"id": "a", "title": "A", "qml": "a.qml", "extra": 1}]})")).contains(u"/panels/0/extra"_s));
-    CHECK(errorFor(panels(R"({"p": [{"id": "a", "title": "A", "qml": "a.qml"}, {"id": "a", "title": "B", "qml": "b.qml"}]})"))
-              .contains(u"/panels/1/id"_s));
+    CHECK(errorFor(panels(R"({"p": [{"id": "a", "title": "A", "qml": "a.qml", "extra": 1}]})"))
+              .contains(u"/panels/0/extra"_s));
+    CHECK(
+        errorFor(
+            panels(R"({"p": [{"id": "a", "title": "A", "qml": "a.qml"}, {"id": "a", "title": "B", "qml": "b.qml"}]})"))
+            .contains(u"/panels/1/id"_s));
 }
 
 TEST_CASE("Python plugin entries use module:attribute", "[plugins][manifest]")

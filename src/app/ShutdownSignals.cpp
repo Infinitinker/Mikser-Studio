@@ -106,8 +106,7 @@ bool isQtDispatcherWindow(HWND window, DWORD threadId)
 
 // The hidden windows of Qt's event dispatchers in this process; only the calling thread's when
 // `threadId` is not 0.
-template<typename Fn>
-void forEachQtDispatcherWindow(DWORD threadId, Fn fn)
+template <typename Fn> void forEachQtDispatcherWindow(DWORD threadId, Fn fn)
 {
     HWND window = nullptr;
     while ((window = FindWindowExW(HWND_MESSAGE, window, nullptr, nullptr))) {
@@ -185,7 +184,7 @@ void onSignal(int)
 
 void setHandler(void (*handler)(int))
 {
-    struct sigaction action {};
+    struct sigaction action{};
     action.sa_handler = handler;
     sigemptyset(&action.sa_mask);
     action.sa_flags = SA_RESTART;

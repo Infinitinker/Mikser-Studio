@@ -46,7 +46,8 @@ CommandResult importMedia(ProjectModel& project, MediaProbe& probe, const QJsonO
 
     auto info = probe.probe(path, project.frameRate());
     if (!info)
-        return commandFailure(CommandErrorCode::Failed, u"Cannot import \"%1\": %2"_s.arg(file.fileName(), info.error()));
+        return commandFailure(CommandErrorCode::Failed,
+                              u"Cannot import \"%1\": %2"_s.arg(file.fileName(), info.error()));
     if (info->kind == MediaKind::Image)
         info->durationFrames = imageDuration(project.frameRate());
 
@@ -87,8 +88,7 @@ CommandResult removeMedia(ProjectModel& project, const QJsonObject& params)
     return CommandOutcome{
         QJsonObject{},
         makeEdit(
-            u"Remove \"%1\""_s.arg(item.name),
-            [&project, item, index] { return project.addMedia(item, index); },
+            u"Remove \"%1\""_s.arg(item.name), [&project, item, index] { return project.addMedia(item, index); },
             [&project, id]() -> std::expected<void, QString> {
                 auto again = project.removeMedia(id);
                 return again ? std::expected<void, QString>{} : std::unexpected(again.error());
@@ -112,9 +112,10 @@ void registerMediaCommands(CommandBus& bus, ProjectModel& project, MediaProbe& p
                     {u"name"_s, QJsonObject{{u"type"_s, u"string"_s},
                                             {u"description"_s, u"Display name; defaults to the file name."_s}}},
                     {u"provenance"_s,
-                     QJsonObject{{u"type"_s, u"object"_s},
-                                 {u"description"_s,
-                                  u"How generated media was made (workflow, seed, model hash); stored with the item."_s}}},
+                     QJsonObject{
+                         {u"type"_s, u"object"_s},
+                         {u"description"_s,
+                          u"How generated media was made (workflow, seed, model hash); stored with the item."_s}}},
                 },
                 {u"path"_s}),
             .shortcut = u"Ctrl+I"_s,

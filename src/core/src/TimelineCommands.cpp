@@ -20,7 +20,8 @@ CommandResult addClip(ProjectModel& project, const QJsonObject& params)
     const QString mediaId = params.value(u"mediaId").toString();
     const MediaItem* media = project.findMedia(mediaId);
     if (!media)
-        return commandFailure(CommandErrorCode::Failed, u"There is no media with id \"%1\" in the project."_s.arg(mediaId));
+        return commandFailure(CommandErrorCode::Failed,
+                              u"There is no media with id \"%1\" in the project."_s.arg(mediaId));
 
     const FramePos in = params.value(u"in").toInteger(0);
     const FramePos fullOut = media->info.kind == MediaKind::Image ? in + media->info.durationFrames
@@ -39,8 +40,7 @@ CommandResult addClip(ProjectModel& project, const QJsonObject& params)
     return CommandOutcome{
         QJsonObject{{u"clipId"_s, clip.id}},
         makeEdit(
-            u"Add Clip"_s,
-            [&project, id = clip.id] { return discardClip(project.removeClip(id)); },
+            u"Add Clip"_s, [&project, id = clip.id] { return discardClip(project.removeClip(id)); },
             [&project, clip] { return project.addClip(clip); }),
     };
 }
@@ -55,8 +55,7 @@ CommandResult removeClip(ProjectModel& project, const QJsonObject& params)
     return CommandOutcome{
         QJsonObject{},
         makeEdit(
-            u"Remove Clip"_s,
-            [&project, clip] { return project.addClip(clip); },
+            u"Remove Clip"_s, [&project, clip] { return project.addClip(clip); },
             [&project, id = clip.id] { return discardClip(project.removeClip(id)); }),
     };
 }
@@ -101,8 +100,7 @@ CommandResult trimClip(ProjectModel& project, const QJsonObject& params)
     return CommandOutcome{
         QJsonObject{},
         makeEdit(
-            u"Trim Clip"_s,
-            [&project, id, oldIn, oldOut] { return project.trimClip(id, oldIn, oldOut); },
+            u"Trim Clip"_s, [&project, id, oldIn, oldOut] { return project.trimClip(id, oldIn, oldOut); },
             [&project, id, newIn, newOut] { return project.trimClip(id, newIn, newOut); }),
     };
 }
@@ -163,8 +161,7 @@ CommandResult setTrackFlags(ProjectModel& project, const QJsonObject& params)
     return CommandOutcome{
         QJsonObject{},
         makeEdit(
-            text,
-            [&project, id, oldMuted, oldHidden] { return project.setTrackFlags(id, oldMuted, oldHidden); },
+            text, [&project, id, oldMuted, oldHidden] { return project.setTrackFlags(id, oldMuted, oldHidden); },
             [&project, id, muted, hidden] { return project.setTrackFlags(id, muted, hidden); }),
     };
 }
@@ -190,43 +187,42 @@ void registerTimelineCommands(CommandBus& bus, ProjectModel& project)
     const QJsonObject trackId = idParam(u"Track id, e.g. \"V1\" or \"A1\"."_s);
     const QJsonObject position = frameParam(u"Timeline frame where the clip starts."_s);
 
-    bus.registerCommand(
-        timelineSpec(u"timeline.add_clip"_s, u"Add Clip to Timeline"_s,
-                     u"Places a media item on a track; in/out default to the whole media."_s,
-                     objectSchema(
-                         QJsonObject{
-                             {u"mediaId"_s, idParam(u"Id of the media item."_s)},
-                             {u"trackId"_s, trackId},
-                             {u"position"_s, position},
-                             {u"in"_s, frameParam(u"First source frame used."_s)},
-                             {u"out"_s, frameParam(u"Source frame after the last one used."_s)},
-                         },
-                         {u"mediaId"_s, u"trackId"_s, u"position"_s})),
-        [&project](const QJsonObject& params) { return addClip(project, params); });
+    bus.registerCommand(timelineSpec(u"timeline.add_clip"_s, u"Add Clip to Timeline"_s,
+                                     u"Places a media item on a track; in/out default to the whole media."_s,
+                                     objectSchema(
+                                         QJsonObject{
+                                             {u"mediaId"_s, idParam(u"Id of the media item."_s)},
+                                             {u"trackId"_s, trackId},
+                                             {u"position"_s, position},
+                                             {u"in"_s, frameParam(u"First source frame used."_s)},
+                                             {u"out"_s, frameParam(u"Source frame after the last one used."_s)},
+                                         },
+                                         {u"mediaId"_s, u"trackId"_s, u"position"_s})),
+                        [&project](const QJsonObject& params) { return addClip(project, params); });
+
+    bus.registerCommand(timelineSpec(u"timeline.remove_clip"_s, u"Remove Clip"_s,
+                                     u"Removes a clip from the timeline."_s,
+                                     objectSchema(QJsonObject{{u"clipId"_s, clipId}}, {u"clipId"_s})),
+                        [&project](const QJsonObject& params) { return removeClip(project, params); });
 
     bus.registerCommand(
-        timelineSpec(u"timeline.remove_clip"_s, u"Remove Clip"_s, u"Removes a clip from the timeline."_s,
-                     objectSchema(QJsonObject{{u"clipId"_s, clipId}}, {u"clipId"_s})),
-        [&project](const QJsonObject& params) { return removeClip(project, params); });
-
-    bus.registerCommand(
-        timelineSpec(u"timeline.move_clip"_s, u"Move Clip"_s,
-                     u"Moves a clip to another position or track without changing its length."_s,
-                     objectSchema(QJsonObject{{u"clipId"_s, clipId}, {u"trackId"_s, trackId}, {u"position"_s, position}},
-                                  {u"clipId"_s, u"trackId"_s, u"position"_s})),
+        timelineSpec(
+            u"timeline.move_clip"_s, u"Move Clip"_s,
+            u"Moves a clip to another position or track without changing its length."_s,
+            objectSchema(QJsonObject{{u"clipId"_s, clipId}, {u"trackId"_s, trackId}, {u"position"_s, position}},
+                         {u"clipId"_s, u"trackId"_s, u"position"_s})),
         [&project](const QJsonObject& params) { return moveClip(project, params); });
 
-    bus.registerCommand(
-        timelineSpec(u"timeline.trim_clip"_s, u"Trim Clip"_s,
-                     u"Changes which part of the source a clip uses; its start position stays."_s,
-                     objectSchema(
-                         QJsonObject{
-                             {u"clipId"_s, clipId},
-                             {u"in"_s, frameParam(u"First source frame used."_s)},
-                             {u"out"_s, frameParam(u"Source frame after the last one used."_s)},
-                         },
-                         {u"clipId"_s, u"in"_s, u"out"_s})),
-        [&project](const QJsonObject& params) { return trimClip(project, params); });
+    bus.registerCommand(timelineSpec(u"timeline.trim_clip"_s, u"Trim Clip"_s,
+                                     u"Changes which part of the source a clip uses; its start position stays."_s,
+                                     objectSchema(
+                                         QJsonObject{
+                                             {u"clipId"_s, clipId},
+                                             {u"in"_s, frameParam(u"First source frame used."_s)},
+                                             {u"out"_s, frameParam(u"Source frame after the last one used."_s)},
+                                         },
+                                         {u"clipId"_s, u"in"_s, u"out"_s})),
+                        [&project](const QJsonObject& params) { return trimClip(project, params); });
 
     bus.registerCommand(
         timelineSpec(u"timeline.add_track"_s, u"Add Track"_s,

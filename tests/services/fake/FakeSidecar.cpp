@@ -173,12 +173,12 @@ public:
     }
 
 private:
-    template <typename Handler>
-    QHttpServerResponse authorized(const QHttpServerRequest& request, Handler handler)
+    template <typename Handler> QHttpServerResponse authorized(const QHttpServerRequest& request, Handler handler)
     {
         const QByteArray expected = "Bearer " + qgetenv("MIKSERSTUDIO_AI_TOKEN");
         if (request.headers().value(QHttpHeaders::WellKnownHeader::Authorization) != expected)
-            return error(QHttpServerResponse::StatusCode::Unauthorized, u"unauthorized"_s, u"Missing or wrong token."_s);
+            return error(QHttpServerResponse::StatusCode::Unauthorized, u"unauthorized"_s,
+                         u"Missing or wrong token."_s);
         return handler();
     }
 
@@ -188,10 +188,11 @@ private:
         return QJsonArray{QJsonObject{
             {u"id"_s, u"fake"_s},
             {u"title"_s, u"Fake"_s},
-            {u"ops"_s, QJsonArray{
-                           QJsonObject{{u"id"_s, u"video.upscale"_s}, {u"title"_s, u"Upscale"_s}, {u"paramsSchema"_s, schema}},
-                           QJsonObject{{u"id"_s, u"text.generate"_s}, {u"title"_s, u"Text"_s}, {u"paramsSchema"_s, schema}},
-                       }},
+            {u"ops"_s,
+             QJsonArray{
+                 QJsonObject{{u"id"_s, u"video.upscale"_s}, {u"title"_s, u"Upscale"_s}, {u"paramsSchema"_s, schema}},
+                 QJsonObject{{u"id"_s, u"text.generate"_s}, {u"title"_s, u"Text"_s}, {u"paramsSchema"_s, schema}},
+             }},
             {u"available"_s, true},
             {u"reason"_s, u""_s},
         }};

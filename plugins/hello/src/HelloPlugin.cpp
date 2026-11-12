@@ -71,7 +71,8 @@ int greet(void* userData, const char* paramsJson, size_t paramsLength, const Mik
             return 1;
         }
         const auto name = params->find("name");
-        const std::string message = greeting(state->host) + ", " + (name == params->end() ? "world" : name->second) + "!";
+        const std::string message = greeting(state->host) + ", " + (name == params->end() ? "world" : name->second) +
+                                    "!";
         write(result, "{\"message\":" + hello::quoted(message) + "}");
         return 0;
     } catch (const std::exception& exception) {
@@ -82,7 +83,8 @@ int greet(void* userData, const char* paramsJson, size_t paramsLength, const Mik
 
 int activate(const MikserStudioHostApiV1* host, void** pluginState, const MikserStudioStringSink* error)
 {
-    if (!host || host->struct_size < sizeof(MikserStudioHostApiV1) || host->api_version != MIKSERSTUDIO_PLUGIN_API_VERSION) {
+    if (!host || host->struct_size < sizeof(MikserStudioHostApiV1) ||
+        host->api_version != MIKSERSTUDIO_PLUGIN_API_VERSION) {
         write(error, "This version of Mikser Studio does not provide plugin API version 1.");
         return 1;
     }

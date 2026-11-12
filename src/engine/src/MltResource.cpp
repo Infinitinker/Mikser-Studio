@@ -22,8 +22,8 @@ namespace {
 bool isAvformatStill(Mlt::Producer& producer)
 {
     const char* service = producer.get("mlt_service");
-    return service && std::string_view(service).starts_with("avformat")
-           && producer.get_length() == std::numeric_limits<int>::max();
+    return service && std::string_view(service).starts_with("avformat") &&
+           producer.get_length() == std::numeric_limits<int>::max();
 }
 
 void primeStill(Mlt::Producer& producer)
@@ -45,10 +45,9 @@ void primeStill(Mlt::Producer& producer)
 bool isMltDocument(const QFileInfo& file)
 {
     static const QStringList documents{
-        u"mlt"_s,  u"westley"_s, u"kdenlive"_s, u"graphics"_s, u"jfx"_s, u"jef"_s,  u"kino"_s,
-        u"story"_s, u"xml"_s,    u"melt"_s,     u"inigo"_s,    u"htm"_s, u"html"_s, u"qml"_s,
-        u"aep"_s,  u"avd"_s,     u"json"_s,     u"lot"_s,      u"lottie"_s, u"rawr"_s, u"riv"_s,
-        u"tgs"_s,  u"kdenlivetitle"_s,
+        u"mlt"_s,  u"westley"_s, u"kdenlive"_s, u"graphics"_s, u"jfx"_s,  u"jef"_s, u"kino"_s,          u"story"_s,
+        u"xml"_s,  u"melt"_s,    u"inigo"_s,    u"htm"_s,      u"html"_s, u"qml"_s, u"aep"_s,           u"avd"_s,
+        u"json"_s, u"lot"_s,     u"lottie"_s,   u"rawr"_s,     u"riv"_s,  u"tgs"_s, u"kdenlivetitle"_s,
     };
     return documents.contains(file.suffix(), Qt::CaseInsensitive);
 }
@@ -60,8 +59,8 @@ std::expected<QString, QString> localFileResource(const QString& path)
     if (!core::isAllowedMediaPath(path))
         return std::unexpected(
             u"\"%1\" is not a file on this computer. Mikser Studio plays only local media files (no web addresses, "
-            u"network shares or MLT services); copy the file to a local or mapped drive and import it again."_s
-                .arg(shown));
+            u"network shares or MLT services); copy the file to a local or mapped drive and import it again."_s.arg(
+                shown));
     const QFileInfo file(path);
     if (!file.exists())
         return std::unexpected(

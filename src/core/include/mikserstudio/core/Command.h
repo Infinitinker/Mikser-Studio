@@ -13,13 +13,13 @@ namespace mikserstudio::core {
 // Describes one action of the app. Every user-visible action is a command: menus, shortcuts,
 // the command palette, macros, the /v1 API and plugins all go through the same registry.
 struct CommandSpec {
-    QString id;                // Stable, dotted, lower_snake: "timeline.add_clip".
-    QString title;             // Short English UI label: "Add Clip to Timeline".
-    QString description;       // One sentence for tooltips, the palette and API docs.
-    QString category;          // Menu/palette group: "Timeline", "Edit", "AI".
+    QString id;  // Stable, dotted, lower_snake: "timeline.add_clip".
+    QString title;  // Short English UI label: "Add Clip to Timeline".
+    QString description;  // One sentence for tooltips, the palette and API docs.
+    QString category;  // Menu/palette group: "Timeline", "Edit", "AI".
     QJsonObject paramsSchema;  // JSON Schema (draft 2020-12 subset) of the params object.
-    QString shortcut;          // Default key sequence in QKeySequence portable text, may be empty.
-    bool undoable = false;     // True when a successful run pushes an UndoableEdit.
+    QString shortcut;  // Default key sequence in QKeySequence portable text, may be empty.
+    bool undoable = false;  // True when a successful run pushes an UndoableEdit.
     // True when the command never changes state (a read such as "project.list"). UIs may keep it
     // out of logs and status messages; API clients may cache its result. Never also undoable.
     bool readOnly = false;
@@ -52,8 +52,8 @@ struct CommandError {
 };
 
 struct CommandOutcome {
-    QJsonObject result;                    // Returned to the caller (UI, API, macro).
-    std::unique_ptr<UndoableEdit> edit;    // Set only by undoable commands that changed state.
+    QJsonObject result;  // Returned to the caller (UI, API, macro).
+    std::unique_ptr<UndoableEdit> edit;  // Set only by undoable commands that changed state.
 };
 
 using CommandResult = std::expected<CommandOutcome, CommandError>;

@@ -12,7 +12,8 @@ DemoWindow::DemoWindow(core::Transport& transport, const QString& title)
     , m_panel(new engine::MonitorPanel(transport, m_dock))
 {
     setWindowTitle(tr("Mikser Studio monitor demo"));
-    auto* placeholder = new QLabel(tr("Drag the monitor's title bar to float it; double-click it to dock it again."), this);
+    auto* placeholder = new QLabel(tr("Drag the monitor's title bar to float it; double-click it to dock it again."),
+                                   this);
     placeholder->setAlignment(Qt::AlignCenter);
     placeholder->setWordWrap(true);
     setCentralWidget(placeholder);

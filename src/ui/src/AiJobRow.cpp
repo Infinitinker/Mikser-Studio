@@ -86,7 +86,9 @@ void AiJobRow::update(const QJsonObject& job)
 
     const QString error = job.value(u"error").toString();
     const QString message = job.value(u"message").toString();
-    m_detail->setText(!error.isEmpty() ? error : message.isEmpty() ? u"%1 %"_s.arg(std::lround(progress * 100.0)) : message);
+    m_detail->setText(!error.isEmpty()    ? error
+                      : message.isEmpty() ? u"%1 %"_s.arg(std::lround(progress * 100.0))
+                                          : message);
     m_detail->setStyleSheet(error.isEmpty() ? QString() : u"color: %1;"_s.arg(darkTheme().danger.name()));
     m_cancel->setVisible(!isFinished(m_state));
 

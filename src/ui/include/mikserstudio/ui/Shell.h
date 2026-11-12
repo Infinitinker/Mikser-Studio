@@ -101,7 +101,7 @@ private:
     std::unique_ptr<CommandLogModel> m_log;
     std::unique_ptr<TimelineController> m_timeline;
     QSet<QString> m_pluginPanels;  // Registered "<plugin-id>/<panel-id>" ids.
-    QString m_pendingWorkspace;    // Applied by show().
+    QString m_pendingWorkspace;  // Applied by show().
     bool m_restoreMaximized = false;  // From shell.json: the layout keeps only one window state.
 
     QMenu* m_windowMenu = nullptr;

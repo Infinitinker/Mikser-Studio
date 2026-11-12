@@ -22,8 +22,8 @@ inline constexpr int kApiVersion = 1;
 inline constexpr qsizetype kMaxRequestBodyBytes = qsizetype{1024} * 1024;
 
 struct ApiServerOptions {
-    quint16 port = 0;       // 0 picks a free (ephemeral) port.
-    QString token;          // Empty: a random token is generated. Otherwise 16+ visible ASCII chars.
+    quint16 port = 0;  // 0 picks a free (ephemeral) port.
+    QString token;  // Empty: a random token is generated. Otherwise 16+ visible ASCII chars.
     QString discoveryFile;  // Empty: QStandardPaths::AppLocalDataLocation + "/api.json".
 };
 
@@ -54,7 +54,7 @@ public:
     [[nodiscard]] quint16 port() const;  // 0 while stopped.
     [[nodiscard]] QString token() const;
     [[nodiscard]] QString discoveryFilePath() const;
-    [[nodiscard]] QString baseUrl() const;    // "http://127.0.0.1:<port>", empty while stopped.
+    [[nodiscard]] QString baseUrl() const;  // "http://127.0.0.1:<port>", empty while stopped.
     [[nodiscard]] QString eventsUrl() const;  // "ws://127.0.0.1:<port>/v1/events", empty while stopped.
     [[nodiscard]] int eventClientCount() const;
 

@@ -55,8 +55,8 @@ private:
     static void log(void* host, MikserStudioLogLevel level, const char* message, size_t length);
     static int registerCommand(void* host, const char* specJson, size_t specLength, MikserStudioCommandFn fn,
                                void* userData, const MikserStudioStringSink* error);
-    static int executeCommand(void* host, const char* id, size_t idLength, const char* paramsJson,
-                              size_t paramsLength, const MikserStudioStringSink* result, const MikserStudioStringSink* error);
+    static int executeCommand(void* host, const char* id, size_t idLength, const char* paramsJson, size_t paramsLength,
+                              const MikserStudioStringSink* result, const MikserStudioStringSink* error);
     static void getSettings(void* host, const MikserStudioStringSink* settingsJson);
 
     std::expected<void, QString> addCommand(const QByteArray& specJson, MikserStudioCommandFn fn, void* userData);

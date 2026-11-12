@@ -41,7 +41,8 @@ QVariantMap PluginPanelBridge::execute(const QString& commandId, const QVariantM
         return {{u"ok"_s, true}, {u"result"_s, result->toVariantMap()}};
     return {
         {u"ok"_s, false},
-        {u"error"_s, QVariantMap{{u"code"_s, core::toString(result.error().code)}, {u"message"_s, result.error().message}}},
+        {u"error"_s,
+         QVariantMap{{u"code"_s, core::toString(result.error().code)}, {u"message"_s, result.error().message}}},
     };
 }
 

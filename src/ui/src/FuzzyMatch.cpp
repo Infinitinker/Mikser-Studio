@@ -43,7 +43,8 @@ std::optional<int> fuzzyScore(QStringView query, QStringView text)
         return std::nullopt;
 
     // best[i][j]: best score of query[0..i] with query[i] matched at text[j].
-    std::vector<std::vector<int>> best(static_cast<std::size_t>(n), std::vector<int>(static_cast<std::size_t>(m), kNone));
+    std::vector<std::vector<int>> best(static_cast<std::size_t>(n),
+                                       std::vector<int>(static_cast<std::size_t>(m), kNone));
     const auto at = [&best](qsizetype i, qsizetype j) -> int& {
         return best[static_cast<std::size_t>(i)][static_cast<std::size_t>(j)];
     };

@@ -66,8 +66,8 @@ TEST_CASE("Audio outputs are tried device first, silent last", "[output]")
     {
         const ScopedEnvironment forced("MIKSERSTUDIO_AUDIO_OUTPUT", "sdl2_audio");
         if (runtime.hasConsumer(u"sdl2_audio"_s))
-            CHECK(OutputConsumer::candidatesFor(AudioOutput::Device, runtime)
-                  == QStringList{u"sdl2_audio"_s, u"silent"_s});
+            CHECK(OutputConsumer::candidatesFor(AudioOutput::Device, runtime) ==
+                  QStringList{u"sdl2_audio"_s, u"silent"_s});
     }
     {
         // An MLT consumer, but not an audio output: ignored.

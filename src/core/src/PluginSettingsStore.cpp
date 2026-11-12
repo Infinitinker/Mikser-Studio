@@ -51,12 +51,13 @@ std::expected<QJsonObject, QString> PluginSettingsStore::read(const QString& fil
     if (!file.exists())
         return QJsonObject();
     if (!file.open(QIODevice::ReadOnly))
-        return std::unexpected(u"Cannot read %1: %2"_s.arg(QDir::toNativeSeparators(file.fileName()), file.errorString()));
+        return std::unexpected(
+            u"Cannot read %1: %2"_s.arg(QDir::toNativeSeparators(file.fileName()), file.errorString()));
     QJsonParseError error{};
     const QJsonDocument document = QJsonDocument::fromJson(file.readAll(), &error);
     if (error.error != QJsonParseError::NoError || !document.isObject()) {
         return std::unexpected(u"%1 is not a valid JSON object (%2)"_s.arg(QDir::toNativeSeparators(file.fileName()),
-                                                                          error.errorString()));
+                                                                           error.errorString()));
     }
     return document.object();
 }
@@ -67,10 +68,12 @@ std::expected<void, QString> PluginSettingsStore::write(const QString& fileName,
         return std::unexpected(u"Cannot create the settings folder %1."_s.arg(QDir::toNativeSeparators(m_directory)));
     QSaveFile file(QDir(m_directory).filePath(fileName));
     if (!file.open(QIODevice::WriteOnly))
-        return std::unexpected(u"Cannot write %1: %2"_s.arg(QDir::toNativeSeparators(file.fileName()), file.errorString()));
+        return std::unexpected(
+            u"Cannot write %1: %2"_s.arg(QDir::toNativeSeparators(file.fileName()), file.errorString()));
     file.write(QJsonDocument(json).toJson(QJsonDocument::Indented));
     if (!file.commit())
-        return std::unexpected(u"Cannot save %1: %2"_s.arg(QDir::toNativeSeparators(file.fileName()), file.errorString()));
+        return std::unexpected(
+            u"Cannot save %1: %2"_s.arg(QDir::toNativeSeparators(file.fileName()), file.errorString()));
     return {};
 }
 

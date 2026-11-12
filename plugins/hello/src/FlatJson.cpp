@@ -142,14 +142,30 @@ private:
             const char escape = peek();
             ++m_pos;
             switch (escape) {
-            case '"': out += '"'; break;
-            case '\\': out += '\\'; break;
-            case '/': out += '/'; break;
-            case 'b': out += '\b'; break;
-            case 'f': out += '\f'; break;
-            case 'n': out += '\n'; break;
-            case 'r': out += '\r'; break;
-            case 't': out += '\t'; break;
+            case '"':
+                out += '"';
+                break;
+            case '\\':
+                out += '\\';
+                break;
+            case '/':
+                out += '/';
+                break;
+            case 'b':
+                out += '\b';
+                break;
+            case 'f':
+                out += '\f';
+                break;
+            case 'n':
+                out += '\n';
+                break;
+            case 'r':
+                out += '\r';
+                break;
+            case 't':
+                out += '\t';
+                break;
             case 'u': {
                 auto cp = escapedCodePoint();
                 if (!cp)
@@ -169,8 +185,8 @@ private:
     {
         if (peek() != '{' && peek() != '[') {
             const std::size_t start = m_pos;
-            while (m_pos < m_text.size() && m_text[m_pos] != ',' && m_text[m_pos] != '}' && m_text[m_pos] != ' '
-                   && m_text[m_pos] != '\n' && m_text[m_pos] != '\r' && m_text[m_pos] != '\t')
+            while (m_pos < m_text.size() && m_text[m_pos] != ',' && m_text[m_pos] != '}' && m_text[m_pos] != ' ' &&
+                   m_text[m_pos] != '\n' && m_text[m_pos] != '\r' && m_text[m_pos] != '\t')
                 ++m_pos;
             return m_pos > start;
         }
@@ -209,11 +225,21 @@ std::string quoted(std::string_view text)
     for (const char c : text) {
         const auto byte = static_cast<unsigned char>(c);
         switch (c) {
-        case '"': out += "\\\""; break;
-        case '\\': out += "\\\\"; break;
-        case '\n': out += "\\n"; break;
-        case '\r': out += "\\r"; break;
-        case '\t': out += "\\t"; break;
+        case '"':
+            out += "\\\"";
+            break;
+        case '\\':
+            out += "\\\\";
+            break;
+        case '\n':
+            out += "\\n";
+            break;
+        case '\r':
+            out += "\\r";
+            break;
+        case '\t':
+            out += "\\t";
+            break;
         default:
             if (byte < 0x20) {
                 out += "\\u00";

@@ -59,8 +59,10 @@ TEST_CASE("The default command runs mikserstudio-ai from the ai folder's environ
     {
         const auto launch = resolveSidecarLaunch(options, "token");
         REQUIRE_FALSE(launch);
-        CHECK(launch.error() == u"The AI service could not start: its Python environment \"%1\" was not found. Create it as docs/development.md describes and restart Mikser Studio."_s
-                                    .arg(QDir::toNativeSeparators(QDir(ai).filePath(u".venv"_s))));
+        CHECK(
+            launch.error() ==
+            u"The AI service could not start: its Python environment \"%1\" was not found. Create it as docs/development.md describes and restart Mikser Studio."_s
+                .arg(QDir::toNativeSeparators(QDir(ai).filePath(u".venv"_s))));
     }
 
     SECTION("with its environment")
@@ -75,16 +77,16 @@ TEST_CASE("The default command runs mikserstudio-ai from the ai folder's environ
         REQUIRE(launch);
         CHECK(QDir::cleanPath(launch->program) == QDir::cleanPath(QDir(bin).filePath(programName)));
         CHECK(launch->arguments == QStringList{
-                                              u"--host"_s,
-                                              u"127.0.0.1"_s,
-                                              u"--port"_s,
-                                              u"0"_s,
-                                              u"--cache-dir"_s,
-                                              QDir::toNativeSeparators(options.cacheDirectory),
-                                              u"--exit-with-stdin"_s,
-                                              u"--ffmpeg"_s,
-                                              QDir::toNativeSeparators(u"C:/tools/ffmpeg.exe"_s),
-                                          });
+                                       u"--host"_s,
+                                       u"127.0.0.1"_s,
+                                       u"--port"_s,
+                                       u"0"_s,
+                                       u"--cache-dir"_s,
+                                       QDir::toNativeSeparators(options.cacheDirectory),
+                                       u"--exit-with-stdin"_s,
+                                       u"--ffmpeg"_s,
+                                       QDir::toNativeSeparators(u"C:/tools/ffmpeg.exe"_s),
+                                   });
         CHECK(launch->environment.value(u"MIKSERSTUDIO_AI_TOKEN"_s) == u"secret-token"_s);
         CHECK(launch->environment.value(u"NoDefaultCurrentDirectoryInExePath"_s) == u"1"_s);
         CHECK(QDir(launch->workingDirectory) == QDir(options.cacheDirectory));

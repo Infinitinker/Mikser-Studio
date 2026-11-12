@@ -84,12 +84,13 @@ Record PluginManager::Impl::readRecord(const QString& directory) const
     // claim (and so hide) the id of a valid plugin.
     auto manifest = parsePluginManifest(document.object(), directory);
     if (!manifest) {
-        record.state.error = u"The plugin manifest %1 is invalid: %2. Fix or reinstall the plugin."_s
-                                 .arg(QDir::toNativeSeparators(manifestPath), manifest.error());
+        record.state.error = u"The plugin manifest %1 is invalid: %2. Fix or reinstall the plugin."_s.arg(
+            QDir::toNativeSeparators(manifestPath), manifest.error());
         return record;
     }
     record.state.manifest = std::move(*manifest);
-    record.state.status = disabled.contains(record.state.manifest.id) ? PluginStatus::Disabled : PluginStatus::Discovered;
+    record.state.status = disabled.contains(record.state.manifest.id) ? PluginStatus::Disabled
+                                                                      : PluginStatus::Discovered;
     record.manifestValid = true;
     loadStoredSettings(record);
     return record;
@@ -132,7 +133,8 @@ PluginManager::PluginManager(CommandBus& bus, QString settingsDirectory, QObject
     if (disabled)
         d->disabled = std::move(*disabled);
     else
-        qCWarning(lcPlugins).noquote() << "All plugins are enabled because the plugin list could not be read:" << disabled.error();
+        qCWarning(lcPlugins).noquote() << "All plugins are enabled because the plugin list could not be read:"
+                                       << disabled.error();
 }
 
 PluginManager::~PluginManager()
@@ -177,9 +179,10 @@ void PluginManager::discover()
                     }
                     continue;
                 }
-                failures.append({id, u"Plugin \"%1\" in %2 is ignored because %3 already provides a plugin with that id."_s.arg(
-                                         id, QDir::toNativeSeparators(record.state.manifest.directory),
-                                         QDir::toNativeSeparators(existing->second.state.manifest.directory))});
+                failures.append(
+                    {id, u"Plugin \"%1\" in %2 is ignored because %3 already provides a plugin with that id."_s.arg(
+                             id, QDir::toNativeSeparators(record.state.manifest.directory),
+                             QDir::toNativeSeparators(existing->second.state.manifest.directory))});
                 continue;
             }
             if (record.state.status == PluginStatus::Failed)
@@ -225,9 +228,11 @@ std::expected<void, QString> PluginManager::activate(const QString& id)
     if (!record->manifestValid)
         return std::unexpected(record->state.error);
     if (record->state.status == PluginStatus::Disabled)
-        return std::unexpected(u"\"%1\" is disabled. Enable it in the plugin manager first."_s.arg(displayName(*record)));
+        return std::unexpected(
+            u"\"%1\" is disabled. Enable it in the plugin manager first."_s.arg(displayName(*record)));
     if (record->state.manifest.kind != u"native")
-        return std::unexpected(u"\"%1\" is a Python plugin; the AI services sidecar runs it."_s.arg(displayName(*record)));
+        return std::unexpected(
+            u"\"%1\" is a Python plugin; the AI services sidecar runs it."_s.arg(displayName(*record)));
 
     auto native = NativePlugin::activate(record->state.manifest, d->bus, [this, id] { return settings(id); });
     record = d->find(id);  // The plugin may have run commands that changed the plugin list.
@@ -260,7 +265,8 @@ void PluginManager::activateAll()
 {
     QStringList ids;
     for (const auto& [id, record] : d->records) {
-        if (record.manifestValid && record.state.status == PluginStatus::Discovered && record.state.manifest.kind == u"native")
+        if (record.manifestValid && record.state.status == PluginStatus::Discovered &&
+            record.state.manifest.kind == u"native")
             ids.append(id);
     }
     for (const QString& id : std::as_const(ids))
@@ -315,7 +321,8 @@ std::expected<void, QString> PluginManager::setSettings(const QString& id, const
 
     const QJsonObject effective = JsonSchema::applyDefaults(settings, schema);
     if (const QStringList problems = JsonSchema::validate(effective, schema); !problems.isEmpty())
-        return std::unexpected(u"The settings for \"%1\" are not valid: %2"_s.arg(displayName(*record), problems.join(u"; "_s)));
+        return std::unexpected(
+            u"The settings for \"%1\" are not valid: %2"_s.arg(displayName(*record), problems.join(u"; "_s)));
     if (auto saved = d->store.save(id, settings); !saved)
         return std::unexpected(saved.error());
 

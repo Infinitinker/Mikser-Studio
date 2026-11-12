@@ -16,14 +16,14 @@ using mikserstudio::tests::waitFor;
 
 namespace {
 
-QHttpServerResponse jsonResponse(const char* text, QHttpServerResponse::StatusCode status = QHttpServerResponse::StatusCode::Ok)
+QHttpServerResponse jsonResponse(const char* text,
+                                 QHttpServerResponse::StatusCode status = QHttpServerResponse::StatusCode::Ok)
 {
     return QHttpServerResponse("application/json", QByteArray(text), status);
 }
 
 // Calls `call` with a callback that stores the answer, then waits for it.
-template <typename T, typename Call>
-std::expected<T, QString> await(Call call)
+template <typename T, typename Call> std::expected<T, QString> await(Call call)
 {
     std::optional<std::expected<T, QString>> answer;
     QObject context;
@@ -89,7 +89,8 @@ TEST_CASE("Jobs are submitted, listed, read and canceled", "[services][client]")
     });
 
     const auto id = await<QString>([&](const QObject* context, auto done) {
-        fixture.client.submitJob(u"video.upscale"_s, QJsonObject{{u"input"_s, u"C:/a.mp4"_s}}, context, std::move(done));
+        fixture.client.submitJob(u"video.upscale"_s, QJsonObject{{u"input"_s, u"C:/a.mp4"_s}}, context,
+                                 std::move(done));
     });
     CHECK(id == u"job-1"_s);
     const RecordedRequest& post = fixture.server.requests().at(0);
@@ -98,8 +99,8 @@ TEST_CASE("Jobs are submitted, listed, read and canceled", "[services][client]")
     CHECK(QJsonDocument::fromJson(post.body).object() ==
           QJsonObject{{u"op"_s, u"video.upscale"_s}, {u"params"_s, QJsonObject{{u"input"_s, u"C:/a.mp4"_s}}}});
 
-    const auto jobs =
-        await<QList<AiJobInfo>>([&](const QObject* context, auto done) { fixture.client.jobs(context, std::move(done)); });
+    const auto jobs = await<QList<AiJobInfo>>(
+        [&](const QObject* context, auto done) { fixture.client.jobs(context, std::move(done)); });
     REQUIRE(jobs);
     CHECK(jobs->at(0).state == AiJobState::Running);
     CHECK(jobs->at(0).progress == 0.25);
@@ -134,22 +135,22 @@ TEST_CASE("Error answers become the sidecar's message", "[services][client]")
     {
         fixture.server.setHandler(
             [](const RecordedRequest&) { return QHttpServerResponse(QHttpServerResponse::StatusCode::BadGateway); });
-        const auto health =
-            await<QJsonObject>([&](const QObject* context, auto done) { fixture.client.health(context, std::move(done)); });
+        const auto health = await<QJsonObject>(
+            [&](const QObject* context, auto done) { fixture.client.health(context, std::move(done)); });
         CHECK(health.error() == u"The AI service answered GET /v1/health with HTTP 502."_s);
     }
     SECTION("with an answer that is not JSON")
     {
         fixture.server.setHandler([](const RecordedRequest&) { return jsonResponse("[1, 2"); });
-        const auto jobs =
-            await<QList<AiJobInfo>>([&](const QObject* context, auto done) { fixture.client.jobs(context, std::move(done)); });
+        const auto jobs = await<QList<AiJobInfo>>(
+            [&](const QObject* context, auto done) { fixture.client.jobs(context, std::move(done)); });
         CHECK(jobs.error().startsWith(u"The AI service sent an answer Mikser Studio does not understand"_s));
     }
     SECTION("with JSON of the wrong shape")
     {
         fixture.server.setHandler([](const RecordedRequest&) { return jsonResponse(R"({"jobs": []})"); });
-        const auto jobs =
-            await<QList<AiJobInfo>>([&](const QObject* context, auto done) { fixture.client.jobs(context, std::move(done)); });
+        const auto jobs = await<QList<AiJobInfo>>(
+            [&](const QObject* context, auto done) { fixture.client.jobs(context, std::move(done)); });
         CHECK(jobs.error() ==
               u"The AI service sent an answer Mikser Studio does not understand: the job list is not a JSON array."_s);
     }
@@ -167,7 +168,8 @@ TEST_CASE("A sidecar that is gone or silent is reported", "[services][client]")
             port = probe.serverPort();
         }
         client.setEndpoint(QUrl(u"http://127.0.0.1:%1"_s.arg(port)), "tok");
-        const auto health = await<QJsonObject>([&](const QObject* context, auto done) { client.health(context, std::move(done)); });
+        const auto health = await<QJsonObject>(
+            [&](const QObject* context, auto done) { client.health(context, std::move(done)); });
         CHECK(health.error().startsWith(u"The AI service did not answer ("_s));
     }
     SECTION("it accepts but never answers")
@@ -176,7 +178,8 @@ TEST_CASE("A sidecar that is gone or silent is reported", "[services][client]")
         REQUIRE(silent.listen(QHostAddress::LocalHost, 0));
         client.setEndpoint(QUrl(u"http://127.0.0.1:%1"_s.arg(silent.serverPort())), "tok");
         client.setTimeout(300ms);
-        const auto health = await<QJsonObject>([&](const QObject* context, auto done) { client.health(context, std::move(done)); });
+        const auto health = await<QJsonObject>(
+            [&](const QObject* context, auto done) { client.health(context, std::move(done)); });
         CHECK(health.error() == u"The AI service did not answer (no answer within 0.3 seconds)."_s);
     }
 }

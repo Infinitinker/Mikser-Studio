@@ -35,7 +35,7 @@ public:
     [[nodiscard]] QString errorText() const;
 
     void commitPosition();
-    void commitIn();   // After the In field was edited.
+    void commitIn();  // After the In field was edited.
     void commitOut();  // After the Out field was edited.
 
 private:

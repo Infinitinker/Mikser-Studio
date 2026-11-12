@@ -104,8 +104,7 @@ QString toDisplay(const QJsonValue& value)
         return value.toBool() ? u"true"_s : u"false"_s;
     if (value.isNull())
         return u"null"_s;
-    const QJsonDocument document = value.isArray() ? QJsonDocument(value.toArray())
-                                                   : QJsonDocument(value.toObject());
+    const QJsonDocument document = value.isArray() ? QJsonDocument(value.toArray()) : QJsonDocument(value.toObject());
     return QString::fromUtf8(document.toJson(QJsonDocument::Compact));
 }
 
@@ -217,8 +216,8 @@ private:
             return;
         const QRegularExpression expression(pattern.toString());
         if (!expression.isValid()) {
-            add(pointer, u"the schema pattern \"%1\" is not a valid regular expression (%2)"_s
-                             .arg(pattern.toString(), expression.errorString()));
+            add(pointer, u"the schema pattern \"%1\" is not a valid regular expression (%2)"_s.arg(
+                             pattern.toString(), expression.errorString()));
             return;
         }
         if (!expression.match(text).hasMatch())
@@ -289,8 +288,8 @@ QJsonObject JsonSchema::applyDefaults(const QJsonObject& value, const QJsonObjec
             if (!propertySchema.contains(u"default"))
                 continue;
             const QJsonValue fallback = propertySchema.value(u"default");
-            result.insert(it.key(), fallback.isObject() ? applyDefaults(fallback.toObject(), propertySchema)
-                                                        : fallback);
+            result.insert(it.key(),
+                          fallback.isObject() ? applyDefaults(fallback.toObject(), propertySchema) : fallback);
         } else if (const QJsonValue present = result.value(it.key()); present.isObject()) {
             result.insert(it.key(), applyDefaults(present.toObject(), propertySchema));
         }

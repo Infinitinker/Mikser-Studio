@@ -230,11 +230,10 @@ TEST_CASE("CommandBus reports unknown commands", "[commands]")
     CommandBus bus(stack);
     QString failedId;
     CommandError failedError;
-    QObject::connect(&bus, &CommandBus::failed,
-                     [&](const QString& id, const QJsonObject&, const CommandError& error) {
-                         failedId = id;
-                         failedError = error;
-                     });
+    QObject::connect(&bus, &CommandBus::failed, [&](const QString& id, const QJsonObject&, const CommandError& error) {
+        failedId = id;
+        failedError = error;
+    });
     const auto result = bus.execute(u"no.such_command"_s);
     REQUIRE_FALSE(result);
     CHECK(result.error().code == CommandErrorCode::UnknownCommand);
@@ -283,9 +282,8 @@ TEST_CASE("CommandBus emits executed and failed", "[commands]")
     }));
     CommandSpec throwing = setSpec();
     throwing.id = u"test.throw"_s;
-    REQUIRE(bus.registerCommand(throwing, [](const QJsonObject&) -> CommandResult {
-        throw std::runtime_error("boom");
-    }));
+    REQUIRE(
+        bus.registerCommand(throwing, [](const QJsonObject&) -> CommandResult { throw std::runtime_error("boom"); }));
 
     QStringList executed;
     QJsonObject executedParams;

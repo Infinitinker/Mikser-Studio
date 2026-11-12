@@ -88,10 +88,9 @@ void WorkspaceMenu::askAndSave()
                              .trimmed();
     if (!ok || name.isEmpty())
         return;
-    if (m_host.hasSavedWorkspace(name)
-        && QMessageBox::question(m_dialogParent, u"Save Workspace"_s,
-                                 u"A workspace named \"%1\" exists. Replace it?"_s.arg(name))
-            != QMessageBox::Yes) {
+    if (m_host.hasSavedWorkspace(name) &&
+        QMessageBox::question(m_dialogParent, u"Save Workspace"_s,
+                              u"A workspace named \"%1\" exists. Replace it?"_s.arg(name)) != QMessageBox::Yes) {
         return;
     }
     saveAs(name);

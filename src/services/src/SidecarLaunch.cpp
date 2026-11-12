@@ -31,8 +31,9 @@ std::expected<SidecarLaunch, QString> resolveSidecarLaunch(const SidecarOptions&
     if (options.cacheDirectory.isEmpty())
         return std::unexpected(u"The AI service could not start: no cache folder was configured."_s);
     if (!QDir().mkpath(options.cacheDirectory)) {
-        return std::unexpected(u"The AI service could not start: the cache folder \"%1\" cannot be created. Check that the drive is writable."_s
-                                   .arg(QDir::toNativeSeparators(options.cacheDirectory)));
+        return std::unexpected(
+            u"The AI service could not start: the cache folder \"%1\" cannot be created. Check that the drive is writable."_s
+                .arg(QDir::toNativeSeparators(options.cacheDirectory)));
     }
 
     SidecarLaunch launch{
@@ -44,14 +45,16 @@ std::expected<SidecarLaunch, QString> resolveSidecarLaunch(const SidecarOptions&
     if (launch.program.isEmpty()) {
         const QFileInfo project(QDir(options.aiDirectory).filePath(u"pyproject.toml"_s));
         if (options.aiDirectory.isEmpty() || !project.isFile()) {
-            return std::unexpected(u"The AI service could not start: its folder \"%1\" was not found. Reinstall Mikser Studio."_s
-                                       .arg(QDir::toNativeSeparators(options.aiDirectory)));
+            return std::unexpected(
+                u"The AI service could not start: its folder \"%1\" was not found. Reinstall Mikser Studio."_s.arg(
+                    QDir::toNativeSeparators(options.aiDirectory)));
         }
         const QDir ai(project.absolutePath());
         const QFileInfo program(environmentProgram(ai));
         if (!program.isFile()) {
-            return std::unexpected(u"The AI service could not start: its Python environment \"%1\" was not found. Create it as docs/development.md describes and restart Mikser Studio."_s
-                                       .arg(QDir::toNativeSeparators(ai.filePath(u".venv"_s))));
+            return std::unexpected(
+                u"The AI service could not start: its Python environment \"%1\" was not found. Create it as docs/development.md describes and restart Mikser Studio."_s
+                    .arg(QDir::toNativeSeparators(ai.filePath(u".venv"_s))));
         }
         launch.program = program.absoluteFilePath();
         launch.arguments = {};

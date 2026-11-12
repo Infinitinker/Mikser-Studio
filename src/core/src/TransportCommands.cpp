@@ -80,9 +80,16 @@ struct TransportCommand {
 QList<TransportCommand> transportCommands()
 {
     return {
-        {u"play"_s, u"Play"_s, u"Starts playback at normal speed."_s, {}, [](Transport& t, const QJsonObject&) { t.play(); }},
+        {u"play"_s,
+         u"Play"_s,
+         u"Starts playback at normal speed."_s,
+         {},
+         [](Transport& t, const QJsonObject&) { t.play(); }},
         {u"pause"_s, u"Pause"_s, u"Pauses playback."_s, {}, [](Transport& t, const QJsonObject&) { t.pause(); }},
-        {u"toggle"_s, u"Play/Pause"_s, u"Starts or pauses playback."_s, {},
+        {u"toggle"_s,
+         u"Play/Pause"_s,
+         u"Starts or pauses playback."_s,
+         {},
          [](Transport& t, const QJsonObject&) {
              if (t.state() == Transport::State::Playing)
                  t.pause();
@@ -101,18 +108,22 @@ QList<TransportCommand> transportCommands()
              t.seek(steppedFrame(t.position(), params.value(u"frames").toInteger(), last));
          }},
         {u"shuttle"_s, u"Shuttle"_s, u"Plays at a speed: 1 is normal, negative plays backwards, 0 pauses."_s,
-         paramsSchema(QJsonObject{{u"speed"_s, QJsonObject{{u"type"_s, u"number"_s}, {u"minimum"_s, -32}, {u"maximum"_s, 32}}}},
-                      {u"speed"_s}),
+         paramsSchema(
+             QJsonObject{{u"speed"_s, QJsonObject{{u"type"_s, u"number"_s}, {u"minimum"_s, -32}, {u"maximum"_s, 32}}}},
+             {u"speed"_s}),
          [](Transport& t, const QJsonObject& params) { t.setSpeed(params.value(u"speed").toDouble()); }},
-        {u"status"_s, u"Playback Status"_s, u"Returns position, duration, state and frame rate."_s, {},
-         [](Transport&, const QJsonObject&) {}, true},
+        {u"status"_s,
+         u"Playback Status"_s,
+         u"Returns position, duration, state and frame rate."_s,
+         {},
+         [](Transport&, const QJsonObject&) { },
+         true},
     };
 }
 
 }  // namespace
 
-void registerTransportCommands(CommandBus& bus, Transport& transport, const QString& prefix,
-                               const QString& displayName)
+void registerTransportCommands(CommandBus& bus, Transport& transport, const QString& prefix, const QString& displayName)
 {
     for (TransportCommand& command : transportCommands()) {
         const bool registered = bus.registerCommand(
@@ -132,7 +143,8 @@ void registerTransportCommands(CommandBus& bus, Transport& transport, const QStr
                 return CommandOutcome{status(transport), nullptr};
             });
         if (!registered)
-            qCWarning(lcTransport).noquote() << "Transport command" << prefix + u'.' + command.name << "was not registered";
+            qCWarning(lcTransport).noquote()
+                << "Transport command" << prefix + u'.' + command.name << "was not registered";
     }
 }
 

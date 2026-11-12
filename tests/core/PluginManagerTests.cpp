@@ -149,7 +149,8 @@ TEST_CASE("Discovery lists valid plugins and reports broken manifests", "[plugin
     CHECK(m.status(u"bad_manifest"_s) == PluginStatus::Failed);
     CHECK(m.manager.plugin(u"bad_manifest"_s)->error.contains(u"/version: is required"_s));
     CHECK(m.manager.plugin(u"mikserstudio.tests.bad"_s) == nullptr);
-    CHECK(m.manager.plugin(kFixtureId)->manifest.directory == QDir::fromNativeSeparators(env.pluginsDir() + u"/fixture"_s));
+    CHECK(m.manager.plugin(kFixtureId)->manifest.directory ==
+          QDir::fromNativeSeparators(env.pluginsDir() + u"/fixture"_s));
 
     REQUIRE(m.failures.size() == 2);
     QStringList failedIds{m.failures[0].first, m.failures[1].first};
@@ -238,8 +239,8 @@ TEST_CASE("A native plugin activates, runs commands and deactivates cleanly", "[
     }
     SECTION("plugins can execute other commands through the host")
     {
-        const auto nested = env.bus.execute(kFixtureId + u".run"_s,
-                                            json(R"({"command": "mikserstudio.tests.fixture.echo", "params": {"text": "x"}})"));
+        const auto nested = env.bus.execute(
+            kFixtureId + u".run"_s, json(R"({"command": "mikserstudio.tests.fixture.echo", "params": {"text": "x"}})"));
         REQUIRE(nested);
         CHECK(nested->value(u"echo").toString() == u"x"_s);
         const auto unknown = env.bus.execute(kFixtureId + u".run"_s, json(R"({"command": "no.such_command"})"));

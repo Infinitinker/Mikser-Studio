@@ -33,8 +33,8 @@ public:
 
     [[nodiscard]] quint64 framesReceived() const;
     [[nodiscard]] quint64 framesPresented() const;  // Uploaded and drawn.
-    [[nodiscard]] quint64 framesDropped() const;    // Replaced by a newer one before being drawn.
-    [[nodiscard]] QString backendName() const;      // "D3D11", "Null", ... once initialized.
+    [[nodiscard]] quint64 framesDropped() const;  // Replaced by a newer one before being drawn.
+    [[nodiscard]] QString backendName() const;  // "D3D11", "Null", ... once initialized.
 
     // Draws the newest frame and reads the result back from the swapchain. Needs an exposed
     // window with a non-empty size.

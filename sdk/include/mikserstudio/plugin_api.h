@@ -50,7 +50,7 @@ typedef struct MikserStudioStringSink {
  * On failure write an English message for the user to `error` and return non-zero.
  */
 typedef int (*MikserStudioCommandFn)(void* user_data, const char* params_json, size_t params_length,
-                              const MikserStudioStringSink* result, const MikserStudioStringSink* error);
+                                     const MikserStudioStringSink* result, const MikserStudioStringSink* error);
 
 typedef struct MikserStudioHostApiV1 {
     uint32_t struct_size;
@@ -73,9 +73,8 @@ typedef struct MikserStudioHostApiV1 {
                             void* user_data, const MikserStudioStringSink* error);
 
     /* Executes any command by id, like the UI or API would. Returns 0 on success. */
-    int (*execute_command)(void* host, const char* id, size_t id_length, const char* params_json,
-                           size_t params_length, const MikserStudioStringSink* result,
-                           const MikserStudioStringSink* error);
+    int (*execute_command)(void* host, const char* id, size_t id_length, const char* params_json, size_t params_length,
+                           const MikserStudioStringSink* result, const MikserStudioStringSink* error);
 
     /* Current plugin settings as a JSON object, validated against the manifest schema. */
     void (*get_settings)(void* host, const MikserStudioStringSink* settings_json);

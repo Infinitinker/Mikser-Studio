@@ -56,8 +56,8 @@ FakeAiService::FakeAiService(core::CommandBus& bus, const core::ProjectModel& pr
         if (m_bus.registerCommand(std::move(spec), std::move(handler)))
             m_commandIds.append(id);
     };
-    core::CommandSpec jobs =
-        aiSpec(u"ai.jobs"_s, u"List AI Jobs"_s, u"Lists the AI jobs of this session with their progress and results."_s);
+    core::CommandSpec jobs = aiSpec(u"ai.jobs"_s, u"List AI Jobs"_s,
+                                    u"Lists the AI jobs of this session with their progress and results."_s);
     jobs.readOnly = true;
     add(std::move(jobs), [this](const QJsonObject&) { return ok(QJsonObject{{u"jobs"_s, jobsJson()}}); });
     add(aiSpec(u"ai.cancel_job"_s, u"Cancel AI Job"_s, u"Stops a queued or running AI job."_s,

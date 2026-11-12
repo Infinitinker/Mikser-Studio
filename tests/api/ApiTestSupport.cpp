@@ -98,13 +98,13 @@ HttpReply sendRequest(const QByteArray& method, const QUrl& url, const QByteArra
 
 void registerTestCommands(core::CommandBus& bus, int& counter)
 {
-    REQUIRE(bus.registerCommand(
-        spec(u"test.echo"_s,
-             R"({"type": "object", "properties": {"text": {"type": "string"}}, "required": ["text"],
+    REQUIRE(
+        bus.registerCommand(spec(u"test.echo"_s,
+                                 R"({"type": "object", "properties": {"text": {"type": "string"}}, "required": ["text"],
                  "additionalProperties": false})"),
-        [](const QJsonObject& params) -> core::CommandResult {
-            return core::CommandOutcome{QJsonObject{{u"text"_s, params.value(u"text"_s)}}, nullptr};
-        }));
+                            [](const QJsonObject& params) -> core::CommandResult {
+                                return core::CommandOutcome{QJsonObject{{u"text"_s, params.value(u"text"_s)}}, nullptr};
+                            }));
     REQUIRE(bus.registerCommand(
         spec(u"test.increment"_s,
              R"({"type": "object", "properties": {"by": {"type": "integer", "minimum": 1, "default": 1}},
@@ -113,7 +113,8 @@ void registerTestCommands(core::CommandBus& bus, int& counter)
         [&counter](const QJsonObject& params) -> core::CommandResult {
             const int by = params.value(u"by"_s).toInt();
             counter += by;
-            return core::CommandOutcome{QJsonObject{{u"value"_s, counter}}, std::make_unique<IncrementEdit>(counter, by)};
+            return core::CommandOutcome{QJsonObject{{u"value"_s, counter}},
+                                        std::make_unique<IncrementEdit>(counter, by)};
         }));
     REQUIRE(bus.registerCommand(spec(u"test.fail"_s, "{}"), [](const QJsonObject&) -> core::CommandResult {
         return core::commandFailure(core::CommandErrorCode::Failed, u"The test command failed on purpose."_s);
@@ -121,17 +122,16 @@ void registerTestCommands(core::CommandBus& bus, int& counter)
     REQUIRE(bus.registerCommand(spec(u"test.busy"_s, "{}"), [](const QJsonObject&) -> core::CommandResult {
         return core::commandFailure(core::CommandErrorCode::NotAvailable, u"The test command is busy."_s);
     }));
-    REQUIRE(bus.registerCommand(spec(u"test.noop"_s, "{}"), [](const QJsonObject&) -> core::CommandResult {
-        return core::CommandOutcome{};
-    }));
+    REQUIRE(bus.registerCommand(spec(u"test.noop"_s, "{}"),
+                                [](const QJsonObject&) -> core::CommandResult { return core::CommandOutcome{}; }));
 }
 
 ApiFixture::ApiFixture()
 {
     REQUIRE(dir.isValid());
     registerTestCommands(bus, counter);
-    server = std::make_unique<api::ApiServer>(bus, api::ApiServerOptions{.port = 0, .token = {},
-                                                                         .discoveryFile = dir.filePath(u"api.json"_s)});
+    server = std::make_unique<api::ApiServer>(
+        bus, api::ApiServerOptions{.port = 0, .token = {}, .discoveryFile = dir.filePath(u"api.json"_s)});
     const auto started = server->start();
     if (!started)
         FAIL("ApiServer::start failed: " << started.error().toStdString());

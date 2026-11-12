@@ -67,9 +67,8 @@ MediaBinPanel::MediaBinPanel(core::CommandBus& bus, const core::ProjectModel& pr
     m_view->header()->setSectionResizeMode(MediaBinModel::DurationColumn, QHeaderView::ResizeToContents);
     m_view->header()->setSectionResizeMode(MediaBinModel::KindColumn, QHeaderView::ResizeToContents);
     m_view->installEventFilter(this);
-    connect(m_view, &QTreeView::doubleClicked, this, [this](const QModelIndex& index) {
-        appendToTimeline(m_model->mediaIdAt(index.row()));
-    });
+    connect(m_view, &QTreeView::doubleClicked, this,
+            [this](const QModelIndex& index) { appendToTimeline(m_model->mediaIdAt(index.row())); });
     layout->addWidget(m_view, 1);
 
     m_empty->setAlignment(Qt::AlignCenter);
@@ -84,8 +83,8 @@ MediaBinPanel::MediaBinPanel(core::CommandBus& bus, const core::ProjectModel& pr
 void MediaBinPanel::importFiles(const QStringList& paths)
 {
     for (const QString& path : paths)
-        executeReported(m_bus, u"project.import_media"_s,
-                        QJsonObject{{u"path"_s, QDir::fromNativeSeparators(path)}}, this);
+        executeReported(m_bus, u"project.import_media"_s, QJsonObject{{u"path"_s, QDir::fromNativeSeparators(path)}},
+                        this);
 }
 
 void MediaBinPanel::appendToTimeline(const QString& mediaId)
@@ -96,11 +95,10 @@ void MediaBinPanel::appendToTimeline(const QString& mediaId)
     const QString trackId = firstTrackFor(m_project, *media);
     if (trackId.isEmpty())
         return;
-    executeReported(m_bus, u"timeline.add_clip"_s,
-                    QJsonObject{{u"mediaId"_s, mediaId},
-                                {u"trackId"_s, trackId},
-                                {u"position"_s, trackEnd(m_project, trackId)}},
-                    this);
+    executeReported(
+        m_bus, u"timeline.add_clip"_s,
+        QJsonObject{{u"mediaId"_s, mediaId}, {u"trackId"_s, trackId}, {u"position"_s, trackEnd(m_project, trackId)}},
+        this);
 }
 
 void MediaBinPanel::removeSelected()

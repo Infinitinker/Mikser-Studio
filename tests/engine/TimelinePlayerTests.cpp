@@ -42,8 +42,14 @@ public:
             .id = ProjectModel::newId(u"media"_s),
             .path = u"color:"_s + color,
             .name = color,
-            .info = {.kind = MediaKind::Image, .durationFrames = 125, .width = 0, .height = 0,
-                     .frameRate = Rational{25, 1}, .hasVideo = true, .hasAudio = false, .audioSampleRate = 0,
+            .info = {.kind = MediaKind::Image,
+                     .durationFrames = 125,
+                     .width = 0,
+                     .height = 0,
+                     .frameRate = Rational{25, 1},
+                     .hasVideo = true,
+                     .hasAudio = false,
+                     .audioSampleRate = 0,
                      .audioChannels = 0},
             .provenance = {},
         };
@@ -310,15 +316,22 @@ TEST_CASE("Project media naming an MLT service plays as a gap", "[timeline]")
         .path = u"xml-string:<mlt><producer id=\"p\"><property name=\"resource\">color:#00ff00</property>"
                 u"</producer></mlt>"_s,
         .name = u"injected"_s,
-        .info = {.kind = MediaKind::Video, .durationFrames = 100, .width = 1920, .height = 1080,
-                 .frameRate = Rational{25, 1}, .hasVideo = true, .hasAudio = false, .audioSampleRate = 0,
+        .info = {.kind = MediaKind::Video,
+                 .durationFrames = 100,
+                 .width = 1920,
+                 .height = 1080,
+                 .frameRate = Rational{25, 1},
+                 .hasVideo = true,
+                 .hasAudio = false,
+                 .audioSampleRate = 0,
                  .audioChannels = 0},
         .provenance = {},
     };
     REQUIRE(fixture.project.addMedia(injected).has_value());
     fixture.addClip(u"V1"_s, injected.id, 0, 30);
 
-    auto player = std::make_unique<TimelinePlayer>(mikserstudio::tests::mltRuntime(), fixture.project, AudioOutput::Silent);
+    auto player = std::make_unique<TimelinePlayer>(mikserstudio::tests::mltRuntime(), fixture.project,
+                                                   AudioOutput::Silent);
     player->setFrameSink(fixture.sink);
     QSignalSpy errors(player.get(), &TimelinePlayer::errorOccurred);
     player->rebuildNow();
@@ -369,8 +382,14 @@ TEST_CASE("Media that cannot be opened plays as a gap and is reported", "[timeli
         .id = ProjectModel::newId(u"media"_s),
         .path = u"D:/definitely/not/here.mp4"_s,
         .name = u"here.mp4"_s,
-        .info = {.kind = MediaKind::Video, .durationFrames = 100, .width = 1920, .height = 1080,
-                 .frameRate = Rational{25, 1}, .hasVideo = true, .hasAudio = false, .audioSampleRate = 0,
+        .info = {.kind = MediaKind::Video,
+                 .durationFrames = 100,
+                 .width = 1920,
+                 .height = 1080,
+                 .frameRate = Rational{25, 1},
+                 .hasVideo = true,
+                 .hasAudio = false,
+                 .audioSampleRate = 0,
                  .audioChannels = 0},
         .provenance = {},
     };
@@ -378,7 +397,8 @@ TEST_CASE("Media that cannot be opened plays as a gap and is reported", "[timeli
     fixture.addClip(u"V1"_s, missing.id, 0, 30);
     fixture.addClip(u"V1"_s, fixture.addColor(u"#ff0000"_s), 30, 10);
 
-    auto player = std::make_unique<TimelinePlayer>(mikserstudio::tests::mltRuntime(), fixture.project, AudioOutput::Silent);
+    auto player = std::make_unique<TimelinePlayer>(mikserstudio::tests::mltRuntime(), fixture.project,
+                                                   AudioOutput::Silent);
     player->setFrameSink(fixture.sink);
     QSignalSpy errors(player.get(), &TimelinePlayer::errorOccurred);
     player->rebuildNow();
@@ -402,8 +422,14 @@ TEST_CASE("The sample video plays on the timeline", "[timeline][sample]")
         .id = ProjectModel::newId(u"media"_s),
         .path = *sample,
         .name = u"sample"_s,
-        .info = {.kind = MediaKind::Video, .durationFrames = 750, .width = 1920, .height = 1080,
-                 .frameRate = Rational{30, 1}, .hasVideo = true, .hasAudio = true, .audioSampleRate = 44100,
+        .info = {.kind = MediaKind::Video,
+                 .durationFrames = 750,
+                 .width = 1920,
+                 .height = 1080,
+                 .frameRate = Rational{30, 1},
+                 .hasVideo = true,
+                 .hasAudio = true,
+                 .audioSampleRate = 44100,
                  .audioChannels = 2},
         .provenance = {},
     };

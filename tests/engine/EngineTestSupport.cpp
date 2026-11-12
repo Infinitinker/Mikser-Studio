@@ -45,10 +45,10 @@ QColor centerColor(const QImage& image)
 
 bool closeTo(const QColor& actual, const QColor& expected, int tolerance)
 {
-    return std::abs(actual.red() - expected.red()) <= tolerance
-           && std::abs(actual.green() - expected.green()) <= tolerance
-           && std::abs(actual.blue() - expected.blue()) <= tolerance
-           && std::abs(actual.alpha() - expected.alpha()) <= tolerance;
+    return std::abs(actual.red() - expected.red()) <= tolerance &&
+           std::abs(actual.green() - expected.green()) <= tolerance &&
+           std::abs(actual.blue() - expected.blue()) <= tolerance &&
+           std::abs(actual.alpha() - expected.alpha()) <= tolerance;
 }
 
 void RecordingSink::presentFrame(engine::VideoFrame frame)

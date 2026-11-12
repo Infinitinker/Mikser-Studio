@@ -34,7 +34,8 @@ AiClient::Callback<QJsonDocument> adapt(AiClient::Callback<T> done,
         }
         auto parsed = parse(*answer);
         if (!parsed) {
-            done(std::unexpected(u"The AI service sent an answer Mikser Studio does not understand: %1."_s.arg(parsed.error())));
+            done(std::unexpected(
+                u"The AI service sent an answer Mikser Studio does not understand: %1."_s.arg(parsed.error())));
             return;
         }
         done(std::move(*parsed));

@@ -34,7 +34,6 @@ class SidecarManager;
 //
 // The commands and the job tracker belong to `client` (they go away with it, and unregister
 // themselves from the bus). `bus`, `project` and `sidecar` may be destroyed first. Call once.
-void registerAiCommands(core::CommandBus& bus, core::ProjectModel& project, SidecarManager& sidecar,
-                        AiClient& client);
+void registerAiCommands(core::CommandBus& bus, core::ProjectModel& project, SidecarManager& sidecar, AiClient& client);
 
 }  // namespace mikserstudio::services

@@ -83,7 +83,8 @@ std::expected<QJsonObject, QString> placeUpscaledVideo(core::CommandBus& bus, co
             QDir::toNativeSeparators(output), imported.error().message));
     }
     const QString mediaId = imported->value(u"mediaId").toString();
-    const QString notPlaced = u"The upscaled video was imported into the media bin, but it was not placed on the timeline: "_s;
+    const QString notPlaced =
+        u"The upscaled video was imported into the media bin, but it was not placed on the timeline: "_s;
     if (!source)
         return std::unexpected(notPlaced + source.error());
 
@@ -108,8 +109,9 @@ std::expected<QJsonObject, QString> placeUpscaledVideo(core::CommandBus& bus, co
                                                          {u"out"_s, out},
                                                      });
     if (!added) {
-        return std::unexpected(u"The upscaled video was imported into the media bin, but it was not placed on %1: %2"_s.arg(
-            trackId, added.error().message));
+        return std::unexpected(
+            u"The upscaled video was imported into the media bin, but it was not placed on %1: %2"_s.arg(
+                trackId, added.error().message));
     }
     return QJsonObject{
         {u"mediaId"_s, mediaId},

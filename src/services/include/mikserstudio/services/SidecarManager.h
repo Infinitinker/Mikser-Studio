@@ -16,11 +16,11 @@ class QProcess;
 namespace mikserstudio::services {
 
 enum class SidecarState {
-    Stopped,     // Not started, or stopped on purpose.
-    Starting,    // Process launched, waiting for "MIKSERSTUDIO_AI_READY port=<port>".
-    Running,     // Ready and answering health checks; baseUrl() and token() are valid.
+    Stopped,  // Not started, or stopped on purpose.
+    Starting,  // Process launched, waiting for "MIKSERSTUDIO_AI_READY port=<port>".
+    Running,  // Ready and answering health checks; baseUrl() and token() are valid.
     Restarting,  // Crashed or hung; waiting for the backoff delay before the next launch.
-    Failed,      // Could not start or crashed too often; errorString() says why. start() retries.
+    Failed,  // Could not start or crashed too often; errorString() says why. start() retries.
 };
 
 // "stopped", "starting", "running", "restarting", "failed".

@@ -18,8 +18,7 @@ public:
     static constexpr int kFallbackWidth = 1920;
     static constexpr int kFallbackHeight = 1080;
 
-    explicit ClipPlayer(const MltRuntime& runtime, AudioOutput audio = AudioOutput::Device,
-                        QObject* parent = nullptr);
+    explicit ClipPlayer(const MltRuntime& runtime, AudioOutput audio = AudioOutput::Device, QObject* parent = nullptr);
     ~ClipPlayer() override;
 
     // Opens an absolute local file or a color resource ("color:#ff0000") paused on its first

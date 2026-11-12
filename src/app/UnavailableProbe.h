@@ -7,7 +7,10 @@ namespace mikserstudio::app {
 // Used when the playback engine could not start: every import fails with the engine's reason.
 class UnavailableProbe final : public core::MediaProbe {
 public:
-    explicit UnavailableProbe(QString reason) : m_reason(std::move(reason)) {}
+    explicit UnavailableProbe(QString reason)
+        : m_reason(std::move(reason))
+    {
+    }
 
     [[nodiscard]] std::expected<core::MediaInfo, QString> probe(const QString& /*path*/,
                                                                 core::Rational /*projectFrameRate*/) override

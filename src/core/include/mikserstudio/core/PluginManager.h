@@ -15,9 +15,9 @@ class CommandBus;
 
 // A UI panel a plugin contributes. QML is loaded by the UI and bound to the plugin's commands.
 struct PanelContribution {
-    QString id;           // Unique inside the plugin; registered as "<plugin-id>/<panel-id>".
+    QString id;  // Unique inside the plugin; registered as "<plugin-id>/<panel-id>".
     QString title;
-    QString qml;          // Path relative to the plugin directory.
+    QString qml;  // Path relative to the plugin directory.
     QString defaultArea;  // "left" | "right" | "bottom" | "center" | "floating".
 };
 

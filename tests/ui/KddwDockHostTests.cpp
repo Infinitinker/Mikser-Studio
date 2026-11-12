@@ -26,11 +26,12 @@ PanelDescriptor labelPanel(const QString& id, DockArea area = DockArea::Right, b
         .title = u"Title of "_s + id,
         .defaultArea = area,
         .unique = unique,
-        .create = [id](QWidget* parent) {
-            auto* label = new QLabel(id, parent);
-            label->setObjectName(id);
-            return label;
-        },
+        .create =
+            [id](QWidget* parent) {
+                auto* label = new QLabel(id, parent);
+                label->setObjectName(id);
+                return label;
+            },
     };
 }
 
@@ -237,10 +238,11 @@ TEST_CASE("KddwDockHost shows placeholders for unknown panels and replaces them 
     CHECK_FALSE(host.isPlaceholder(u"test/a"_s));
     REQUIRE(host.isPanelOpen(u"plugin.gone/panel"_s));
     REQUIRE(host.isPlaceholder(u"plugin.gone/panel"_s));
-    const auto* placeholder = qobject_cast<mikserstudio::ui::PlaceholderPanel*>(host.panelWidget(u"plugin.gone/panel"_s));
+    const auto* placeholder = qobject_cast<mikserstudio::ui::PlaceholderPanel*>(
+        host.panelWidget(u"plugin.gone/panel"_s));
     REQUIRE(placeholder != nullptr);
-    CHECK(mikserstudio::ui::PlaceholderPanel::message(placeholder->panelId())
-          == u"This panel comes from plugin.gone, which is not installed."_s);
+    CHECK(mikserstudio::ui::PlaceholderPanel::message(placeholder->panelId()) ==
+          u"This panel comes from plugin.gone, which is not installed."_s);
     CHECK(host.panels().size() == 1);
 
     // The plugin comes back: the placeholder becomes the real panel in place.
@@ -354,8 +356,8 @@ TEST_CASE("KddwDockHost saves a built-in workspace typed in another case under t
     REQUIRE(f.host->saveWorkspace(u"editing"_s));
     CHECK(f.host->currentWorkspace() == u"Editing"_s);
     // The file name matters on case-sensitive file systems: it must be the one "Editing" loads.
-    CHECK(workspaces.entryList({u"*.json"_s}, QDir::Files)
-          == QStringList{mikserstudio::ui::workspaceFileName(u"Editing"_s)});
+    CHECK(workspaces.entryList({u"*.json"_s}, QDir::Files) ==
+          QStringList{mikserstudio::ui::workspaceFileName(u"Editing"_s)});
     CHECK(f.host->hasSavedWorkspace(u"Editing"_s));
     CHECK(f.host->hasSavedWorkspace(u"EDITING"_s));
     CHECK(f.host->workspaces().count(u"Editing"_s) == 1);

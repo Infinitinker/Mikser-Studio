@@ -27,8 +27,14 @@ MediaItem videoItem(const QString& id, FramePos duration = 300)
         .id = id,
         .path = mediaPath(id + u".mp4"_s),
         .name = {},
-        .info = MediaInfo{.kind = MediaKind::Video, .durationFrames = duration, .width = 1920, .height = 1080,
-                          .frameRate = {30, 1}, .hasVideo = true, .hasAudio = true, .audioSampleRate = 48000,
+        .info = MediaInfo{.kind = MediaKind::Video,
+                          .durationFrames = duration,
+                          .width = 1920,
+                          .height = 1080,
+                          .frameRate = {30, 1},
+                          .hasVideo = true,
+                          .hasAudio = true,
+                          .audioSampleRate = 48000,
                           .audioChannels = 2},
         .provenance = {},
     };
@@ -421,17 +427,18 @@ TEST_CASE("Loading accepts only local media paths and color resources", "[projec
     };
 
     ProjectModel project;
-    for (const QString& path : {
-             uR"(xml-string:<mlt><producer id="p"><property name="resource">http&#58;//example.invalid/t.mp4</property></producer></mlt>)"_s,
-             u"http://example.invalid/clip.mp4"_s,
-             u"file:///media/clip.mp4"_s,
-             u"dshow:video=Camera"_s,
-             u"gdigrab:desktop"_s,
-             u"//server/share/clip.mp4"_s,
-             uR"(\\server\share\clip.mp4)"_s,
-             u"media/clip.mp4"_s,
-             u"color:#ff0000; rm"_s,
-         }) {
+    for (
+        const QString& path : {
+            uR"(xml-string:<mlt><producer id="p"><property name="resource">http&#58;//example.invalid/t.mp4</property></producer></mlt>)"_s,
+            u"http://example.invalid/clip.mp4"_s,
+            u"file:///media/clip.mp4"_s,
+            u"dshow:video=Camera"_s,
+            u"gdigrab:desktop"_s,
+            u"//server/share/clip.mp4"_s,
+            uR"(\\server\share\clip.mp4)"_s,
+            u"media/clip.mp4"_s,
+            u"color:#ff0000; rm"_s,
+        }) {
         INFO(path.toStdString());
         const auto loaded = project.loadJson(withPath(path));
         REQUIRE_FALSE(loaded);

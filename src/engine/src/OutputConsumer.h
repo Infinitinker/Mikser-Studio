@@ -52,7 +52,7 @@ public:
     void stop();
     [[nodiscard]] bool isRunning() const;
     void refresh();  // Show the producer's current frame again (needed while paused).
-    void purge();    // Drop frames rendered ahead of time.
+    void purge();  // Drop frames rendered ahead of time.
     [[nodiscard]] QString name() const { return m_name; }
 
 private:

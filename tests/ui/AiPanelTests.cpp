@@ -64,17 +64,16 @@ struct FakeAi {
 private:
     void add(const QString& id, std::function<QJsonObject(const QJsonObject&)> handler)
     {
-        REQUIRE(bus.registerCommand(
-            CommandSpec{.id = id,
-                        .title = id,
-                        .description = id + u"."_s,
-                        .category = u"AI"_s,
-                        .paramsSchema = QJsonObject{{u"type"_s, u"object"_s}},
-                        .shortcut = {},
-                        .undoable = false},
-            [handler = std::move(handler)](const QJsonObject& params) -> CommandResult {
-                return CommandOutcome{.result = handler(params), .edit = nullptr};
-            }));
+        REQUIRE(bus.registerCommand(CommandSpec{.id = id,
+                                                .title = id,
+                                                .description = id + u"."_s,
+                                                .category = u"AI"_s,
+                                                .paramsSchema = QJsonObject{{u"type"_s, u"object"_s}},
+                                                .shortcut = {},
+                                                .undoable = false},
+                                    [handler = std::move(handler)](const QJsonObject& params) -> CommandResult {
+                                        return CommandOutcome{.result = handler(params), .edit = nullptr};
+                                    }));
     }
 
     QJsonObject addJob(const QString& title)
@@ -133,8 +132,7 @@ TEST_CASE("AiPanel is disabled while the AI commands are missing", "[ai-panel]")
     panel.hide();
 }
 
-TEST_CASE("AiPanel enables itself when the AI commands are registered and disables again without them",
-          "[ai-panel]")
+TEST_CASE("AiPanel enables itself when the AI commands are registered and disables again without them", "[ai-panel]")
 {
     AiFixture f;
     AiPanel panel(f.bus, f.project, f.selection);
@@ -197,18 +195,18 @@ TEST_CASE("AiPanel shows a failed request inline", "[ai-panel]")
     AiFixture f;
     f.ai.registerAll();
     f.bus.unregisterCommand(u"ai.generate_text"_s);
-    REQUIRE(f.bus.registerCommand(
-        CommandSpec{.id = u"ai.generate_text"_s,
-                    .title = u"Generate Text"_s,
-                    .description = u"Generates text."_s,
-                    .category = u"AI"_s,
-                    .paramsSchema = QJsonObject{{u"type"_s, u"object"_s}},
-                    .shortcut = {},
-                    .undoable = false},
-        [](const QJsonObject&) -> CommandResult {
-            return mikserstudio::core::commandFailure(mikserstudio::core::CommandErrorCode::NotAvailable,
-                                               u"No language model is installed."_s);
-        }));
+    REQUIRE(f.bus.registerCommand(CommandSpec{.id = u"ai.generate_text"_s,
+                                              .title = u"Generate Text"_s,
+                                              .description = u"Generates text."_s,
+                                              .category = u"AI"_s,
+                                              .paramsSchema = QJsonObject{{u"type"_s, u"object"_s}},
+                                              .shortcut = {},
+                                              .undoable = false},
+                                  [](const QJsonObject&) -> CommandResult {
+                                      return mikserstudio::core::commandFailure(
+                                          mikserstudio::core::CommandErrorCode::NotAvailable,
+                                          u"No language model is installed."_s);
+                                  }));
     AiPanel panel(f.bus, f.project, f.selection);
     panel.promptEditor()->setPlainText(u"Hello"_s);
     panel.generateText();

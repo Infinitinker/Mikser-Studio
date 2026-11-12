@@ -28,9 +28,8 @@ EventHub::EventHub(core::CommandBus& bus, QObject* parent)
 {
     connect(&bus, &core::CommandBus::executed, this, &EventHub::onExecuted);
     connect(&bus, &core::CommandBus::failed, this, &EventHub::onFailed);
-    connect(&bus, &core::CommandBus::commandRegistered, this, [this](const QString& id) {
-        broadcast(QJsonObject{{u"type"_s, u"command.registered"_s}, {u"id"_s, id}});
-    });
+    connect(&bus, &core::CommandBus::commandRegistered, this,
+            [this](const QString& id) { broadcast(QJsonObject{{u"type"_s, u"command.registered"_s}, {u"id"_s, id}}); });
     connect(&bus, &core::CommandBus::commandUnregistered, this, [this](const QString& id) {
         broadcast(QJsonObject{{u"type"_s, u"command.unregistered"_s}, {u"id"_s, id}});
     });

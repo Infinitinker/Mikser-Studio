@@ -11,9 +11,10 @@ int activate(const MikserStudioHostApiV1*, void**, const MikserStudioStringSink*
     return 0;
 }
 
-void deactivate(void*) {}
+void deactivate(void*) { }
 
-constexpr MikserStudioPluginV1 kPlugin{sizeof(MikserStudioPluginV1), MIKSERSTUDIO_PLUGIN_API_VERSION + 98u, &activate, &deactivate};
+constexpr MikserStudioPluginV1 kPlugin{sizeof(MikserStudioPluginV1), MIKSERSTUDIO_PLUGIN_API_VERSION + 98u, &activate,
+                                       &deactivate};
 
 }  // namespace
 

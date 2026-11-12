@@ -60,7 +60,7 @@ private:
     std::unique_ptr<QRhiGraphicsPipeline> m_pipeline;
     bool m_verticesUploaded = false;
     QSize m_frameSize;
-    QImage m_lastImage;          // Newest frame; re-uploaded when the texture is recreated.
+    QImage m_lastImage;  // Newest frame; re-uploaded when the texture is recreated.
     bool m_textureStale = false;  // m_lastImage is newer than the texture.
     quint64 m_presented = 0;
 };

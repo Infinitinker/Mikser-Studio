@@ -80,8 +80,9 @@ QHttpServerWebSocketUpgradeResponse HttpFrontend::verifyUpgrade(const QHttpServe
         qCDebug(lcApi).noquote() << what << "-> 401";
         return QHttpServerWebSocketUpgradeResponse::deny(
             static_cast<int>(HttpStatus::Unauthorized),
-            compactErrorJson(u"unauthorized"_s,
-                             u"Missing or wrong API token. Pass ?token=<token> or \"Authorization: Bearer <token>\"."_s));
+            compactErrorJson(
+                u"unauthorized"_s,
+                u"Missing or wrong API token. Pass ?token=<token> or \"Authorization: Bearer <token>\"."_s));
     }
     qCDebug(lcApi).noquote() << what << "-> 101";
     return QHttpServerWebSocketUpgradeResponse::accept();

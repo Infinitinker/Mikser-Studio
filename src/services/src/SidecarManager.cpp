@@ -225,8 +225,8 @@ void SidecarManager::checkHealth()
         }
         ++m_healthFailures;
         qCWarning(lcSidecar).noquote() << "Health check" << m_healthFailures << "of"
-                                       << m_options.healthFailuresBeforeRestart << "failed:"
-                                       << (status ? u"HTTP %1"_s.arg(status) : reply->errorString());
+                                       << m_options.healthFailuresBeforeRestart
+                                       << "failed:" << (status ? u"HTTP %1"_s.arg(status) : reply->errorString());
         if (m_healthFailures >= m_options.healthFailuresBeforeRestart)
             restartAfter(u"stopped answering health checks"_s);
     });
@@ -239,9 +239,10 @@ void SidecarManager::restartAfter(const QString& problem)
     discardProcess(false);
     m_baseUrl.clear();
     if (m_restarts >= m_options.maxRestarts) {
-        fail(u"The AI service %1. Mikser Studio gave up after %2 restarts; run an AI command to try again, and see the log (mikserstudio.services.sidecar) for details."_s
-                 .arg(problem)
-                 .arg(m_restarts));
+        fail(
+            u"The AI service %1. Mikser Studio gave up after %2 restarts; run an AI command to try again, and see the log (mikserstudio.services.sidecar) for details."_s
+                .arg(problem)
+                .arg(m_restarts));
         return;
     }
     const auto delay = m_options.restartDelay * (1LL << std::min(m_restarts, 20));

@@ -20,9 +20,9 @@ namespace mikserstudio::app {
 struct AppPaths;
 
 struct StudioOptions {
-    bool audio = true;          // false: players run silent (headless, tests).
+    bool audio = true;  // false: players run silent (headless, tests).
     bool api = true;
-    quint16 apiPort = 0;        // 0: a free port, published in the discovery file.
+    quint16 apiPort = 0;  // 0: a free port, published in the discovery file.
 };
 
 // Everything except the UI: the core, the playback engine, the AI service, plugins and the API.

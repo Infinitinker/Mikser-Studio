@@ -45,8 +45,8 @@ struct TimelineFixture {
     {
         REQUIRE(project.addMedia(media(u"media-video"_s, u"Interview.mp4"_s, MediaKind::Video)));
         REQUIRE(project.addMedia(media(u"media-audio"_s, u"Score.wav"_s, MediaKind::Audio)));
-        REQUIRE(project.addMedia(media(u"media-ai"_s, u"Upscaled.mp4"_s, MediaKind::Video,
-                                       QJsonObject{{u"jobId"_s, u"job-1"_s}})));
+        REQUIRE(project.addMedia(
+            media(u"media-ai"_s, u"Upscaled.mp4"_s, MediaKind::Video, QJsonObject{{u"jobId"_s, u"job-1"_s}})));
     }
 
     [[nodiscard]] QVariant data(const QString& clipId, int role) const

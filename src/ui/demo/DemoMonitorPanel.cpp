@@ -59,7 +59,8 @@ protected:
         if (media) {
             const QColor base = media->info.kind == core::MediaKind::Image ? theme.clipImage : theme.clipVideo;
             QLinearGradient gradient(frame.topLeft(), frame.bottomRight());
-            const double phase = static_cast<double>(m_transport.position() - clip->position) / std::max<double>(1.0, static_cast<double>(clip->length()));
+            const double phase = static_cast<double>(m_transport.position() - clip->position) /
+                                 std::max<double>(1.0, static_cast<double>(clip->length()));
             gradient.setColorAt(0.0, base.darker(260));
             gradient.setColorAt(std::clamp(phase, 0.05, 0.95), base.darker(140));
             gradient.setColorAt(1.0, theme.window);

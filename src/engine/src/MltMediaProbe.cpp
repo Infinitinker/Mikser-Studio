@@ -24,8 +24,8 @@ constexpr int kMltDefaultLength = 15000;  // What MLT reports for producers with
 // Services that produce one still picture for any length.
 bool isStillService(const QString& service)
 {
-    return service == u"color"_s || service == u"colour"_s || service == u"pixbuf"_s || service == u"qimage"_s
-           || service == u"pango"_s;
+    return service == u"color"_s || service == u"colour"_s || service == u"pixbuf"_s || service == u"qimage"_s ||
+           service == u"pango"_s;
 }
 
 QByteArray streamKey(int index, const char* name)
@@ -68,8 +68,8 @@ MltMediaProbe::MltMediaProbe(const MltRuntime& runtime)
 std::expected<core::MediaInfo, QString> MltMediaProbe::probe(const QString& path, core::Rational projectFrameRate)
 {
     if (projectFrameRate.num <= 0 || projectFrameRate.den <= 0)
-        return std::unexpected(u"The project frame rate %1/%2 is not valid."_s.arg(projectFrameRate.num)
-                                   .arg(projectFrameRate.den));
+        return std::unexpected(
+            u"The project frame rate %1/%2 is not valid."_s.arg(projectFrameRate.num).arg(projectFrameRate.den));
 
     auto profile = makeProfile(projectFrameRate, 1920, 1080);
     auto opened = openProducer(*profile, path);
@@ -102,8 +102,8 @@ std::expected<core::MediaInfo, QString> MltMediaProbe::probe(const QString& path
     info.hasVideo = videoIndex >= 0 && videoIndex < streams;
     info.hasAudio = audioIndex >= 0 && audioIndex < streams;
     if (!info.hasVideo && !info.hasAudio)
-        return std::unexpected(u"\"%1\" contains no video or audio that Mikser Studio can play."_s.arg(
-            QDir::toNativeSeparators(path)));
+        return std::unexpected(
+            u"\"%1\" contains no video or audio that Mikser Studio can play."_s.arg(QDir::toNativeSeparators(path)));
 
     if (info.hasVideo) {
         info.width = producer.get_int(streamKey(videoIndex, "codec.width").constData());

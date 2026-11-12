@@ -29,7 +29,8 @@ const QJsonObject& commandSpecSchema()
             "readOnly": {"type": "boolean"},
             "confirmation": {"type": "string"}
         }
-    })json").object();
+    })json")
+                                          .object();
     return schema;
 }
 
@@ -134,7 +135,8 @@ int PluginHost::registerCommand(void* host, const char* specJson, size_t specLen
     return 1;
 }
 
-std::expected<void, QString> PluginHost::addCommand(const QByteArray& specJson, MikserStudioCommandFn fn, void* userData)
+std::expected<void, QString> PluginHost::addCommand(const QByteArray& specJson, MikserStudioCommandFn fn,
+                                                    void* userData)
 {
     if (!fn)
         return std::unexpected(u"the command function is null"_s);
@@ -146,7 +148,8 @@ std::expected<void, QString> PluginHost::addCommand(const QByteArray& specJson, 
 
     const QString id = json->value(u"id").toString();
     if (!id.startsWith(m_pluginId + u'.'))
-        return std::unexpected(u"command id \"%1\" must start with the plugin id followed by a dot (\"%2.\")"_s.arg(id, m_pluginId));
+        return std::unexpected(
+            u"command id \"%1\" must start with the plugin id followed by a dot (\"%2.\")"_s.arg(id, m_pluginId));
 
     CommandSpec spec{
         .id = id,
@@ -165,29 +168,32 @@ std::expected<void, QString> PluginHost::addCommand(const QByteArray& specJson, 
         SinkBuffer error;
         if (fn(userData, input.constData(), static_cast<size_t>(input.size()), result.sink(), error.sink()) != 0) {
             return commandFailure(CommandErrorCode::Failed,
-                                  error.data().isEmpty() ? u"The plugin command \"%1\" failed without giving a reason."_s.arg(id)
-                                                         : error.text());
+                                  error.data().isEmpty()
+                                      ? u"The plugin command \"%1\" failed without giving a reason."_s.arg(id)
+                                      : error.text());
         }
         auto output = parseObject(result.data());
         if (!output) {
-            return commandFailure(CommandErrorCode::Failed,
-                                  u"Plugin \"%1\" returned a broken result for \"%2\" (%3). Report this to the plugin author."_s
-                                      .arg(pluginId, id, output.error()));
+            return commandFailure(
+                CommandErrorCode::Failed,
+                u"Plugin \"%1\" returned a broken result for \"%2\" (%3). Report this to the plugin author."_s.arg(
+                    pluginId, id, output.error()));
         }
         return CommandOutcome{std::move(*output), nullptr};
     };
 
     if (!m_bus.registerCommand(std::move(spec), std::move(handler))) {
-        return std::unexpected(m_bus.contains(id) ? u"command id \"%1\" is already registered"_s.arg(id)
-                                                  : u"command \"%1\" was rejected; check its id format and paramsSchema "
-                                                    "(the log has details)"_s.arg(id));
+        return std::unexpected(m_bus.contains(id)
+                                   ? u"command id \"%1\" is already registered"_s.arg(id)
+                                   : u"command \"%1\" was rejected; check its id format and paramsSchema "
+                                     "(the log has details)"_s.arg(id));
     }
     m_commands.append(id);
     return {};
 }
 
-int PluginHost::executeCommand(void* host, const char* id, size_t idLength, const char* paramsJson,
-                               size_t paramsLength, const MikserStudioStringSink* result, const MikserStudioStringSink* error)
+int PluginHost::executeCommand(void* host, const char* id, size_t idLength, const char* paramsJson, size_t paramsLength,
+                               const MikserStudioStringSink* result, const MikserStudioStringSink* error)
 {
     PluginHost& plugin = self(host);
     const QString commandId = QString::fromUtf8(toUtf8(id, idLength));

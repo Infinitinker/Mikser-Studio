@@ -12,8 +12,8 @@ QImage frameToImage(mlt_frame frame, int width, int height)
     int frameWidth = width;
     int frameHeight = height;
     std::uint8_t* data = nullptr;
-    if (mlt_frame_get_image(frame, &data, &format, &frameWidth, &frameHeight, 0) != 0 || !data
-        || format != mlt_image_rgba || frameWidth <= 0 || frameHeight <= 0)
+    if (mlt_frame_get_image(frame, &data, &format, &frameWidth, &frameHeight, 0) != 0 || !data ||
+        format != mlt_image_rgba || frameWidth <= 0 || frameHeight <= 0)
         return {};
 
     QImage image(frameWidth, frameHeight, QImage::Format_RGBA8888);

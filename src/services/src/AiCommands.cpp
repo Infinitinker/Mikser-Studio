@@ -121,17 +121,18 @@ void AiCommandSet::registerAll()
     add(aiSpec(u"ai.cancel_job"_s, u"Cancel AI Job"_s, u"Stops a queued or running AI job."_s,
                objectSchema(QJsonObject{{u"jobId"_s, stringParam(u"Id of the job, from ai.jobs."_s)}}, {u"jobId"_s})),
         [this](const QJsonObject& params) { return cancelJob(params); });
-    add(aiSpec(u"ai.upscale_clip"_s, u"Upscale Clip"_s,
-               u"Upscales a video clip and places the result on the video track above it (a new one on top if needed)."_s,
-               objectSchema(
-                   QJsonObject{
-                       {u"clipId"_s, stringParam(u"Id of the video clip to upscale."_s)},
-                       {u"scale"_s, QJsonObject{{u"type"_s, u"integer"_s},
-                                                {u"enum"_s, QJsonArray{2, 3, 4}},
-                                                {u"default"_s, 2},
-                                                {u"description"_s, u"Scale factor."_s}}},
-                   },
-                   {u"clipId"_s})),
+    add(aiSpec(
+            u"ai.upscale_clip"_s, u"Upscale Clip"_s,
+            u"Upscales a video clip and places the result on the video track above it (a new one on top if needed)."_s,
+            objectSchema(
+                QJsonObject{
+                    {u"clipId"_s, stringParam(u"Id of the video clip to upscale."_s)},
+                    {u"scale"_s, QJsonObject{{u"type"_s, u"integer"_s},
+                                             {u"enum"_s, QJsonArray{2, 3, 4}},
+                                             {u"default"_s, 2},
+                                             {u"description"_s, u"Scale factor."_s}}},
+                },
+                {u"clipId"_s})),
         [this](const QJsonObject& params) { return upscaleClip(params); });
     add(aiSpec(u"ai.generate_text"_s, u"Generate Text"_s, u"Answers a prompt with a local language model."_s,
                objectSchema(
@@ -146,7 +147,8 @@ void AiCommandSet::registerAll()
 CommandResult AiCommandSet::status() const
 {
     if (!m_sidecar)
-        return core::commandFailure(CommandErrorCode::NotAvailable, u"The AI service is not available in this session."_s);
+        return core::commandFailure(CommandErrorCode::NotAvailable,
+                                    u"The AI service is not available in this session."_s);
     return ok(QJsonObject{
         {u"state"_s, toString(m_sidecar->state())},
         {u"error"_s, m_sidecar->errorString()},
@@ -159,11 +161,13 @@ CommandResult AiCommandSet::status() const
 CommandResult AiCommandSet::backends()
 {
     if (!m_sidecar)
-        return core::commandFailure(CommandErrorCode::NotAvailable, u"The AI service is not available in this session."_s);
+        return core::commandFailure(CommandErrorCode::NotAvailable,
+                                    u"The AI service is not available in this session."_s);
     if (m_sidecar->state() == SidecarState::Failed) {
         const QString error = m_sidecar->errorString();
         m_tracker.ensureSidecar();
-        return core::commandFailure(CommandErrorCode::NotAvailable, error + u" Mikser Studio is trying to start it again."_s);
+        return core::commandFailure(CommandErrorCode::NotAvailable,
+                                    error + u" Mikser Studio is trying to start it again."_s);
     }
     m_tracker.ensureSidecar();
     m_tracker.refreshBackends();

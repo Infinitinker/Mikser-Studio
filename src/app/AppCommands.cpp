@@ -25,7 +25,8 @@ QJsonObject pathSchema(const QString& description)
     return QJsonObject{
         {u"type"_s, u"object"_s},
         {u"properties"_s,
-         QJsonObject{{u"path"_s, QJsonObject{{u"type"_s, u"string"_s}, {u"minLength"_s, 1}, {u"description"_s, description}}}}},
+         QJsonObject{
+             {u"path"_s, QJsonObject{{u"type"_s, u"string"_s}, {u"minLength"_s, 1}, {u"description"_s, description}}}}},
         {u"required"_s, QJsonArray{u"path"_s}},
         {u"additionalProperties"_s, false},
     };
@@ -39,8 +40,9 @@ core::CommandResult saveProject(const core::ProjectModel& project, const QString
                               u"Could not write \"%1\": %2. Choose another folder."_s.arg(path, file.errorString()));
     file.write(QJsonDocument(project.toJson()).toJson(QJsonDocument::Indented));
     if (!file.commit())
-        return commandFailure(CommandErrorCode::Failed,
-                              u"Could not save \"%1\": %2. Check the free space and permissions."_s.arg(path, file.errorString()));
+        return commandFailure(
+            CommandErrorCode::Failed,
+            u"Could not save \"%1\": %2. Check the free space and permissions."_s.arg(path, file.errorString()));
     return core::CommandOutcome{QJsonObject{{u"path"_s, path}}, nullptr};
 }
 
@@ -48,13 +50,12 @@ core::CommandResult openProject(core::ProjectModel& project, core::UndoStack& un
 {
     QFile file(path);
     if (!file.open(QIODevice::ReadOnly))
-        return commandFailure(CommandErrorCode::Failed,
-                              u"Could not open \"%1\": %2."_s.arg(path, file.errorString()));
+        return commandFailure(CommandErrorCode::Failed, u"Could not open \"%1\": %2."_s.arg(path, file.errorString()));
     QJsonParseError parseError;
     const QJsonDocument document = QJsonDocument::fromJson(file.readAll(), &parseError);
     if (parseError.error != QJsonParseError::NoError || !document.isObject())
-        return commandFailure(CommandErrorCode::Failed,
-                              u"\"%1\" is not a Mikser Studio project file (%2)."_s.arg(path, parseError.errorString()));
+        return commandFailure(CommandErrorCode::Failed, u"\"%1\" is not a Mikser Studio project file (%2)."_s.arg(
+                                                            path, parseError.errorString()));
     if (const auto loaded = project.loadJson(document.object()); !loaded)
         return commandFailure(CommandErrorCode::Failed, loaded.error());
     undo.clear();  // Old edits refer to the previous project.
@@ -81,11 +82,10 @@ void registerAppCommands(core::CommandBus& bus, core::ProjectModel& project, eng
                             undo.clear();
                             return core::CommandOutcome{};
                         });
-    bus.registerCommand({u"project.save"_s, u"Save Project As…"_s, u"Save the project to a .mikser file."_s, u"File"_s,
-                         pathSchema(u"Where to save the project (.mikser)."_s), u"Ctrl+Shift+S"_s, false},
-                        [&project](const QJsonObject& params) {
-                            return saveProject(project, params.value(u"path"_s).toString());
-                        });
+    bus.registerCommand(
+        {u"project.save"_s, u"Save Project As…"_s, u"Save the project to a .mikser file."_s, u"File"_s,
+         pathSchema(u"Where to save the project (.mikser)."_s), u"Ctrl+Shift+S"_s, false},
+        [&project](const QJsonObject& params) { return saveProject(project, params.value(u"path"_s).toString()); });
     bus.registerCommand({.id = u"project.open"_s,
                          .title = u"Open Project…"_s,
                          .description = u"Open a .mikser project file. The undo history is cleared."_s,
@@ -107,9 +107,13 @@ void registerAppCommands(core::CommandBus& bus, core::ProjectModel& project, eng
         {u"required"_s, QJsonArray{u"mediaId"_s}},
         {u"additionalProperties"_s, false},
     };
-    bus.registerCommand({u"source.open_media"_s, u"Show in Source Monitor"_s,
-                         u"Load a media item from the bin into the source monitor."_s, u"Source Monitor"_s,
-                         mediaSchema, {}, false},
+    bus.registerCommand({u"source.open_media"_s,
+                         u"Show in Source Monitor"_s,
+                         u"Load a media item from the bin into the source monitor."_s,
+                         u"Source Monitor"_s,
+                         mediaSchema,
+                         {},
+                         false},
                         [&project, source](const QJsonObject& params) -> core::CommandResult {
                             const QString id = params.value(u"mediaId"_s).toString();
                             const core::MediaItem* item = project.findMedia(id);

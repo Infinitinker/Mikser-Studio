@@ -29,8 +29,8 @@ class TimelinePlayer final : public MltPlayer {
 public:
     static constexpr int kRebuildDelayMs = 40;
 
-    TimelinePlayer(const MltRuntime& runtime, core::ProjectModel& project,
-                   AudioOutput audio = AudioOutput::Device, QObject* parent = nullptr);
+    TimelinePlayer(const MltRuntime& runtime, core::ProjectModel& project, AudioOutput audio = AudioOutput::Device,
+                   QObject* parent = nullptr);
     ~TimelinePlayer() override;
 
     // Rebuilds right away instead of waiting for the debounce timer.
