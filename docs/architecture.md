@@ -55,6 +55,36 @@ on its own. `tools/check_includes.py` checks the C++ and the import-linter contr
   `server`, then `jobs`, `registry`, `auth` and `params`, then `backend`; each imports only from the
   layers below it.
 
+## Terms
+
+Each concept has one name, used in the interface, the code, file names, storage keys, docs and commit
+messages.
+
+| Term | Meaning | Not |
+|---|---|---|
+| project | What the user works on: the media bin and the timeline, saved as a `.mikser` file. | document, session |
+| media item | A file imported into the project, listed in the media bin (`project.import_media`). | asset, source file |
+| media bin | The panel and list of the project's media items. | library, pool |
+| clip | A piece of a media item placed on a track of the timeline. | item, segment |
+| track | A row of the timeline holding clips: video tracks `V1`, `V2`, audio tracks `A1`, `A2`. | lane, layer |
+| timeline | The project's tracks and their clips, in time. | sequence |
+| playhead | The current frame of the timeline. | cursor, position marker |
+| source monitor | The monitor that plays one media item. | clip viewer |
+| program monitor | The monitor that plays the timeline. | preview, output |
+| panel | A movable, dockable part of the main window (media bin, timeline, AI, log). | dock, pane, widget |
+| workspace | A saved arrangement of the panels. | layout, perspective |
+| command | An action with an id such as `project.import_media`, run the same way from menus, shortcuts, the command palette, the API and plugins. | action, operation |
+| command palette | The popup that finds and runs commands (Ctrl+K). | quick open |
+| plugin | A shared library with a `mikserstudio-plugin.json` manifest that adds commands, settings and panels. | extension, add-on, module |
+| local API | The versioned `/v1` HTTP and WebSocket API on `127.0.0.1`. | server, remote control |
+| discovery file | `api.json`, which tells other programs the local API's address and session token. | config file |
+| session token | The secret a client needs for the local API or the AI service, made anew at each start. | key, password |
+| AI service | The Python process in `ai/` that runs AI backends; *sidecar* in the code that manages it (`SidecarManager`). | AI server, worker |
+| backend | A part of the AI service that offers operations, such as `builtin` and `ollama`. | provider, engine |
+| operation | What a backend can do, such as `video.upscale` or `text.generate`. | task, op type |
+| job | One run of an operation, with a state: `queued`, `running`, `succeeded`, `failed` or `canceled`. | task, request |
+| provenance | The record of how AI made a media item: the job, backend, operation, parameters, time and tool versions. | metadata, history |
+
 ## Threads and processes
 
 - **Main thread:** UI, core, command execution, project model.
