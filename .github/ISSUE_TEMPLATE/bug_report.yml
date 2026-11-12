@@ -1,0 +1,39 @@
+name: Bug report
+description: Something in Mikser Studio doesn't work as it should.
+labels: [bug]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What you did, what you expected, and what happened instead.
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Mikser Studio version
+      description: From mikser-studio.exe --version, the installer's file name, or the commit if you run it from source.
+      placeholder: "0.1.0"
+    validations:
+      required: true
+  - type: input
+    id: media
+    attributes:
+      label: Media
+      description: The kind of file involved, if any (format, codec, resolution).
+      placeholder: "MP4, H.264, 1920 × 1080, 30 fps"
+  - type: input
+    id: windows
+    attributes:
+      label: Windows version
+      placeholder: "Windows 11 24H2"
+  - type: textarea
+    id: log
+    attributes:
+      label: Log
+      description: >
+        What the Log panel shows around the problem: the commands that ran and their errors. Check it
+        for anything you'd rather not share first, such as
+        file paths.
+      render: text
