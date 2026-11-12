@@ -22,7 +22,8 @@ std::expected<QJsonObject, QString> migrateProject(QJsonObject json, int targetV
     const double number = versionValue.toDouble(-1);
     if (!versionValue.isDouble() || std::trunc(number) != number || number < 1)
         return std::unexpected(
-            u"The project file has no valid “version” field; it is not a Mikser Studio project or it is damaged."_s);
+            u"The project file has no valid “version” field: it is not a Mikser Studio project, or it is damaged. "
+            u"Open a .mikser file that Mikser Studio saved."_s);
     if (number > targetVersion) {
         return std::unexpected(
             u"The project was saved by a newer Mikser Studio (format %1, this version reads up to %2). Update Mikser Studio to open it."_s

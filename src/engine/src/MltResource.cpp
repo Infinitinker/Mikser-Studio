@@ -67,7 +67,9 @@ std::expected<QString, QString> localFileResource(const QString& path)
         return std::unexpected(
             u"The file “%1” does not exist. It may have been moved, renamed or deleted."_s.arg(shown));
     if (!file.isFile())
-        return std::unexpected(u"“%1” is a folder, not a media file."_s.arg(shown));
+        return std::unexpected(
+            u"“%1” is a folder, not a media file. Open the folder and import the video, sound or picture files in "
+            u"it."_s.arg(shown));
     if (isMltDocument(file))
         return std::unexpected(
             u"“%1” is a project or document file, not a media file. Import its video, audio or image "

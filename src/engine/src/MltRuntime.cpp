@@ -83,12 +83,12 @@ std::expected<const MltRuntime*, QString> MltRuntime::create()
     QStringList missing;
     for (const QString& producer : {u"avformat"_s, u"color"_s}) {
         if (!runtime->hasProducer(producer))
-            missing.append(u"producer \"%1\""_s.arg(producer));
+            missing.append(u"producer “%1”"_s.arg(producer));
     }
     if (!runtime->hasConsumer(u"null"_s))
-        missing.append(u"consumer \"null\""_s);
+        missing.append(u"consumer “null”"_s);
     if (!runtime->hasTransition(u"mix"_s))
-        missing.append(u"transition \"mix\""_s);
+        missing.append(u"transition “mix”"_s);
     if (runtime->m_videoCompositor.isEmpty())
         missing.append(u"a video compositing transition (qtblend, frei0r.cairoblend or composite)"_s);
     if (!missing.isEmpty()) {

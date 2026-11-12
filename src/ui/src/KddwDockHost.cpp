@@ -530,16 +530,21 @@ std::expected<void, QString> KddwDockHost::restore(const QByteArray& layout, boo
 {
     QJsonParseError error;
     const QJsonDocument document = QJsonDocument::fromJson(layout, &error);
-    if (error.error != QJsonParseError::NoError || !document.isObject())
-        return std::unexpected(u"The saved arrangement of the panels is damaged (%1)."_s.arg(error.errorString()));
+    if (error.error != QJsonParseError::NoError || !document.isObject()) {
+        qCWarning(lcDocking).noquote() << "The saved layout is not a JSON object:" << error.errorString() << "at offset"
+                                       << error.offset;
+        return std::unexpected(
+            u"The saved arrangement of the panels is damaged. Choose Reset workspace in the Workspace menu to "
+            u"put the panels back."_s);
+    }
     KDDockWidgets::RestoreOptions options = KDDockWidgets::RestoreOption_CloseUnknownDockWidgets;
     if (keepMainWindowGeometry)
         options |= KDDockWidgets::RestoreOption_RelativeToMainWindow;
     KDDockWidgets::LayoutSaver saver(options);
     if (!saver.restoreLayout(layout))
         return std::unexpected(
-            u"The saved arrangement of the panels could not be restored; it may come from another version of "
-            u"Mikser Studio."_s);
+            u"The saved arrangement of the panels could not be restored: it may come from another version of "
+            u"Mikser Studio. Choose Reset workspace in the Workspace menu to put the panels back."_s);
     // Panels the layout does not place would otherwise stay open (KDDockWidgets floats them).
     const QSet<QString> placed = placedDocks(document.object());
     for (auto it = m_docks.cbegin(); it != m_docks.cend(); ++it) {
