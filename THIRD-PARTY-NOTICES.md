@@ -13261,19 +13261,7 @@ The same text as fribidi/COPYING under fribidi.
 
 Source: https://www.theora.org
 
-### the standard text of BSD-3-Clause
-
-````text
-Copyright (c) <year> <owner>.
-
-Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
-
-    1. Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer.
-    2. Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the following disclaimer in the documentation and/or other materials provided with the distribution.
-    3. Neither the name of the copyright holder nor the names of its contributors may be used to endorse or promote products derived from this software without specific prior written permission.
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-````
+Its license text is still to be added: BSD-3-Clause, whose text carries Xiph's copyright notice; MSYS2's package installs none.
 
 ## libtiff (MIT)
 
@@ -13609,9 +13597,7 @@ SOFTWARE.
 
 Source: https://www.webmproject.org/
 
-### the standard text of BSD-3-Clause
-
-The same text as the standard text of BSD-3-Clause under libtheora.
+Its license text is still to be added: BSD-3-Clause, whose text carries the WebM project's copyright notice; MSYS2's package installs none.
 
 ## libwebp (BSD-3-Clause)
 
@@ -15457,9 +15443,7 @@ The same text as opusfile/COPYING under opusfile.
 
 Source: https://p11-glue.freedesktop.org/p11-kit.html
 
-### the standard text of BSD-3-Clause
-
-The same text as the standard text of BSD-3-Clause under libtheora.
+Its license text is still to be added: BSD-3-Clause, whose text carries p11-kit's own copyright notice; MSYS2's package installs none.
 
 ## pango (LGPL-2.1)
 
@@ -16463,7 +16447,17 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 
 ### qt6-base/BSD-3-Clause.txt
 
-The same text as the standard text of BSD-3-Clause under libtheora.
+````text
+Copyright (c) <year> <owner>.
+
+Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
+
+    1. Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer.
+    2. Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the following disclaimer in the documentation and/or other materials provided with the distribution.
+    3. Neither the name of the copyright holder nor the names of its contributors may be used to endorse or promote products derived from this software without specific prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+````
 
 ### qt6-base/BSD-4-Clause.txt
 
@@ -18726,7 +18720,7 @@ The same text as qt6-base/BSD-2-Clause.txt under qt6-base.
 
 ### qt6-declarative/BSD-3-Clause.txt
 
-The same text as the standard text of BSD-3-Clause under libtheora.
+The same text as qt6-base/BSD-3-Clause.txt under qt6-base.
 
 ### qt6-declarative/CC-BY-3.0.txt
 
@@ -19204,7 +19198,7 @@ Source: https://www.qt.io
 
 ### qt6-httpserver/BSD-3-Clause.txt
 
-The same text as the standard text of BSD-3-Clause under libtheora.
+The same text as qt6-base/BSD-3-Clause.txt under qt6-base.
 
 ### qt6-httpserver/GFDL-1.3-no-invariants-only.txt
 
@@ -19224,7 +19218,7 @@ Source: https://www.qt.io
 
 ### qt6-svg/BSD-3-Clause.txt
 
-The same text as the standard text of BSD-3-Clause under libtheora.
+The same text as qt6-base/BSD-3-Clause.txt under qt6-base.
 
 ### qt6-svg/GFDL-1.3-no-invariants-only.txt
 
@@ -19279,7 +19273,7 @@ Source: https://www.qt.io
 
 ### qt6-websockets/BSD-3-Clause.txt
 
-The same text as the standard text of BSD-3-Clause under libtheora.
+The same text as qt6-base/BSD-3-Clause.txt under qt6-base.
 
 ### qt6-websockets/GFDL-1.3-no-invariants-only.txt
 

@@ -3,9 +3,10 @@ ships from MSYS2: the libraries the program and the copied MLT and Qt files need
 package they come from (tools/msys2_packages.py). A release ships the file as THIRD-PARTY-NOTICES.txt.
 
 Each package gets the license texts it installs. A package that installs none gets the standard text
-of each license its SPDX expression names, as other packages install it; one that has neither must be
-listed in NO_TEXT, with the reason, until its text is added to tools/licenses/<package>.txt. Versions
-are left out: MSYS2 moves on continually, while the texts rarely change.
+of each license its SPDX expression names, as other packages install it, unless that text is a template
+waiting for the project's own copyright line (BSD, MIT); one that has neither must be listed in
+NO_TEXT, with the reason, until its text is added to tools/licenses/<package>.txt. Versions are left
+out: MSYS2 moves on continually, while the texts rarely change.
 
 Run it from the repository root, with MSYS2's packages installed as docs/development.md describes,
 and commit the file whenever the libraries a release ships change:
@@ -47,6 +48,9 @@ listed in the notices with its source, so the gap shows; a package that installs
 tools/licenses must leave this list."""
 SPDX_ID = re.compile(r"[A-Za-z0-9.+-]+")
 NOT_LICENSES = {"AND", "OR", "WITH", "custom", "documentation", "spdx"}
+COPYRIGHT_PLACEHOLDER = re.compile(r"^\s*copyright.*<(year|owner|copyright holders?|name of author)>", re.I | re.M)
+"""The copyright line of a template, such as BSD's "Copyright (c) <year> <owner>.", which only the
+package's own text can fill in."""
 
 HEADER = f"""# Third-party notices
 
@@ -80,6 +84,12 @@ def standard_text(license_id: str, texts: dict[str, Path]) -> Path | None:
     return None
 
 
+def is_template(text: Path) -> bool:
+    """Whether a standard text opens with a copyright line still to be filled in."""
+    opening = "\n".join(text.read_text(encoding="utf-8", errors="replace").splitlines()[:5])
+    return bool(COPYRIGHT_PLACEHOLDER.search(opening))
+
+
 def notice(package: Package, root: Path, texts: dict[str, Path], printed: dict[str, str]) -> tuple[str, bool]:
     """The section of one package, and whether it has every text it needs. A text printed before, as
     Qt's modules share theirs, is named rather than printed again; printed maps each text to where."""
@@ -93,9 +103,9 @@ def notice(package: Package, root: Path, texts: dict[str, Path], printed: dict[s
     complete = bool(files)
     if not files:
         ids = [i for i in SPDX_ID.findall(package.license) if i not in NOT_LICENSES and "-exception" not in i]
-        found = [(i, standard_text(i, texts)) for i in ids]
-        files = [(f"the standard text of {i}", path) for i, path in found if path]
-        complete = bool(ids) and all(path for _, path in found)
+        found = [(i, path) for i in ids if (path := standard_text(i, texts)) and not is_template(path)]
+        files = [(f"the standard text of {i}", path) for i, path in found]
+        complete = bool(ids) and len(found) == len(ids)
     if not complete:
         lines += [f"Its license text is still to be added: {NO_TEXT.get(package.name, 'no text was found.')}", ""]
     for title, path in files:
