@@ -20,4 +20,9 @@ target_compile_definitions(mikserstudio-e2e-tests PRIVATE
 add_dependencies(mikserstudio-e2e-tests mikser-studio)
 mikserstudio_target_defaults(mikserstudio-e2e-tests)
 
-catch_discover_tests(mikserstudio-e2e-tests DISCOVERY_MODE PRE_TEST PROPERTIES LABELS e2e TIMEOUT 120)
+# The app's tests take seconds. The real AI service's may take minutes: up to 130 s for a cold start,
+# a 60 s encode and up to 300 s for the upscale job, so they get a timeout above those deadlines.
+catch_discover_tests(mikserstudio-e2e-tests TEST_SPEC "~[real-sidecar]" DISCOVERY_MODE PRE_TEST
+    PROPERTIES LABELS e2e TIMEOUT 120)
+catch_discover_tests(mikserstudio-e2e-tests TEST_SPEC "[real-sidecar]" DISCOVERY_MODE PRE_TEST
+    PROPERTIES LABELS e2e TIMEOUT 600)
