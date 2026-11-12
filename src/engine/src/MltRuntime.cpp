@@ -70,7 +70,6 @@ std::expected<const MltRuntime*, QString> MltRuntime::create()
     runtime->m_repositoryPath = QDir::fromNativeSeparators(QString::fromUtf8(mlt_factory_directory()));
     runtime->m_repositorySource = repository->source;
     runtime->m_dataPath = data->path;
-    runtime->m_dataSource = data->source;
     runtime->m_producers = serviceNames(mltRepository->producers());
     runtime->m_consumers = serviceNames(mltRepository->consumers());
     runtime->m_transitions = serviceNames(mltRepository->transitions());

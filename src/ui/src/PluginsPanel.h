@@ -30,8 +30,6 @@ public:
     void selectPlugin(const QString& id);
     [[nodiscard]] QString selectedPlugin() const { return m_selectedId; }
     [[nodiscard]] SchemaForm* settingsForm() const { return m_form; }
-    [[nodiscard]] QString feedbackText() const;
-    [[nodiscard]] int pluginCount() const;
 
     void toggleActive();
     void saveSettings();

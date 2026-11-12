@@ -3,7 +3,7 @@
 
 #include "CommandStatus.h"
 
-#include "mikserstudio/ui/KddwDockHost.h"
+#include "mikserstudio/ui/DockHost.h"
 
 #include <QAction>
 #include <QActionGroup>
@@ -15,7 +15,7 @@ using namespace Qt::StringLiterals;
 
 namespace mikserstudio::ui {
 
-WorkspaceMenu::WorkspaceMenu(KddwDockHost& host, QMenu* menu, CommandStatus& status, QWidget* dialogParent,
+WorkspaceMenu::WorkspaceMenu(DockHost& host, QMenu* menu, CommandStatus& status, QWidget* dialogParent,
                              QObject* parent)
     : QObject(parent)
     , m_host(host)
@@ -47,7 +47,7 @@ void WorkspaceMenu::saveAs(const QString& name)
 
 void WorkspaceMenu::resetCurrent()
 {
-    const QString name = m_host.currentWorkspace().isEmpty() ? KddwDockHost::builtInWorkspaces().constFirst()
+    const QString name = m_host.currentWorkspace().isEmpty() ? m_host.builtInWorkspaces().constFirst()
                                                              : m_host.currentWorkspace();
     if (const auto reset = m_host.resetWorkspace(name); !reset) {
         m_status.showMessage(reset.error(), true);
@@ -61,7 +61,7 @@ void WorkspaceMenu::rebuild()
     m_menu->clear();
     delete m_group;
     m_group = new QActionGroup(m_menu);
-    const QStringList builtIn = KddwDockHost::builtInWorkspaces();
+    const QStringList builtIn = m_host.builtInWorkspaces();
     bool separated = false;
     for (const QString& name : m_host.workspaces()) {
         if (!separated && !builtIn.contains(name)) {

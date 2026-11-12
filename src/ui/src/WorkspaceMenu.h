@@ -10,7 +10,7 @@ class QWidget;
 namespace mikserstudio::ui {
 
 class CommandStatus;
-class KddwDockHost;
+class DockHost;
 
 // The Workspace menu: switch between workspaces (the current one is checked), "Save Workspace
 // As…" and "Reset workspace". Problems are shown in the status bar.
@@ -18,7 +18,7 @@ class WorkspaceMenu final : public QObject {
     Q_OBJECT
 
 public:
-    WorkspaceMenu(KddwDockHost& host, QMenu* menu, CommandStatus& status, QWidget* dialogParent,
+    WorkspaceMenu(DockHost& host, QMenu* menu, CommandStatus& status, QWidget* dialogParent,
                   QObject* parent = nullptr);
 
     void switchTo(const QString& name);
@@ -30,7 +30,7 @@ public:
 private:
     void askAndSave();
 
-    KddwDockHost& m_host;
+    DockHost& m_host;
     QMenu* m_menu;
     CommandStatus& m_status;
     QWidget* m_dialogParent;

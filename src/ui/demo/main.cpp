@@ -19,7 +19,7 @@
 #include "mikserstudio/core/UndoStack.h"
 #include "mikserstudio/core/UserFolders.h"
 #include "mikserstudio/ui/ClipSelection.h"
-#include "mikserstudio/ui/KddwDockHost.h"
+#include "mikserstudio/ui/DockHost.h"
 #include "mikserstudio/ui/PanelIds.h"
 #include "mikserstudio/ui/Shell.h"
 #include "mikserstudio/ui/Theme.h"
@@ -40,7 +40,7 @@ namespace {
 constexpr int kSettleMs = 1200;
 constexpr int kFloatSettleMs = 900;
 
-void registerMonitor(ui::KddwDockHost& host, QStringView id, const QString& title, core::Transport& transport,
+void registerMonitor(ui::DockHost& host, QStringView id, const QString& title, core::Transport& transport,
                      const core::ProjectModel& project)
 {
     host.registerPanel(
@@ -51,7 +51,7 @@ void registerMonitor(ui::KddwDockHost& host, QStringView id, const QString& titl
 
 void takeScreenshot(ui::Shell& shell, const QString& path, const QString& floatPanel)
 {
-    ui::KddwDockHost& host = shell.dockHost();
+    ui::DockHost& host = shell.dockHost();
     QMainWindow* window = shell.mainWindow();
     if (!floatPanel.isEmpty()) {
         if (!host.isPanelOpen(floatPanel))

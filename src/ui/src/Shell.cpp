@@ -101,7 +101,7 @@ Shell::Shell(core::CommandBus& bus, core::ProjectModel& project, core::PluginMan
 
 Shell::~Shell() = default;
 
-KddwDockHost& Shell::dockHost() const
+DockHost& Shell::dockHost() const
 {
     return *m_dockHost;
 }
@@ -133,7 +133,7 @@ void Shell::setProgramTransport(core::Transport* transport)
 
 void Shell::restoreState()
 {
-    QString workspace = KddwDockHost::builtInWorkspaces().constFirst();
+    QString workspace = m_dockHost->builtInWorkspaces().constFirst();
     QJsonObject shellState;
     QFile shellFile(QDir(m_configDir).filePath(kShellFile));
     if (shellFile.open(QIODevice::ReadOnly)) {
@@ -233,11 +233,6 @@ QAction* Shell::windowMenuAction(const QString& panelId) const
 WorkspaceMenu& Shell::workspaces() const
 {
     return *m_workspaceMenuController;
-}
-
-QString Shell::statusText() const
-{
-    return m_status->text();
 }
 
 bool Shell::eventFilter(QObject* watched, QEvent* event)

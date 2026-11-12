@@ -6,7 +6,7 @@
 #include "Studio.h"
 
 #include "mikserstudio/engine/MonitorPanel.h"
-#include "mikserstudio/ui/KddwDockHost.h"
+#include "mikserstudio/ui/DockHost.h"
 #include "mikserstudio/ui/PanelIds.h"
 #include "mikserstudio/ui/Shell.h"
 
@@ -25,7 +25,7 @@ namespace mikserstudio::app {
 
 namespace {
 
-void registerMonitor(ui::KddwDockHost& host, QStringView id, const QString& title, engine::MltPlayer& player)
+void registerMonitor(ui::DockHost& host, QStringView id, const QString& title, engine::MltPlayer& player)
 {
     host.registerPanel({id.toString(), title, ui::DockArea::Center, true, [&player](QWidget* parent) {
                             auto* panel = new engine::MonitorPanel(player, parent);
@@ -65,7 +65,7 @@ DesktopApp::~DesktopApp() = default;
 
 void DesktopApp::registerMonitors()
 {
-    ui::KddwDockHost& host = m_shell->dockHost();
+    ui::DockHost& host = m_shell->dockHost();
     if (engine::ClipPlayer* source = m_studio.sourcePlayer())
         registerMonitor(host, ui::panel_ids::kSourceMonitor, u"Source monitor"_s, *source);
     if (engine::TimelinePlayer* program = m_studio.programPlayer())

@@ -1,7 +1,7 @@
 // The Window menu's actions, kept in sync with the dock host's panels.
 #include "WindowMenu.h"
 
-#include "mikserstudio/ui/KddwDockHost.h"
+#include "mikserstudio/ui/DockHost.h"
 
 #include <QAction>
 #include <QMenu>
@@ -10,16 +10,16 @@
 
 namespace mikserstudio::ui {
 
-WindowMenu::WindowMenu(KddwDockHost& host, QMenu* menu, QList<QAction*> leadingActions, QObject* parent)
+WindowMenu::WindowMenu(DockHost& host, QMenu* menu, QList<QAction*> leadingActions, QObject* parent)
     : QObject(parent)
     , m_host(host)
     , m_menu(menu)
     , m_leading(std::move(leadingActions))
 {
-    connect(&host, &KddwDockHost::panelsChanged, this, &WindowMenu::rebuild);
-    connect(&host, &KddwDockHost::panelOpened, this, &WindowMenu::updateChecks);
-    connect(&host, &KddwDockHost::panelClosed, this, &WindowMenu::updateChecks);
-    connect(&host, &KddwDockHost::layoutChanged, this, &WindowMenu::updateChecks);
+    connect(&host, &DockHost::panelsChanged, this, &WindowMenu::rebuild);
+    connect(&host, &DockHost::panelOpened, this, &WindowMenu::updateChecks);
+    connect(&host, &DockHost::panelClosed, this, &WindowMenu::updateChecks);
+    connect(&host, &DockHost::layoutChanged, this, &WindowMenu::updateChecks);
     connect(menu, &QMenu::aboutToShow, this, &WindowMenu::updateChecks);
     rebuild();
 }

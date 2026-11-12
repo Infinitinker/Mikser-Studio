@@ -24,7 +24,6 @@ public:
     [[nodiscard]] QString repositoryPath() const { return m_repositoryPath; }
     [[nodiscard]] QString repositorySource() const { return m_repositorySource; }  // How it was found.
     [[nodiscard]] QString dataPath() const { return m_dataPath; }
-    [[nodiscard]] QString dataSource() const { return m_dataSource; }
 
     [[nodiscard]] bool hasProducer(const QString& name) const { return m_producers.contains(name); }
     [[nodiscard]] bool hasConsumer(const QString& name) const { return m_consumers.contains(name); }
@@ -41,7 +40,6 @@ private:
     QString m_repositoryPath;
     QString m_repositorySource;
     QString m_dataPath;
-    QString m_dataSource;
     QStringList m_producers;
     QStringList m_consumers;
     QStringList m_transitions;

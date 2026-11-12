@@ -25,7 +25,6 @@ public:
     PluginPanelHost(core::CommandBus& bus, const core::PluginManager& plugins, const QString& pluginId,
                     const QString& pluginDirectory, const core::PanelContribution& panel, QWidget* parent = nullptr);
 
-    [[nodiscard]] QQuickWidget* quickWidget() const { return m_quick; }
     [[nodiscard]] PluginPanelBridge* bridge() const { return m_bridge; }
     [[nodiscard]] QString errorText() const;
 

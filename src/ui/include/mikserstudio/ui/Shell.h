@@ -26,6 +26,7 @@ class CommandLogModel;
 class CommandMenus;
 class CommandPalette;
 class CommandStatus;
+class DockHost;
 class KddwDockHost;
 class ThemeObject;
 class TimelineController;
@@ -55,12 +56,11 @@ public:
           QObject* parent = nullptr);
     ~Shell() override;
 
-    [[nodiscard]] KddwDockHost& dockHost() const;
+    [[nodiscard]] DockHost& dockHost() const;
     [[nodiscard]] QMainWindow* mainWindow() const;
     [[nodiscard]] ClipSelection& selection() const;
     [[nodiscard]] ThemeObject& theme() const;
     [[nodiscard]] CommandPalette& commandPalette() const;
-    [[nodiscard]] QString configDirectory() const { return m_configDir; }
 
     // The playhead of the timeline follows this transport (null: the playhead stays at 0).
     void setProgramTransport(core::Transport* transport);
@@ -80,7 +80,6 @@ public:
     [[nodiscard]] QAction* windowMenuAction(const QString& panelId) const;
     [[nodiscard]] QMenu* workspaceMenu() const { return m_workspaceMenu; }
     [[nodiscard]] WorkspaceMenu& workspaces() const;
-    [[nodiscard]] QString statusText() const;
 
 protected:
     bool eventFilter(QObject* watched, QEvent* event) override;

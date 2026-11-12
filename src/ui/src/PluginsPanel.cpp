@@ -160,16 +160,6 @@ void PluginsPanel::selectPlugin(const QString& id)
     }
 }
 
-QString PluginsPanel::feedbackText() const
-{
-    return m_feedback->text();
-}
-
-int PluginsPanel::pluginCount() const
-{
-    return m_list->count();
-}
-
 void PluginsPanel::toggleActive()
 {
     const core::PluginState* state = m_plugins.plugin(m_selectedId);

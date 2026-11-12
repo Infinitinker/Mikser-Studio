@@ -320,7 +320,7 @@ std::expected<void, QString> KddwDockHost::loadWorkspace(const QString& name)
     return {};
 }
 
-QStringList KddwDockHost::builtInWorkspaces()
+QStringList KddwDockHost::builtInWorkspaces() const
 {
     QStringList names;
     for (const WorkspacePreset& preset : workspacePresets())

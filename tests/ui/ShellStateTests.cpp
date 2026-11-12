@@ -4,7 +4,7 @@
 #include "mikserstudio/core/PluginManager.h"
 #include "mikserstudio/core/Project.h"
 #include "mikserstudio/core/UndoStack.h"
-#include "mikserstudio/ui/KddwDockHost.h"
+#include "mikserstudio/ui/DockHost.h"
 #include "mikserstudio/ui/PanelIds.h"
 #include "mikserstudio/ui/Shell.h"
 
@@ -55,7 +55,7 @@ TEST_CASE("Shell starts in the Editing workspace and keeps the layout across ses
         Shell shell(core.bus, core.project, core.plugins, configDir);
         shell.restoreState();
         shell.show();
-        mikserstudio::ui::KddwDockHost& host = shell.dockHost();
+        mikserstudio::ui::DockHost& host = shell.dockHost();
         CHECK(host.currentWorkspace() == u"Editing"_s);
         CHECK(host.isPanelOpen(panel_ids::kTimeline.toString()));
         CHECK(host.isPanelOpen(panel_ids::kMediaBin.toString()));
@@ -71,7 +71,7 @@ TEST_CASE("Shell starts in the Editing workspace and keeps the layout across ses
         Shell shell(core.bus, core.project, core.plugins, configDir);
         shell.restoreState();
         shell.show();
-        mikserstudio::ui::KddwDockHost& host = shell.dockHost();
+        mikserstudio::ui::DockHost& host = shell.dockHost();
         CHECK(host.isPanelOpen(panel_ids::kTimeline.toString()));
         CHECK_FALSE(host.isPanelOpen(panel_ids::kMediaBin.toString()));
         // The Editing workspace's background tabs (AI and Log behind Properties) come back too.

@@ -64,31 +64,20 @@ public:
     // Keeps the main window geometry. A saved file wins over a built-in workspace of that name.
     std::expected<void, QString> loadWorkspace(const QString& name) override;
 
-    [[nodiscard]] static QStringList builtInWorkspaces();
-    [[nodiscard]] bool hasSavedWorkspace(const QString& name) const;
-    // Built-in workspaces: deletes the saved file and applies the definition from code.
-    // Saved workspaces: loads the saved file again.
-    std::expected<void, QString> resetWorkspace(const QString& name);
-    // Name of the workspace last loaded, saved or reset; empty before that.
-    [[nodiscard]] QString currentWorkspace() const { return m_currentWorkspace; }
-    // Names the workspace the current layout belongs to, e.g. after restoreLayout() of the last
-    // session's layout.
-    void setCurrentWorkspace(const QString& name);
+    [[nodiscard]] QStringList builtInWorkspaces() const override;
+    [[nodiscard]] bool hasSavedWorkspace(const QString& name) const override;
+    std::expected<void, QString> resetWorkspace(const QString& name) override;
+    [[nodiscard]] QString currentWorkspace() const override { return m_currentWorkspace; }
+    void setCurrentWorkspace(const QString& name) override;
     [[nodiscard]] QString workspaceDirectory() const { return m_workspaceDirectory; }
 
-    // Floats (or docks back) the first instance of an open panel.
-    std::expected<void, QString> setPanelFloating(const QString& id, bool floating);
+    std::expected<void, QString> setPanelFloating(const QString& id, bool floating) override;
     [[nodiscard]] bool isPanelFloating(const QString& id) const;
-    // The top-level window showing the panel: the main window or its floating window.
-    [[nodiscard]] QWidget* panelWindow(const QString& id) const;
+    [[nodiscard]] QWidget* panelWindow(const QString& id) const override;
     // The content widget of the first instance (null when the panel was never opened).
     [[nodiscard]] QWidget* panelWidget(const QString& id) const;
     [[nodiscard]] bool isPlaceholder(const QString& id) const;
     [[nodiscard]] QStringList openPanels() const;  // Panel ids, sorted.
-
-Q_SIGNALS:
-    // The workspace was loaded, saved, reset or named (see currentWorkspace()).
-    void currentWorkspaceChanged(const QString& name);
 
 private:
     using Dock = KDDockWidgets::QtWidgets::DockWidget;
