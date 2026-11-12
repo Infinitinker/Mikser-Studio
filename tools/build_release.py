@@ -12,9 +12,11 @@ does not list, so THIRD-PARTY-NOTICES.md always covers what ships. The AI servic
 a release yet; see docs/releasing.md.
 
 Run it from the repository root, with MSYS2's packages installed as docs/development.md describes:
-    python tools/build_release.py
+    python tools/build_release.py              build the release files
+    python tools/build_release.py --version    print the version, the one way the workflows read it
 """
 
+import argparse
 import os
 import re
 import shutil
@@ -122,6 +124,11 @@ def make_installer(release: str) -> Path:
 
 
 def main() -> int:
+    parser = argparse.ArgumentParser(description="Build the Windows release files.")
+    parser.add_argument("--version", action="store_true", help="print the version in CMakeLists.txt and stop")
+    if parser.parse_args().version:
+        print(version())
+        return 0
     release = version()
     install()
     add_runtime()

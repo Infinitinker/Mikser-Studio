@@ -94,12 +94,14 @@ jobs:
     steps:
       - uses: actions/checkout@v7
         with:
-          sparse-checkout: CMakeLists.txt
+          sparse-checkout: |
+            CMakeLists.txt
+            tools
           sparse-checkout-cone-mode: false
       - name: Read the version
         id: version
         run: |
-          version=$(sed -nE 's/^project\(MikserStudio[[:space:]]+VERSION[[:space:]]+([0-9]+\.[0-9]+\.[0-9]+).*/\1/p' CMakeLists.txt)
+          version=$(python3 tools/build_release.py --version)
           echo "version=$version" >> "$GITHUB_OUTPUT"
       # skip-decompress keeps each file as uploaded: otherwise the zip would arrive unpacked.
       - uses: actions/download-artifact@v8
