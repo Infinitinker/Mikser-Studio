@@ -70,8 +70,9 @@ PROGRAM_LIBRARIES = (
     "libstdc++-6.dll",
     "libwinpthread-1.dll",
 )
-"""The MSYS2 libraries mikser-studio.exe imports. tools/build_release.py fails when the program it built
-imports one that is not listed, so the notices never miss a library."""
+"""The MSYS2 libraries mikser-studio.exe and the bundled plugins import. tools/build_release.py fails when
+the program or a plugin it built imports one that is not listed, so the notices, which are written
+without a build, never miss a library."""
 LOADED_LIBRARIES = (
     "SDL3.dll",
     "libcrypto-3-x64.dll",

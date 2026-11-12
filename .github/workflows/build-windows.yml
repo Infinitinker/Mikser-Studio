@@ -56,6 +56,11 @@ jobs:
           if ($setup.ExitCode -ne 0) { throw "Inno Setup's installer failed with exit code $($setup.ExitCode)." }
           "ISCC=$(Join-Path $folder 'ISCC.exe')" | Out-File $env:GITHUB_ENV -Append -Encoding utf8
 
+      # Before the long build: the committed notices must match this runner's MSYS2, which moves on
+      # (update: true). tools/build_release.py checks again that they cover exactly what it copies.
+      - name: Notices
+        shell: msys2 {0}
+        run: python tools/notices.py --check
       - name: Build
         shell: msys2 {0}
         run: |

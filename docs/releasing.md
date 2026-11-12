@@ -43,11 +43,14 @@ unavailable until the service ships with it.
 ## Dependencies and notices
 
 A release takes its libraries from MSYS2's UCRT64 environment. `tools/msys2_packages.py` works out
-which: the libraries `mikser-studio.exe` imports (`PROGRAM_LIBRARIES`), the MLT modules and Qt plugins
-a release copies (`MLT_MODULES` and `COPIED`), and every library those import in turn, read from the
-files themselves; then the MSYS2 packages they come from, with their licenses, from MSYS2's package
-database. `tools/build_release.py` fails when the program imports a library `PROGRAM_LIBRARIES` does
-not list, so nothing ships without its notice.
+which: the libraries `mikser-studio.exe` and the bundled plugins import (`PROGRAM_LIBRARIES`), the
+MLT modules and Qt plugins a release copies (`MLT_MODULES` and `COPIED`), the libraries those load by
+name (`LOADED_LIBRARIES`), and every library all of these import in turn, read from the files
+themselves; then the MSYS2 packages they come from, with their licenses, from MSYS2's package database.
+`tools/build_release.py` fails unless `THIRD-PARTY-NOTICES.md` covers exactly what it copies: when
+the program or a plugin imports a library `PROGRAM_LIBRARIES` does not list, or when the committed
+notices are not what `tools/notices.py` writes from the MSYS2 it builds with. So nothing ships without
+its notice, and the `Build Windows app` workflow checks the notices before it builds.
 
 `tools/notices.py` writes the license texts of those packages into `THIRD-PARTY-NOTICES.md`. After
 adding or upgrading a library, or updating MSYS2, write the notices again and commit the file:
@@ -58,7 +61,8 @@ python tools/notices.py
 
 `python tools/notices.py --check`, which the `Licenses` check runs, fails unless the file is up to
 date. A package that installs no license text gets the standard text of the license MSYS2 names for
-it. One with neither is listed in `NO_TEXT` in `tools/notices.py`, with the reason, and shows in the
+it, unless that text is a template still waiting for the project's own copyright line, as BSD's and
+MIT's are. One with neither is listed in `NO_TEXT` in `tools/notices.py`, with the reason, and shows in the
 notices as a gap; its text goes in `tools/licenses/<package>.txt`, from the project's source, after
 which it leaves the list.
 

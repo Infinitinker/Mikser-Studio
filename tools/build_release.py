@@ -7,9 +7,10 @@ cmake --build --preset release) into build/dist:
   built with Inno Setup 7's ISCC.exe, found through ISCC or in Program Files;
 - MikserStudio-<version>-third-party-notices.md: THIRD-PARTY-NOTICES.md, to read without the app.
 
-It fails when the program imports an MSYS2 library that PROGRAM_LIBRARIES in tools/msys2_packages.py
-does not list, so THIRD-PARTY-NOTICES.md always covers what ships. The AI service (ai/) is not part of
-a release yet; see docs/releasing.md.
+It fails unless THIRD-PARTY-NOTICES.md covers exactly what ships: when the program or a bundled plugin
+imports an MSYS2 library that PROGRAM_LIBRARIES in tools/msys2_packages.py does not list, when what it
+copies is not what tools/notices.py walks, or when the committed notices are not what tools/notices.py
+writes from this MSYS2. The AI service (ai/) is not part of a release yet; see docs/releasing.md.
 
 Run it from the repository root, with MSYS2's packages installed as docs/development.md describes:
     python tools/build_release.py              build the release files
@@ -26,6 +27,7 @@ import zipfile
 from pathlib import Path
 
 from msys2_packages import ENVIRONMENT, PROGRAM_LIBRARIES, copied_files, imports, msys2_root, runtime
+from notices import NOTICES, render
 
 NAME = "MikserStudio"
 """The product's name without spaces, as release files are named."""
@@ -62,19 +64,34 @@ def install() -> None:
     subprocess.run(["cmake", "--install", str(BUILD), "--prefix", str(STAGE)], check=True)
 
 
-def add_runtime() -> None:
-    """The libraries from MSYS2 the program needs, and MLT's and Qt's files."""
-    root = msys2_root()
+def check_notices(programs: list[Path], root: Path) -> list[Path]:
+    """The libraries the program and plugins need, once THIRD-PARTY-NOTICES.md is known to cover them: every
+    MSYS2 library they import is in PROGRAM_LIBRARIES, so tools/notices.py, which walks from that list
+    without a build, walks to the same libraries; and the committed notices are what it writes now."""
     available = {p.name.lower() for p in (root / ENVIRONMENT / "bin").glob("*.dll")}
     listed = {name.lower() for name in PROGRAM_LIBRARIES}
-    unlisted = sorted(name for name in imports(PROGRAM) if name.lower() in available and name.lower() not in listed)
-    if unlisted:
+    for program in programs:
+        unlisted = sorted(n for n in imports(program) if n.lower() in available and n.lower() not in listed)
+        if unlisted:
+            raise SystemExit(
+                f"{program.name} imports {', '.join(unlisted)}, which PROGRAM_LIBRARIES in tools/msys2_packages.py "
+                "does not list: add them there, then run python tools/notices.py and commit THIRD-PARTY-NOTICES.md."
+            )
+    shipped = runtime(programs, root)
+    if shipped.packages != runtime(root=root).packages:
+        raise SystemExit("What the release copies differs from what tools/notices.py walks: report this as a bug.")
+    if NOTICES.read_text(encoding="utf-8") != render():
         raise SystemExit(
-            f"{PROGRAM.name} imports {', '.join(unlisted)}, which PROGRAM_LIBRARIES in tools/msys2_packages.py does "
-            "not list: add them there, then run python tools/notices.py and commit THIRD-PARTY-NOTICES.md."
+            f"{NOTICES} does not match this MSYS2's packages: run python tools/notices.py and commit {NOTICES}."
         )
+    return shipped.libraries
+
+
+def add_runtime() -> None:
+    """The libraries from MSYS2 the program and the plugins need, and MLT's and Qt's files."""
+    root = msys2_root()
     plugins = sorted((STAGE / "bin/plugins").rglob("*.dll"))
-    for library in runtime([PROGRAM, *plugins], root).libraries:
+    for library in check_notices([PROGRAM, *plugins], root):
         shutil.copy2(library, STAGE / "bin" / library.name)
     for source, destination in copied_files(root / ENVIRONMENT):
         target = STAGE / destination
