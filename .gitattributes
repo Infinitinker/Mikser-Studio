@@ -1,4 +1,8 @@
+# Text files have LF line endings in every checkout, on every system, so builds and releases made
+# from any checkout hold the same files. Windows' cmd needs CRLF in batch files.
 * text=auto eol=lf
 *.bat text eol=crlf
+
+# Binary files, never converted.
 *.png binary
 *.ico binary
