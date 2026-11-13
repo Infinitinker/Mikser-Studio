@@ -31,6 +31,7 @@ separate Python processes. Why this stack was chosen is in `stack-recommendation
 | `src/app/` | `mikser-studio` | all | Wires the modules together; `mikser-studio --headless` runs without UI. |
 | `plugins/` | plugin libraries | sdk | Bundled example plugins. |
 | `ai/` | Python package `mikserstudio-ai` | — | AI sidecar service, run from its own virtual environment (`ai/.venv`); it connects to the AI tools the user runs and runs no models itself. Also holds the MCP bridge (`mikserstudio_ai.mcp`), a program of its own. |
+| `tools/` | development scripts | — | The release build, the third-party notices, the license and include checks and what they read from MSYS2, in Python with its standard library alone; never shipped. Checked with the settings in `tools/pyproject.toml`. |
 | `tests/` | `*-tests` | Catch2 | Tests mirroring `src/` and `plugins/`, and the end-to-end tests. |
 
 ## Import directions
