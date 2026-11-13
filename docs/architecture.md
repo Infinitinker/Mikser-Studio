@@ -31,7 +31,7 @@ separate Python processes. Why this stack was chosen is in `stack-recommendation
 | `src/app/` | `mikser-studio` | all | Wires the modules together; `mikser-studio --headless` runs without UI. |
 | `src/mcp/` | `mikser-studio-mcp` | Qt Network/WebSockets | The MCP bridge, a program of its own: offers the commands to agents as MCP tools through the local API. |
 | `plugins/` | plugin libraries | sdk | Bundled example plugins. |
-| `ai/` | Python package `mikserstudio-ai` | — | AI sidecar service, run from its own virtual environment (`ai/.venv`); it connects to the AI tools the user runs and runs no models itself. Also holds the MCP bridge (`mikserstudio_ai.mcp`), a program of its own. |
+| `ai/` | Python package `mikserstudio-ai` | — | AI sidecar service, run from its own virtual environment (`ai/.venv`); it connects to the AI tools the user runs and runs no models itself. |
 | `tests/` | `*-tests` | Catch2 | Tests mirroring `src/` and `plugins/`, and the end-to-end tests. |
 
 ## Import directions
@@ -64,8 +64,6 @@ on its own. `tools/check_includes.py` checks the C++ and the import-linter contr
   `provenance.py`, `logs.py`), and never each other. The service is layered: `__main__`, `service`,
   `server`, then `jobs`, `registry`, `auth` and `params`, then `backend`; each imports only from the
   layers below it.
-- The MCP bridge (`mikserstudio_ai.mcp`) drives the app only through its local API: it imports
-  nothing of the AI service or its backends, and they import nothing of it.
 
 ## Terms
 
