@@ -119,9 +119,14 @@ where the app is going; new code moves toward them and never works against them.
 - An agent acts only through the command bus, as the person does. Every change it makes shows in the
   project and can be undone. Where the app is going: each change says who made it (the person or
   which agent), and changes that belong together are one undo step with a name.
-- Commands that delete or overwrite the person's work carry a `confirmation`. The agent's client (the
-  MCP bridge or the assistant in the app) shows it and runs the command only after the person agrees;
-  the local API itself doesn't ask.
+- Commands that delete or overwrite the person's work ask first, as other desktop apps do. Saving to
+  the open project's own file never asks; saving over another existing file asks before replacing it;
+  New and Open ask only when there are unsaved changes. A command that always replaces work carries a
+  `confirmation`; one that does so only sometimes names a `confirmationParam` and answers
+  `409 needs_confirmation` until the person agrees. The agent's client (the MCP bridge or the
+  assistant in the app) shows the question and runs the command again only after the person agrees.
+  Only a question the client puts to the person (MCP elicitation) counts as their agreement; a
+  client's general permission prompt for tool calls does not.
 - An agent sees the project through read-only commands: today `project.list` (media, tracks and
   clips). As the app grows: effects, keyframes and markers with stable ids, frames and contact sheets
   it can look at, audio analysis (loudness, silences, beats), and a transcript with word timings from
