@@ -14,7 +14,7 @@ classifiers = [
     "Programming Language :: Python :: 3.13",
     "Topic :: Multimedia :: Video",
 ]
-# aiohttp serves the local API and talks to HTTP backends (Ollama). Nothing else is needed at run time.
+# aiohttp serves the local API and talks to HTTP backends (Ollama, ComfyUI). Nothing else is needed at run time.
 dependencies = ["aiohttp>=3.12"]
 
 [project.scripts]
@@ -23,6 +23,7 @@ mikserstudio-ai = "mikserstudio_ai.__main__:main"
 # Every AI backend announces itself here: "<id> = <module>:create", where create(settings) -> Backend.
 [project.entry-points."mikserstudio_ai.backends"]
 builtin = "mikserstudio_ai.backends.builtin:create"
+comfyui = "mikserstudio_ai.backends.comfyui:create"
 ollama = "mikserstudio_ai.backends.ollama:create"
 
 [project.optional-dependencies]
@@ -92,7 +93,11 @@ forbidden_modules = [
 [[tool.importlinter.contracts]]
 name = "Backends are independent of each other"
 type = "independence"
-modules = ["mikserstudio_ai.backends.builtin", "mikserstudio_ai.backends.ollama"]
+modules = [
+    "mikserstudio_ai.backends.builtin",
+    "mikserstudio_ai.backends.comfyui",
+    "mikserstudio_ai.backends.ollama",
+]
 
 [[tool.importlinter.contracts]]
 name = "The MCP bridge is a program of its own: it uses the app's local API, never the AI service or its backends"

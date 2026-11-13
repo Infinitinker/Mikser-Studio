@@ -18,6 +18,7 @@ class Options:
     cache_dir: Path
     ffmpeg: str | None
     ollama_url: str
+    comfyui_url: str
     exit_with_stdin: bool
     log_level: str
 
@@ -41,6 +42,7 @@ def parse(argv: Sequence[str] | None = None, environment: dict[str, str] | None 
         cache_dir=Path(args.cache_dir).resolve(),
         ffmpeg=args.ffmpeg,
         ollama_url=args.ollama_url.rstrip("/"),
+        comfyui_url=args.comfyui_url.rstrip("/"),
         exit_with_stdin=args.exit_with_stdin,
         log_level=args.log_level,
     )
@@ -59,6 +61,7 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--cache-dir", required=True, help="folder for job outputs")
     parser.add_argument("--ffmpeg", help="path of ffmpeg; found on PATH when omitted")
     parser.add_argument("--ollama-url", default="http://127.0.0.1:11434", help="base URL of the Ollama server")
+    parser.add_argument("--comfyui-url", default="http://127.0.0.1:8188", help="base URL of the ComfyUI server")
     parser.add_argument(
         "--exit-with-stdin", action="store_true", help="stop when stdin is closed (used by the Mikser Studio app)"
     )

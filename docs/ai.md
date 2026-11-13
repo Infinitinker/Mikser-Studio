@@ -66,6 +66,7 @@ Downloads) cannot stand in for ffmpeg.
 | `--cache-dir` | — | Required. Job outputs go to `<cache-dir>/<job id>/`. |
 | `--ffmpeg` | `ffmpeg` on `PATH` | ffmpeg for the builtin backend (an absolute path); ffprobe is looked up next to it. |
 | `--ollama-url` | `http://127.0.0.1:11434` | Base URL of Ollama. |
+| `--comfyui-url` | `http://127.0.0.1:8188` | Base URL of ComfyUI. |
 | `--exit-with-stdin` | off | Stop when stdin closes (the app always passes it). |
 | `--log-level` | `INFO` | `DEBUG`, `INFO`, `WARNING`, `ERROR`. |
 
@@ -133,6 +134,7 @@ side by side. Output kinds: `video`, `image`, `audio`, `text`.
 |---|---|---|
 | `builtin` | `video.upscale {input, scale = 2 \| 3 \| 4}` | ffmpeg lanczos scaling, H.264 (libx264, CRF 16) + copied audio in `.mkv`. **Not AI**: a placeholder that exercises the whole pipeline (queue, progress from `ffmpeg -progress`, cancel, cache, provenance, import) until a ComfyUI backend provides a real AI upscaler. Refuses outputs larger than 8K. Unavailable without ffmpeg/ffprobe/libx264, with the reason. |
 | `ollama` | `text.generate {prompt, model?}` | Streams `/api/generate` from a local Ollama. Without `model` it uses the first installed model whose capabilities include `completion` (vision-only or embedding models are skipped). Unavailable when Ollama is not running or has no models. Result: `{text, model}` plus `response.txt`; reasoning that a thinking model writes before `</think>` is dropped from `text`. Provenance has the Ollama version and the model name, digest, family, size and quantization. |
+| `comfyui` | `image.generate {prompt, negative_prompt = "", width = 1024, height = 1024, steps = 25, seed?}` | Runs ComfyUI's Qwen Image 2.1 text-to-image workflow, without its prompt enhancer, in the user's ComfyUI: the diffusion model `qwen_image_2.1_int8_convrot.safetensors` through `QwenImage21Cache`, the text encoder `qwen3vl_8b_int8_convrot.safetensors` with `TextEncodeQwenImage21`, KSampler (euler, simple, cfg 1), the VAE `qwen_image_2.1_vae_bf16.safetensors`, and `SaveImage` into `mikserstudio/<job id>` in ComfyUI's output folder; the image is then copied into the job's folder. Sizes are rounded down to a multiple of 16. Without `seed` it picks one and returns it as `{seed}`. Progress comes from ComfyUI's socket. Canceling takes the job off ComfyUI's queue if it has not started; one that runs is left to finish, since the backend never interrupts ComfyUI, which would stop whatever it is running. Unavailable when ComfyUI is not running or lacks one of the models or nodes, and the reason names them; it never downloads models or installs nodes. Provenance has the ComfyUI version, the three models and the sampler, steps, seed, size and ComfyUI's prompt id. The app has no command for it yet. |
 
 ### Adding a backend
 
@@ -185,7 +187,7 @@ Rules for `run()`:
 - Start child processes with `creationflags=NO_WINDOW` so no console windows pop up on
   Windows.
 
-An operation id can be offered by several backends (e.g. a future `comfyui` `video.upscale`); the
+An operation id can be offered by several backends (e.g. a later `comfyui` `video.upscale`); the
 first available one in entry-point order wins unless the client names a `backend`.
 
 ## The C++ side (`src/services`)

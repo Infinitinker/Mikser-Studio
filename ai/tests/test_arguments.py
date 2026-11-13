@@ -17,6 +17,7 @@ def test_defaults(tmp_path: Path) -> None:
     assert options.cache_dir == tmp_path.resolve()
     assert options.ffmpeg is None
     assert options.ollama_url == "http://127.0.0.1:11434"
+    assert options.comfyui_url == "http://127.0.0.1:8188"
     assert options.exit_with_stdin is False
 
 
@@ -30,11 +31,13 @@ def test_options_are_read(tmp_path: Path) -> None:
         [
             "--token", "t", "--cache-dir", str(tmp_path), "--port", "5000", "--host", "::1",
             "--ffmpeg", "C:/ffmpeg/ffmpeg.exe", "--ollama-url", "http://127.0.0.1:9999/", "--exit-with-stdin",
+            "--comfyui-url", "http://127.0.0.1:8190/",
         ],
         environment={},
     )  # fmt: skip
     assert (options.host, options.port, options.ffmpeg) == ("::1", 5000, "C:/ffmpeg/ffmpeg.exe")
     assert options.ollama_url == "http://127.0.0.1:9999"
+    assert options.comfyui_url == "http://127.0.0.1:8190"
     assert options.exit_with_stdin is True
 
 

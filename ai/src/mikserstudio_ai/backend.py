@@ -82,6 +82,7 @@ class Settings:
     cache_dir: Path
     ffmpeg: str | None = None  # Path of ffmpeg; None means "find it on PATH".
     ollama_url: str = "http://127.0.0.1:11434"
+    comfyui_url: str = "http://127.0.0.1:8188"
 
 
 @runtime_checkable

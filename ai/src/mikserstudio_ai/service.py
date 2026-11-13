@@ -20,7 +20,12 @@ READY_PREFIX = "MIKSERSTUDIO_AI_READY port="
 
 async def serve(options: Options) -> None:
     options.cache_dir.mkdir(parents=True, exist_ok=True)
-    settings = Settings(cache_dir=options.cache_dir, ffmpeg=options.ffmpeg, ollama_url=options.ollama_url)
+    settings = Settings(
+        cache_dir=options.cache_dir,
+        ffmpeg=options.ffmpeg,
+        ollama_url=options.ollama_url,
+        comfyui_url=options.comfyui_url,
+    )
     registry = BackendRegistry.from_entry_points(settings)
     jobs = JobManager(options.cache_dir)
     runner = web.AppRunner(create_app(registry, jobs, options.token), access_log=None)
