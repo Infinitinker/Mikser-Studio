@@ -36,6 +36,8 @@ CONFIGURE = "run cmake --preset package"
 STAGE = Path("build/stage") / NAME
 DIST = Path("build/dist")
 PROGRAM = STAGE / "bin/mikser-studio.exe"
+MCP_BRIDGE = STAGE / "bin/mikser-studio-mcp.exe"
+"""The MCP bridge (docs/api.md), a program of its own that ships next to the app."""
 QT_CONF = """[Paths]
 Prefix = .
 Plugins = .
@@ -56,7 +58,7 @@ def version() -> str:
 
 
 def install() -> None:
-    """The program and the bundled plugins, as CMake installs them."""
+    """The program, the MCP bridge and the bundled plugins, as CMake installs them."""
     if not (BUILD / "build.ninja").is_file():
         raise SystemExit(f"No package build in {BUILD}: {CONFIGURE}, then cmake --build --preset package.")
     # Without it the release would run as Mikser Studio Dev (src/core/include/mikserstudio/core/Instance.h).
@@ -90,10 +92,10 @@ def check_notices(programs: list[Path], root: Path) -> list[Path]:
 
 
 def add_runtime() -> None:
-    """The libraries from MSYS2 the program and the plugins need, and MLT's and Qt's files."""
+    """The libraries from MSYS2 the program, the MCP bridge and the plugins need, and MLT's and Qt's files."""
     root = msys2_root()
     plugins = sorted((STAGE / "bin/plugins").rglob("*.dll"))
-    for library in check_notices([PROGRAM, *plugins], root):
+    for library in check_notices([PROGRAM, MCP_BRIDGE, *plugins], root):
         shutil.copy2(library, STAGE / "bin" / library.name)
     for source, destination in copied_files(root / ENVIRONMENT):
         target = STAGE / destination
