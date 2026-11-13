@@ -9,6 +9,12 @@ using namespace Qt::StringLiterals;
 
 namespace mikserstudio::mcp {
 
+namespace {
+
+constexpr double kLargestWholeNumber = 9'007'199'254'740'992.0;  // 2^53
+
+}  // namespace
+
 QString RecentEvents::toolName()
 {
     return u"recent_events"_s;
@@ -57,7 +63,8 @@ std::optional<QJsonObject> RecentEvents::result(const QJsonObject& arguments) co
     qint64 after = 0;
     if (arguments.contains(u"after"_s)) {
         const double given = arguments.value(u"after"_s).toDouble(-1);
-        if (given < 0 || std::floor(given) != given)
+        // Above 2^53 a JSON number is no longer a whole number for sure, and it would not fit in qint64.
+        if (given < 0 || given > kLargestWholeNumber || std::floor(given) != given)
             return std::nullopt;
         after = static_cast<qint64>(given);
     }

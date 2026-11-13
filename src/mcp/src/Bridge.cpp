@@ -194,7 +194,7 @@ void Bridge::callTool(const QJsonValue& id, const QJsonObject& params, QObject* 
         if (const std::optional<QJsonObject> result = m_recent.result(arguments))
             finishRequest(id, success(*result));
         else
-            failRequest(id, InvalidParams, u"recent_events takes after, a whole number of 0 or more."_s);
+            failRequest(id, InvalidParams, u"recent_events takes after, a whole number from 0 to 2^53."_s);
         return;
     }
     m_app.commands(

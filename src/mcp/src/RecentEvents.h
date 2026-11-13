@@ -23,7 +23,7 @@ public:
     void add(const QJsonObject& event, const QDateTime& received);
 
     // The tool's result for its arguments: the events numbered after `after`, if given, and the latest
-    // number, to pass as `after` the next time. An `after` that is not a whole number of 0 or more is
+    // number, to pass as `after` the next time. An `after` that is not a whole number from 0 to 2^53 is
     // nullopt.
     [[nodiscard]] std::optional<QJsonObject> result(const QJsonObject& arguments) const;
 

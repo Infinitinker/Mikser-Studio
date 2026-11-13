@@ -10,6 +10,7 @@ add_executable(mikserstudio-mcp-tests
     McpTestSupport.cpp
     McpTestSupport.h
     ProgramTests.cpp
+    RecentEventsTests.cpp
     main.cpp
 )
 target_link_libraries(mikserstudio-mcp-tests PRIVATE MikserStudio::mcp Qt6::HttpServer Qt6::Network Qt6::WebSockets
