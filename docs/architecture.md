@@ -1,7 +1,7 @@
 # Mikser Studio architecture
 
-Mikser Studio is a native C++23 / Qt 6 desktop app with a headless core, a plugin system and AI that runs in
-separate Python processes. Why this stack was chosen is in `stack-recommendation.md`.
+Mikser Studio is a native C++23 / Qt 6 desktop app with a headless core, a plugin system and an AI engine
+that connects to the AI tools the user runs. Why this stack was chosen is in `stack-recommendation.md`.
 
 ## Principles
 
@@ -11,7 +11,7 @@ separate Python processes. Why this stack was chosen is in `stack-recommendation
 - **The core is headless.** `src/core` depends only on Qt Core. The UI is a client of the core; it
   must never change the project except through commands.
 - **Module ≠ process.** Code is split into modules everywhere; a separate process is used only for
-  isolation or heavy resources (the AI service, export rendering).
+  isolation or heavy resources (export rendering, the MCP bridge).
 - **Plugins first.** Adding a panel, a command or an AI backend must not need changes in the core.
   Plugin settings are JSON Schema and the UI generates forms from them.
 - **Interfaces at the seams.** The docking library (`ui::DockHost`), the media engine
@@ -26,11 +26,11 @@ separate Python processes. Why this stack was chosen is in `stack-recommendation
 | `src/core/` | `MikserStudio::core` | Qt Core | Command bus, undo, JSON Schema validation, project model, transport interface, plugin manager. |
 | `src/engine/` | `MikserStudio::engine` | core, MLT 7, Qt Gui | MLT runtime, media probe, playback engines (source clip, program timeline), GPU monitor (QRhi). |
 | `src/api/` | `MikserStudio::api` | core, Qt HttpServer/WebSockets | Versioned local API on 127.0.0.1: `/v1` HTTP + WebSocket events. |
-| `src/services/` | `MikserStudio::services` | core, Qt Network | Sidecar process manager and the AI bridge (talks to `ai/`). |
+| `src/services/` | `MikserStudio::services` | core, Qt Network/WebSockets | The AI engine: its backends connect to the AI tools the user runs (Ollama, ComfyUI), and its `ai.*` commands run their operations as jobs. |
 | `src/ui/` | `MikserStudio::ui` | core, Qt Widgets/Quick, KDDockWidgets | Main window, docking, workspaces, panels (media bin, timeline, AI, palette, properties, log). |
 | `src/app/` | `mikser-studio` | all | Wires the modules together; `mikser-studio --headless` runs without UI. |
 | `plugins/` | plugin libraries | sdk | Bundled example plugins. |
-| `ai/` | Python package `mikserstudio-ai` | — | AI sidecar service, run from its own virtual environment (`ai/.venv`); it connects to the AI tools the user runs and runs no models itself. Also holds the MCP bridge (`mikserstudio_ai.mcp`), a program of its own. |
+| `ai/` | Python package `mikserstudio-ai` | — | The MCP bridge (`mikserstudio_ai.mcp`), a program of its own, run from its own virtual environment (`ai/.venv`). |
 | `tests/` | `*-tests` | Catch2 | Tests mirroring `src/` and `plugins/`, and the end-to-end tests. |
 
 ## Import directions
@@ -50,19 +50,12 @@ on its own. `tools/check_includes.py` checks the C++ and the import-linter contr
   headers are included in quotes by name, and only by the module itself and its tests in
   `tests/<module>/`. The plugin ABI is included in angle brackets, `<mikserstudio/plugin_api.h>`, as
   a plugin built apart from Mikser Studio includes it.
-- `tests/e2e/` includes only the core and the services: the end-to-end tests run the app as a
-  process, and the real AI service through the services module. `tests/plugins/` includes only the
-  core, whose PluginManager loads the bundled plugins as the app does. Both may use the support files
-  of those modules' tests. Every C++ file is in a folder the check knows, so a new folder has to be
-  added to it before its includes pass.
-- In `ai/`, the service (`service`, `server`, `jobs`, `registry` and the modules they use) never
-  imports `backends/`: backends are found through the `mikserstudio_ai.backends` entry points.
-  Backends use only the backend contract (`backend.py`) and the shared helpers (`processes.py`,
-  `provenance.py`, `logs.py`), and never each other. The service is layered: `__main__`, `service`,
-  `server`, then `jobs`, `registry`, `auth` and `params`, then `backend`; each imports only from the
-  layers below it.
-- The MCP bridge (`mikserstudio_ai.mcp`) drives the app only through its local API: it imports
-  nothing of the AI service or its backends, and they import nothing of it.
+- `tests/e2e/` includes only the core: the end-to-end tests run the app as a process, and use the
+  services tests' fake AI tools. `tests/plugins/` includes only the core, whose PluginManager loads
+  the bundled plugins as the app does. Both may use the support files of those modules' tests.
+  Every C++ file is in a folder the check knows, so a new folder has to be added to it before its
+  includes pass.
+- The MCP bridge (`mikserstudio_ai.mcp`) drives the app only through its local API.
 
 ## Terms
 
@@ -89,10 +82,10 @@ messages.
 | MCP bridge | The program that offers the commands to agents as MCP tools, through the local API (`python -m mikserstudio_ai.mcp`). | MCP server, agent API |
 | instance | Which Mikser Studio runs: the installed app, Mikser Studio Dev or Mikser Studio E2E, each with its own name, app id and folders (`MIKSERSTUDIO_INSTANCE`). | profile, variant |
 | discovery file | `api.json`, which tells other programs the local API's address and session token. | config file |
-| session token | The secret a client needs for the local API or the AI service, made anew at each start. | key, password |
-| AI service | The Python process in `ai/` whose backends connect to the AI tools the user runs; *sidecar* in the code that manages it (`SidecarManager`). | AI server, worker |
-| backend | A part of the AI service that offers operations, such as `builtin` and `ollama`. | provider, engine |
-| operation | What a backend can do, such as `video.upscale` or `text.generate`. | task, op type |
+| session token | The secret a client needs for the local API, made anew at each start. | key, password |
+| AI engine | The part of the app that runs AI jobs in the AI tools the user runs, through its backends (`services::AiEngine`). | AI service, sidecar |
+| backend | A part of the AI engine that connects to one AI tool's API and offers operations, such as `ollama` and `comfyui`. | provider |
+| operation | What a backend can do, such as `image.generate` or `text.generate`. | task, op type |
 | job | One run of an operation, with a state: `queued`, `running`, `succeeded`, `failed` or `canceled`. | task, request |
 | provenance | The record of how AI made a media item: the job, backend, operation, model, parameters, time and tool versions. | metadata, history |
 
@@ -105,8 +98,9 @@ messages.
 - **Monitor:** a QRhi-backed `QWindow` (D3D11 on Windows, Metal on macOS, Vulkan/GL on Linux)
   embedded with `QWidget::createWindowContainer`, so playback never takes the extra copy that
   `QRhiWidget`/`QQuickWidget` make.
-- **AI sidecar:** `mikserstudio-ai` (Python, aiohttp) started on demand by `services::SidecarManager`, on
-  127.0.0.1 with a session token. Generated media is written to the project cache with provenance.
+- **AI engine:** `services::AiEngine` runs on the main thread. Its requests to the AI tools are
+  asynchronous and each has a timeout, so a slow or hung tool never blocks the interface. Generated
+  media is written to the AI cache and imported with its provenance.
 
 ## Conventions
 

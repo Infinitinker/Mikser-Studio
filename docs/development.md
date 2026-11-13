@@ -34,7 +34,8 @@ py -3.13 -m venv ai/.venv
 ai/.venv/Scripts/python -m pip install -e "./ai[dev]"
 ```
 
-Ollama is optional, for `ai.generate_text`.
+Ollama and ComfyUI are optional: the AI commands use them when they run ([ai.md](ai.md)), and the
+tests use fakes of them.
 
 ### Build and test
 
@@ -73,14 +74,14 @@ build/debug/bin/mikser-studio.exe --headless --api-port 47123   # no window; con
 
 Stop the headless mode with Ctrl+C (or Ctrl+Break, closing its console, `taskkill /IM
 mikser-studio.exe` without `/F` on Windows, or SIGINT/SIGTERM on Linux and macOS): Mikser Studio then
-shuts down cleanly, so plugins are deactivated, the AI service is stopped and the API's discovery file
+shuts down cleanly, so plugins are deactivated, running AI jobs are canceled and the API's discovery file
 `api.json` is removed. A second Ctrl+C ends it at once; `taskkill /F` ends it without cleaning up.
 
 `--screenshot <png> [--screenshot-delay <ms>]` saves a screenshot of the window and quits, which is
 handy for checking UI changes. Debug builds are console programs so the log is visible; set
 `QT_FORCE_STDERR_LOGGING=1` in MSYS2 shells.
 
-Every run also writes its log, with the AI service's output in it, to `mikser-studio.log` in the
+Every run also writes its log to `mikser-studio.log` in the
 instance's `logs` folder (`%LOCALAPPDATA%\Mikser Studio Dev\logs` on Windows). Each start moves the
 last log to `mikser-studio.1.log`, and so on up to `mikser-studio.4.log`; a log that grows past 10 MB
 moves aside the same way.
@@ -108,7 +109,7 @@ The per-user folders come from `core::UserFolders`, which the environment can ov
 `MIKSERSTUDIO_CONFIG_DIR` (settings), `MIKSERSTUDIO_DATA_DIR` (the discovery file and the logs) and
 `MIKSERSTUDIO_CACHE_DIR` (the cache).
 
-Other environment overrides: `MIKSERSTUDIO_AI_DIR`,
+Other environment overrides:
 `MIKSERSTUDIO_MLT_REPOSITORY`, `MIKSERSTUDIO_MLT_DATA`, `MIKSERSTUDIO_MONITOR_RHI` (`d3d11|d3d12|vulkan|opengl|metal|null`),
 `MIKSERSTUDIO_AUDIO_OUTPUT` (`rtaudio|sdl2_audio|silent`).
 
@@ -179,9 +180,9 @@ python tools/licenses.py
 
 `tests/e2e/` starts the built `mikser-studio.exe` headless, as the E2E instance with its settings and
 cache in a temporary folder, finds it through its discovery file, drives it through the local API,
-asks it to close, and checks that it shut down cleanly and removed the file. It also starts the real
-AI service from `ai/.venv` through the services module and upscales a clip with it; those tests skip
-when `ai/.venv` is not set up, and the upscale also needs `ffmpeg` on `PATH`. The tests carry the
+asks it to close, and checks that it shut down cleanly and removed the file. It also runs `ai.run image.generate`
+against a fake ComfyUI in the test process and checks that the image comes into the project with its
+provenance, so no AI tool is needed. The tests carry the
 `e2e` label, which the `debug` and `ci` test presets leave out; the `e2e` preset runs them, on the
 `debug` build:
 

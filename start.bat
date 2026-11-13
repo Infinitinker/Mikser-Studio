@@ -1,7 +1,7 @@
 @echo off
 rem Starts Mikser Studio from this checkout, as the separate "Mikser Studio Dev" app, so it never
 rem touches an installed copy's settings. For development: build it first with the release or debug
-rem preset, and set up the AI service's ai\.venv (see docs\development.md). MSYS2 is looked for in
+rem preset (see docs\development.md). MSYS2 is looked for in
 rem C:\msys64, or where MSYS2_ROOT points.
 setlocal
 cd /d "%~dp0"

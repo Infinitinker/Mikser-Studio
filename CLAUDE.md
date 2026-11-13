@@ -140,7 +140,7 @@ where the app is going; new code moves toward them and never works against them.
 
 Mikser Studio runs no AI models itself and ships none. It connects to the AI tools the user runs,
 local and offline first (Ollama, ComfyUI, InvokeAI, Strata), through their own APIs: one backend in
-the AI service per API. An online service is used only when the user sets it up. The AI service never
+the AI engine per API. An online service is used only when the user sets it up. The AI engine never
 downloads models or installs extensions unless the user asks.
 
 What a backend makes arrives in the project as media of its own, with its provenance (the job,
@@ -176,7 +176,7 @@ mind: every panel can be moved, docked and undocked, and layouts are saved as wo
   Linux, Apple's toolchain on macOS. Build files, CI and docs offer no MSVC or Visual Studio route,
   not even as an alternative. Prebuilt dependencies and tools, such as python.org's Python and its
   wheels, may come from any compiler, with the runtime they need.
-- Python 3.13 for the AI service in `ai/`, in a plain `venv` in `ai/.venv`, with Ruff, mypy (strict),
+- Python 3.13 for the MCP bridge in `ai/`, in a plain `venv` in `ai/.venv`, with Ruff, mypy (strict),
   pytest and import-linter.
 - clang-format and clang-tidy, set up by `.clang-format` and `.clang-tidy`.
 - Inno Setup 7 for the Windows installer.
@@ -196,7 +196,7 @@ Before committing, run every check, from Git Bash with `/c/msys64/ucrt64/bin` fi
 - After changing what a release ships: `python tools/notices.py --check` and `python tools/licenses.py`,
   with MSYS2's Python.
 - The tests of the scripts in `tools/`: from `ai/`, `.venv/Scripts/python -m pytest -c pyproject.toml ../tools/tests`.
-- After changes to start-up, shutdown, the local API or the AI service, the end-to-end tests:
+- After changes to start-up, shutdown, the local API or the AI engine, the end-to-end tests:
   `ctest --preset e2e`. After changes to the monitor, the GPU test: `ctest --preset gpu`.
 
 `main` is stable, work happens on `dev`, changes reach `main` through pull requests.
