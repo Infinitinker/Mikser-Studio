@@ -93,13 +93,19 @@ BOOL WINAPI onConsoleEvent(DWORD event)
 //   including those of threads started later. The class name is a Qt implementation detail;
 //   tests/app checks it still matches.
 // Windows of other threads, of any other class, are not covered: a request that reaches one is
-// lost. logCloseCoverage() lists them in the log.
+// lost. logCloseCoverage() lists them in the log. The headless app has no top-level window of its
+// own, so it keeps a hidden one on the main thread for close requests (installCloseTarget()):
+// otherwise a request goes to the newest message-only window, which can belong to a library's
+// thread that never reads its messages, such as the COM window of RtAudio's WASAPI thread while
+// sound plays.
 constexpr QLatin1StringView kQtDispatcherClassPrefix("QEventDispatcherWin32_Internal_Widget");
+constexpr wchar_t kCloseTargetClass[] = L"MikserStudioCloseRequests";
 
 std::atomic<WNDPROC> g_qtDispatcherProc{nullptr};
 std::atomic<bool> g_closeGuardActive{false};
 std::atomic<bool> g_closeRequested{false};
 HHOOK g_mainThreadHook = nullptr;
+HWND g_closeTarget = nullptr;  // The headless app's hidden top-level window.
 DWORD g_mainThreadId = 0;
 QString g_loggedWindows;  // The windows logCloseCoverage() last logged.
 
@@ -234,6 +240,44 @@ void installCloseGuard()
     g_closeGuardActive = true;
 }
 
+// The close target's procedure. The hook on the main thread takes WM_CLOSE first; this handles a
+// request sent to the window directly.
+LRESULT CALLBACK closeTargetProc(HWND window, UINT message, WPARAM wParam, LPARAM lParam)
+{
+    if (message == WM_CLOSE) {
+        if (g_closeGuardActive.load())
+            onCloseRequest(window);
+        return 0;  // Never let the window destroy itself.
+    }
+    return DefWindowProcW(window, message, wParam, lParam);
+}
+
+// Without an interface, gives the main thread a hidden top-level window, which `taskkill` prefers
+// to every message-only window.
+void installCloseTarget()
+{
+    if (qobject_cast<QGuiApplication*>(QCoreApplication::instance()) != nullptr)
+        return;  // The interface's windows are top-level, and Qt closes them.
+    HINSTANCE module = GetModuleHandleW(nullptr);
+    WNDCLASSW windowClass{};
+    windowClass.lpfnWndProc = closeTargetProc;
+    windowClass.hInstance = module;
+    windowClass.lpszClassName = kCloseTargetClass;
+    if (RegisterClassW(&windowClass) == 0 && GetLastError() != ERROR_CLASS_ALREADY_EXISTS) {
+        qCWarning(lcApp) << "Closing Mikser Studio from another program (taskkill) may hang it: no window class "
+                            "for close requests (error"
+                         << GetLastError() << ")";
+        return;
+    }
+    g_closeTarget = CreateWindowExW(0, kCloseTargetClass, L"Mikser Studio", WS_OVERLAPPED, 0, 0, 0, 0, nullptr, nullptr,
+                                    module, nullptr);
+    if (!g_closeTarget) {
+        qCWarning(lcApp) << "Closing Mikser Studio from another program (taskkill) may hang it: no window for close "
+                            "requests (error"
+                         << GetLastError() << ")";
+    }
+}
+
 void installMainThreadHook()
 {
     g_mainThreadHook = SetWindowsHookExW(WH_GETMESSAGE, onMainThreadMessage, nullptr, GetCurrentThreadId());
@@ -258,6 +302,7 @@ ShutdownSignals::ShutdownSignals()
     }
     installCloseGuard();
     installMainThreadHook();
+    installCloseTarget();
     logCloseCoverage();
     // Again once the event loop runs, with the windows the studio made while it started.
     QMetaObject::invokeMethod(QCoreApplication::instance(), &logCloseCoverage, Qt::QueuedConnection);
@@ -269,6 +314,8 @@ ShutdownSignals::ShutdownSignals()
 ShutdownSignals::~ShutdownSignals()
 {
     g_closeGuardActive = false;
+    if (g_closeTarget)
+        DestroyWindow(std::exchange(g_closeTarget, nullptr));
     if (g_mainThreadHook)
         UnhookWindowsHookEx(std::exchange(g_mainThreadHook, nullptr));
     ConsoleState& state = consoleState();

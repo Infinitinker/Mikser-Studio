@@ -1,6 +1,7 @@
 // Shutdown signals: a close request from another program quits the app cleanly, whichever window it
-// reaches (an event-loop window of any thread, or another window of the main thread), the windows it
-// can reach are logged, and the handlers install and uninstall.
+// reaches (an event-loop window of any thread, or another window of the main thread), the app without
+// an interface has a top-level window for such requests, the windows they can reach are logged, and
+// the handlers install and uninstall.
 #include "ShutdownSignals.h"
 
 #include <catch2/catch_test_macros.hpp>
@@ -219,6 +220,32 @@ TEST_CASE("A close request from another program quits cleanly, whichever window 
         CHECK(IsWindow(window));
         DestroyWindow(window);
     }
+}
+
+TEST_CASE("Without an interface, a hidden top-level window of the main thread takes close requests", "[app][shutdown]")
+{
+    // `taskkill` prefers a top-level window to every message-only one, such as the COM window of a
+    // library's thread that never reads its messages.
+    const auto closeTarget = [] {
+        for (const mikserstudio::app::ProcessWindow& window :
+             mikserstudio::app::processWindows(GetCurrentProcessId())) {
+            if (!window.messageOnly && window.className == u"MikserStudioCloseRequests"_s)
+                return window;
+        }
+        return mikserstudio::app::ProcessWindow{};
+    };
+    HWND window = nullptr;
+    {
+        const ShutdownSignals shutdown;
+        const mikserstudio::app::ProcessWindow target = closeTarget();
+        window = target.handle;
+        REQUIRE(window != nullptr);
+        CHECK(target.threadId == GetCurrentThreadId());
+        CHECK_FALSE(IsWindowVisible(window));
+        CHECK(closeRequestQuits(window));
+        CHECK(IsWindow(window));
+    }
+    CHECK_FALSE(IsWindow(window));
 }
 
 TEST_CASE("The windows a close request can reach are logged, with those no handler covers", "[app][shutdown]")
