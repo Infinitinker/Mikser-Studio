@@ -1,8 +1,9 @@
 cmake_minimum_required(VERSION 3.28)
 
+# DESCRIPTION is the README's tagline; mikser-studio --help shows it.
 project(MikserStudio
     VERSION 0.1.0
-    DESCRIPTION "A multimedia studio with AI built in. Edit video and sound on a timeline, and let AI models work on your clips without leaving it."
+    DESCRIPTION "A multimedia studio where you and AI agents make things together."
     LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 23)

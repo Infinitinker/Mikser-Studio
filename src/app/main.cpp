@@ -52,7 +52,7 @@ bool wantsHeadless(int argc, char** argv)
 std::expected<CommandLine, QString> parseCommandLine(const QCoreApplication& app)
 {
     QCommandLineParser parser;
-    parser.setApplicationDescription(u"Mikser Studio, an AI-backed multimedia studio."_s);
+    parser.setApplicationDescription(QStringLiteral(MIKSERSTUDIO_DESCRIPTION));
     parser.addHelpOption();
     parser.addVersionOption();
     parser.addPositionalArgument(u"files"_s, u"Media files to import and place on the timeline."_s, u"[files...]"_s);

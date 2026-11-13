@@ -24,7 +24,8 @@ add_executable(mikser-studio WIN32
 target_link_libraries(mikser-studio PRIVATE
     MikserStudio::core MikserStudio::engine MikserStudio::api MikserStudio::services MikserStudio::ui Qt6::Widgets)
 target_compile_definitions(mikser-studio PRIVATE
-    MIKSERSTUDIO_VERSION="${PROJECT_VERSION}")
+    MIKSERSTUDIO_VERSION="${PROJECT_VERSION}"
+    MIKSERSTUDIO_DESCRIPTION="${PROJECT_DESCRIPTION}")
 mikserstudio_target_defaults(mikser-studio)
 
 # ShutdownSignals lists the windows a close request from another program can reach, on Windows.
