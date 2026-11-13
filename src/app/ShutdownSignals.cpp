@@ -7,7 +7,10 @@
 #include <QCoreApplication>
 
 #ifdef Q_OS_WIN
+#include "ProcessWindows.h"
+
 #include <QGuiApplication>
+#include <QStringList>
 #include <QWindow>
 
 #include <windows.h>
@@ -17,7 +20,6 @@
 #include <chrono>
 #include <condition_variable>
 #include <mutex>
-#include <string_view>
 #include <utility>
 #else
 #include <QSocketNotifier>
@@ -28,6 +30,8 @@
 
 #include <utility>
 #endif
+
+using namespace Qt::StringLiterals;
 
 namespace mikserstudio::app {
 
@@ -88,22 +92,24 @@ BOOL WINAPI onConsoleEvent(DWORD event)
 //   Replacing the procedure of that class turns WM_CLOSE into a clean quit for every such window,
 //   including those of threads started later. The class name is a Qt implementation detail;
 //   tests/app checks it still matches.
-constexpr std::wstring_view kQtDispatcherClassPrefix = L"QEventDispatcherWin32_Internal_Widget";
+// Windows of other threads, of any other class, are not covered: a request that reaches one is
+// lost. logCloseCoverage() lists them in the log.
+constexpr QLatin1StringView kQtDispatcherClassPrefix("QEventDispatcherWin32_Internal_Widget");
 
 std::atomic<WNDPROC> g_qtDispatcherProc{nullptr};
 std::atomic<bool> g_closeGuardActive{false};
 std::atomic<bool> g_closeRequested{false};
 HHOOK g_mainThreadHook = nullptr;
+DWORD g_mainThreadId = 0;
+QString g_loggedWindows;  // The windows logCloseCoverage() last logged.
 
 // A close request reached `window`: the first one quits, the window stays.
 void onCloseRequest(HWND window)
 {
     if (g_closeRequested.exchange(true))
         return;
-    wchar_t name[128] = {};
-    GetClassNameW(window, name, 128);
     qCInfo(lcApp).noquote() << "Another program asked Mikser Studio to close; shutting down. The request reached"
-                            << "a window of class" << QString::fromWCharArray(name);
+                            << "a window of class" << windowClassName(window);
     requestQuit();
 }
 
@@ -141,24 +147,65 @@ LRESULT CALLBACK guardedDispatcherProc(HWND window, UINT message, WPARAM wParam,
     return CallWindowProcW(g_qtDispatcherProc.load(), window, message, wParam, lParam);
 }
 
-bool isQtDispatcherWindow(HWND window, DWORD threadId)
-{
-    DWORD processId = 0;
-    const DWORD owner = GetWindowThreadProcessId(window, &processId);
-    if (processId != GetCurrentProcessId() || (threadId != 0 && owner != threadId))
-        return false;
-    wchar_t name[128] = {};
-    return GetClassNameW(window, name, 128) > 0 && std::wstring_view(name).starts_with(kQtDispatcherClassPrefix);
-}
-
 // The hidden windows of Qt's event dispatchers in this process; only the calling thread's when
 // `threadId` is not 0.
 template <typename Fn> void forEachQtDispatcherWindow(DWORD threadId, Fn fn)
 {
-    HWND window = nullptr;
-    while ((window = FindWindowExW(HWND_MESSAGE, window, nullptr, nullptr))) {
-        if (isQtDispatcherWindow(window, threadId))
-            fn(window);
+    for (const ProcessWindow& window : processWindows(GetCurrentProcessId())) {
+        if (window.messageOnly && (threadId == 0 || window.threadId == threadId) &&
+            window.className.startsWith(kQtDispatcherClassPrefix)) {
+            fn(window.handle);
+        }
+    }
+}
+
+// Whether a close request that reaches `window` quits Mikser Studio, through the hook on the main
+// thread (or Qt, for the interface's windows) or the guarded procedure.
+bool isCovered(const ProcessWindow& window)
+{
+    if (window.threadId == g_mainThreadId && g_mainThreadHook != nullptr)
+        return true;
+    return GetWindowLongPtrW(window.handle, GWLP_WNDPROC) == reinterpret_cast<LONG_PTR>(&guardedDispatcherProc);
+}
+
+QString describe(const ProcessWindow& window, bool covered)
+{
+    QStringList notes{window.threadId == g_mainThreadId ? u"main thread"_s : u"thread %1"_s.arg(window.threadId)};
+    if (isInterfaceWindow(window.handle))
+        notes.append(u"interface"_s);
+    if (!covered)
+        notes.append(u"not covered"_s);
+    return u"%1 %2 (%3)"_s.arg(window.messageOnly ? u"message-only"_s : u"top-level"_s, window.className,
+                               notes.join(u", "_s));
+}
+
+// Logs the windows a close request from another program (`taskkill`) can reach, and those it would
+// be lost at, so a request the app ignored can be traced in a user's log. Main thread only; logs
+// again only when the windows changed.
+void logCloseCoverage()
+{
+    if (!g_closeGuardActive.load())
+        return;
+    const QList<ProcessWindow> windows = processWindows(GetCurrentProcessId());
+    QStringList described;
+    bool allCovered = true;
+    for (const ProcessWindow& window : windows) {
+        const bool covered = isCovered(window);
+        allCovered = allCovered && covered;
+        described.append(describe(window, covered));
+    }
+    const QString list = described.join(u"; "_s);
+    if (list == std::exchange(g_loggedWindows, list))
+        return;
+    if (allCovered) {
+        qCInfo(lcApp).noquote() << u"Closing Mikser Studio from another program (taskkill) quits it cleanly, "
+                                   u"whichever of its %1 windows the request reaches: %2"_s.arg(windows.size())
+                                       .arg(list);
+    } else {
+        qCInfo(lcApp).noquote() << u"Closing Mikser Studio from another program (taskkill) is ignored if the "
+                                   u"request reaches a window marked \"not covered\"; close it from its own "
+                                   u"window or with Ctrl+C then. Its %1 windows: %2"_s.arg(windows.size())
+                                       .arg(list);
     }
 }
 
@@ -201,6 +248,8 @@ void installMainThreadHook()
 
 ShutdownSignals::ShutdownSignals()
 {
+    g_mainThreadId = GetCurrentThreadId();
+    g_loggedWindows.clear();
     ConsoleState& state = consoleState();
     {
         const std::scoped_lock lock(state.mutex);
@@ -209,6 +258,9 @@ ShutdownSignals::ShutdownSignals()
     }
     installCloseGuard();
     installMainThreadHook();
+    logCloseCoverage();
+    // Again once the event loop runs, with the windows the studio made while it started.
+    QMetaObject::invokeMethod(QCoreApplication::instance(), &logCloseCoverage, Qt::QueuedConnection);
     if (!SetConsoleCtrlHandler(onConsoleEvent, TRUE))
         qCWarning(lcApp) << "Ctrl+C will end Mikser Studio without a clean shutdown: no console handler (error"
                          << GetLastError() << ")";

@@ -28,6 +28,11 @@ target_compile_definitions(mikser-studio PRIVATE
     MIKSERSTUDIO_SOURCE_DIR="${PROJECT_SOURCE_DIR}")
 mikserstudio_target_defaults(mikser-studio)
 
+# ShutdownSignals lists the windows a close request from another program can reach, on Windows.
+if(WIN32)
+    target_sources(mikser-studio PRIVATE ProcessWindows.cpp ProcessWindows.h)
+endif()
+
 # The headless mode logs to the console; keep a console build next to the GUI one on Windows.
 if(WIN32)
     set_target_properties(mikser-studio PROPERTIES WIN32_EXECUTABLE $<NOT:$<CONFIG:Debug>>)

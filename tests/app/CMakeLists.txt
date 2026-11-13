@@ -10,6 +10,9 @@ add_executable(mikserstudio-app-tests
     "${PROJECT_SOURCE_DIR}/src/app/Logging.cpp"
     "${PROJECT_SOURCE_DIR}/src/app/ShutdownSignals.cpp"
 )
+if(WIN32)
+    target_sources(mikserstudio-app-tests PRIVATE "${PROJECT_SOURCE_DIR}/src/app/ProcessWindows.cpp")
+endif()
 target_include_directories(mikserstudio-app-tests PRIVATE "${PROJECT_SOURCE_DIR}/src/app")
 target_link_libraries(mikserstudio-app-tests PRIVATE Qt6::Gui Catch2::Catch2)
 mikserstudio_target_defaults(mikserstudio-app-tests)

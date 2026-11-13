@@ -1,6 +1,6 @@
 // Shutdown signals: a close request from another program quits the app cleanly, whichever window it
-// reaches (an event-loop window of any thread, or another window of the main thread), and the
-// handlers install and uninstall.
+// reaches (an event-loop window of any thread, or another window of the main thread), the windows it
+// can reach are logged, and the handlers install and uninstall.
 #include "ShutdownSignals.h"
 
 #include <catch2/catch_test_macros.hpp>
@@ -13,11 +13,18 @@
 #include <memory>
 
 #ifdef Q_OS_WIN
+#include "ProcessWindows.h"
+
+#include <QMutex>
+#include <QRegularExpression>
+#include <QStringList>
+
 #include <windows.h>
 
-#include <string_view>
+#include <thread>
 #endif
 
+using namespace Qt::StringLiterals;
 using mikserstudio::app::ShutdownSignals;
 
 #ifdef Q_OS_WIN
@@ -27,18 +34,87 @@ namespace {
 // The hidden, message-only window Qt's event dispatcher uses on the given thread.
 HWND eventLoopWindow(DWORD threadId)
 {
-    constexpr std::wstring_view prefix = L"QEventDispatcherWin32_Internal_Widget";
-    HWND found = nullptr;
-    while ((found = FindWindowExW(HWND_MESSAGE, found, nullptr, nullptr))) {
-        DWORD pid = 0;
-        if (GetWindowThreadProcessId(found, &pid) != threadId || pid != GetCurrentProcessId())
-            continue;
-        wchar_t name[128] = {};
-        if (GetClassNameW(found, name, 128) > 0 && std::wstring_view(name).starts_with(prefix))
-            return found;
+    for (const mikserstudio::app::ProcessWindow& window : mikserstudio::app::processWindows(GetCurrentProcessId())) {
+        if (window.messageOnly && window.threadId == threadId &&
+            window.className.startsWith(u"QEventDispatcherWin32_Internal_Widget"_s)) {
+            return window.handle;
+        }
     }
     return nullptr;
 }
+
+// A thread with a plain Win32 window and no Qt event loop, as a library might start: nothing turns
+// a close request that reaches its window into a quit.
+class PlainWindowThread {
+public:
+    PlainWindowThread()
+        : m_thread([this] {
+            m_threadId = GetCurrentThreadId();
+            HWND window = CreateWindowExW(0, L"STATIC", L"", 0, 0, 0, 0, 0, nullptr, nullptr, nullptr, nullptr);
+            m_created.release();
+            m_done.acquire();
+            DestroyWindow(window);
+        })
+    {
+        m_created.acquire();
+    }
+    ~PlainWindowThread()
+    {
+        m_done.release();
+        m_thread.join();
+    }
+    PlainWindowThread(const PlainWindowThread&) = delete;
+    PlainWindowThread& operator=(const PlainWindowThread&) = delete;
+
+    [[nodiscard]] DWORD threadId() const { return m_threadId; }
+
+private:
+    QSemaphore m_created;
+    QSemaphore m_done;
+    DWORD m_threadId = 0;
+    std::thread m_thread;
+};
+
+// The messages logged on the mikserstudio.app category while it lives.
+class AppLog {
+public:
+    AppLog() { m_previous = qInstallMessageHandler(&AppLog::handle); }
+    ~AppLog()
+    {
+        qInstallMessageHandler(m_previous);
+        const QMutexLocker lock(&mutex());
+        messages().clear();
+    }
+    AppLog(const AppLog&) = delete;
+    AppLog& operator=(const AppLog&) = delete;
+
+    [[nodiscard]] static QStringList lines()
+    {
+        const QMutexLocker lock(&mutex());
+        return messages();
+    }
+
+private:
+    static QMutex& mutex()
+    {
+        static QMutex instance;
+        return instance;
+    }
+    static QStringList& messages()
+    {
+        static QStringList instance;
+        return instance;
+    }
+    static void handle(QtMsgType, const QMessageLogContext& context, const QString& message)
+    {
+        if (context.category != nullptr && qstrcmp(context.category, "mikserstudio.app") == 0) {
+            const QMutexLocker lock(&mutex());
+            messages().append(message);
+        }
+    }
+
+    QtMessageHandler m_previous = nullptr;
+};
 
 // A thread with its own event loop, like Qt's network thread.
 class EventLoopThread {
@@ -143,6 +219,24 @@ TEST_CASE("A close request from another program quits cleanly, whichever window 
         CHECK(IsWindow(window));
         DestroyWindow(window);
     }
+}
+
+TEST_CASE("The windows a close request can reach are logged, with those no handler covers", "[app][shutdown]")
+{
+    const PlainWindowThread plain;
+    const AppLog log;
+    {
+        const ShutdownSignals shutdown;
+    }
+    const QStringList lines = AppLog::lines().filter(u"(taskkill)"_s);
+    REQUIRE(lines.size() == 1);
+    const QString& line = lines.first();
+    INFO(line.toStdString());
+    CHECK(line.contains(u"is ignored if the request reaches a window marked \"not covered\""_s));
+    const QRegularExpression mainDispatcher(
+        uR"(message-only QEventDispatcherWin32_Internal_Widget\d+ \(main thread\))"_s);
+    CHECK(line.contains(mainDispatcher));
+    CHECK(line.contains(u"top-level Static (thread %1, not covered)"_s.arg(plain.threadId())));
 }
 
 #else
