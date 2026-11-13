@@ -1,9 +1,9 @@
 cmake_minimum_required(VERSION 3.28)
 
-# DESCRIPTION is the README's tagline; mikser-studio --help shows it.
+# DESCRIPTION is the README's tagline and the line under it; mikser-studio --help shows it.
 project(MikserStudio
     VERSION 0.1.0
-    DESCRIPTION "A multimedia studio where you and AI agents make things together."
+    DESCRIPTION "A multimedia studio where you and AI agents make things together. Edit video and sound on a timeline, and work on it with the AI tools on your own computer."
     LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 23)
