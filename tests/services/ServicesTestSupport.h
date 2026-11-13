@@ -68,6 +68,8 @@ public:
 
     void setHandler(Handler handler) { m_handler = std::move(handler); }
     [[nodiscard]] QUrl url() const;
+    // The server itself, e.g. to accept WebSocket connections on the same port.
+    [[nodiscard]] QHttpServer& server() { return *m_server; }
     [[nodiscard]] int port() const { return m_port; }
     [[nodiscard]] const QList<RecordedRequest>& requests() const { return m_requests; }
 

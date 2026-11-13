@@ -1,13 +1,10 @@
-// Registering the ai.* commands and placing a finished upscale job into the project.
+// Registering the ai.* commands on the AI engine and bringing finished jobs into the project.
 #include "mikserstudio/services/AiCommands.h"
 
-#include "AiJobTracker.h"
-#include "AiJson.h"
-#include "UpscalePlacement.h"
+#include "AiResultImport.h"
 #include "mikserstudio/core/CommandBus.h"
 #include "mikserstudio/core/Project.h"
-#include "mikserstudio/services/AiClient.h"
-#include "mikserstudio/services/SidecarManager.h"
+#include "mikserstudio/services/AiEngine.h"
 
 #include <QJsonArray>
 #include <QPointer>
@@ -22,6 +19,8 @@ using core::CommandErrorCode;
 using core::CommandOutcome;
 using core::CommandResult;
 using core::CommandSpec;
+
+constexpr qsizetype kTitleChars = 40;
 
 QJsonObject objectSchema(const QJsonObject& properties, const QStringList& required)
 {
@@ -62,17 +61,49 @@ CommandResult ok(QJsonObject result)
     return CommandOutcome{std::move(result), nullptr};
 }
 
-// Owns the job tracker and the registered commands; a child of the AiClient.
+QJsonArray backendsJson(const QList<AiBackendInfo>& backends)
+{
+    QJsonArray list;
+    for (const AiBackendInfo& backend : backends) {
+        QJsonArray ops;
+        for (const AiOperation& operation : backend.operations) {
+            ops.append(QJsonObject{
+                {u"id"_s, operation.id},
+                {u"title"_s, operation.title},
+                {u"description"_s, operation.description},
+                {u"paramsSchema"_s, operation.paramsSchema},
+            });
+        }
+        list.append(QJsonObject{
+            {u"id"_s, backend.id},
+            {u"title"_s, backend.title},
+            {u"ops"_s, ops},
+            {u"available"_s, backend.available},
+            {u"reason"_s, backend.reason},
+        });
+    }
+    return list;
+}
+
+// The prompt, on one line and short, for job titles and media names.
+QString shortPrompt(const QJsonObject& params)
+{
+    QString text = params.value(u"prompt").toString().simplified();
+    if (text.size() > kTitleChars)
+        text = text.left(kTitleChars - 1) + u"…"_s;
+    return text;
+}
+
+// Owns the registered commands; a child of the engine.
 class AiCommandSet final : public QObject {
 public:
-    AiCommandSet(core::CommandBus& bus, core::ProjectModel& project, SidecarManager& sidecar, AiClient& client)
-        : QObject(&client)
+    AiCommandSet(core::CommandBus& bus, core::ProjectModel& project, AiEngine& engine)
+        : QObject(&engine)
         , m_bus(&bus)
         , m_project(&project)
-        , m_sidecar(&sidecar)
-        , m_tracker(sidecar, client)
+        , m_engine(engine)
     {
-        // project.new and project.open reuse the model: a follow-up must not reach the next project.
+        // project.new and project.open reuse the model: a result must not reach the next project.
         connect(&project, &core::ProjectModel::projectReset, this, [this] { ++m_projectSession; });
     }
 
@@ -94,144 +125,120 @@ private:
             m_ids.append(id);
     }
 
-    CommandResult status() const;
-    CommandResult backends();
-    CommandResult upscaleClip(const QJsonObject& params);
-    CommandResult generateText(const QJsonObject& params);
+    CommandResult run(const QJsonObject& params);
     CommandResult cancelJob(const QJsonObject& params);
+    CommandResult setSettings(const QJsonObject& params);
+    std::expected<QJsonObject, QString> bringIntoProject(const QJsonObject& job, quint64 session, const QString& name);
 
     QPointer<core::CommandBus> m_bus;
     QPointer<core::ProjectModel> m_project;
-    QPointer<SidecarManager> m_sidecar;
-    AiJobTracker m_tracker;
+    AiEngine& m_engine;
     QStringList m_ids;
     quint64 m_projectSession = 0;  // Bumped when the project is replaced.
 };
 
 void AiCommandSet::registerAll()
 {
-    add(readOnly(aiSpec(u"ai.status"_s, u"AI service status"_s,
-                        u"Reports whether the AI service is running, its last error and the number of active jobs."_s)),
-        [this](const QJsonObject&) { return status(); });
-    add(aiSpec(u"ai.backends"_s, u"List AI backends"_s,
-               u"Lists the AI backends with their operations and whether they can run now."_s),
-        [this](const QJsonObject&) { return backends(); });
+    add(aiSpec(
+            u"ai.run"_s, u"Run AI operation"_s,
+            u"Runs an AI operation, such as image.generate or text.generate, in the AI tool of its backend; images, video and audio it makes come into the project."_s,
+            objectSchema(
+                QJsonObject{
+                    {u"op"_s, QJsonObject{{u"type"_s, u"string"_s},
+                                          {u"enum"_s, QJsonArray::fromStringList(m_engine.operationIds())},
+                                          {u"description"_s, u"The operation, from ai.backends."_s}}},
+                    {u"params"_s, QJsonObject{{u"type"_s, u"object"_s},
+                                              {u"default"_s, QJsonObject{}},
+                                              {u"description"_s,
+                                               u"The operation's parameters, as its schema in ai.backends says."_s}}},
+                    {u"backend"_s, stringParam(u"The backend to run it on; the first that offers it when omitted."_s)},
+                },
+                {u"op"_s})),
+        [this](const QJsonObject& params) { return run(params); });
     add(readOnly(aiSpec(u"ai.jobs"_s, u"List AI jobs"_s,
                         u"Lists the AI jobs of this session with their progress and results."_s)),
-        [this](const QJsonObject&) { return ok(QJsonObject{{u"jobs"_s, m_tracker.jobsJson()}}); });
+        [this](const QJsonObject&) { return ok(QJsonObject{{u"jobs"_s, m_engine.jobsJson()}}); });
     add(aiSpec(u"ai.cancel_job"_s, u"Cancel AI job"_s, u"Stops a queued or running AI job."_s,
                objectSchema(QJsonObject{{u"jobId"_s, stringParam(u"Id of the job, from ai.jobs."_s)}}, {u"jobId"_s})),
         [this](const QJsonObject& params) { return cancelJob(params); });
-    add(aiSpec(
-            u"ai.upscale_clip"_s, u"Upscale clip"_s,
-            u"Upscales a video clip and places the result on the video track above it (a new one on top if needed)."_s,
-            objectSchema(
-                QJsonObject{
-                    {u"clipId"_s, stringParam(u"Id of the video clip to upscale."_s)},
-                    {u"scale"_s, QJsonObject{{u"type"_s, u"integer"_s},
-                                             {u"enum"_s, QJsonArray{2, 3, 4}},
-                                             {u"default"_s, 2},
-                                             {u"description"_s, u"Scale factor."_s}}},
-                },
-                {u"clipId"_s})),
-        [this](const QJsonObject& params) { return upscaleClip(params); });
-    add(aiSpec(u"ai.generate_text"_s, u"Generate text"_s, u"Answers a prompt with a local language model."_s,
+    add(aiSpec(u"ai.backends"_s, u"List AI backends"_s,
+               u"Lists the AI backends with their operations and whether their AI tools can run them now."_s),
+        [this](const QJsonObject&) {
+            m_engine.refreshAvailability();
+            return ok(QJsonObject{{u"backends"_s, backendsJson(m_engine.backends())}});
+        });
+    add(readOnly(aiSpec(u"ai.status"_s, u"AI status"_s,
+                        u"Reports the number of active AI jobs and the addresses of the AI tools."_s)),
+        [this](const QJsonObject&) {
+            QJsonObject status = toJson(m_engine.settings());
+            status.insert(u"activeJobs"_s, m_engine.activeJobCount());
+            return ok(status);
+        });
+    add(readOnly(aiSpec(u"ai.settings"_s, u"AI settings"_s, u"Reports the addresses of the AI tools."_s)),
+        [this](const QJsonObject&) { return ok(toJson(m_engine.settings())); });
+    add(aiSpec(u"ai.set_settings"_s, u"Change AI settings"_s,
+               u"Changes the addresses of the AI tools; new jobs use them at once, running jobs go on."_s,
                objectSchema(
                    QJsonObject{
-                       {u"prompt"_s, stringParam(u"What to ask the model."_s)},
-                       {u"model"_s, stringParam(u"Model name; the first installed model when omitted."_s)},
+                       {u"ollamaUrl"_s, stringParam(u"Address of Ollama, such as http://127.0.0.1:11434."_s)},
+                       {u"comfyuiUrl"_s, stringParam(u"Address of ComfyUI, such as http://127.0.0.1:8188."_s)},
                    },
-                   {u"prompt"_s})),
-        [this](const QJsonObject& params) { return generateText(params); });
+                   {})),
+        [this](const QJsonObject& params) { return setSettings(params); });
 }
 
-CommandResult AiCommandSet::status() const
+CommandResult AiCommandSet::run(const QJsonObject& params)
 {
-    if (!m_sidecar)
-        return core::commandFailure(CommandErrorCode::NotAvailable, serviceClosedMessage());
-    return ok(QJsonObject{
-        {u"state"_s, toString(m_sidecar->state())},
-        {u"error"_s, m_sidecar->errorString()},
-        {u"baseUrl"_s, m_sidecar->baseUrl().toString()},
-        {u"restarts"_s, m_sidecar->restartCount()},
-        {u"activeJobs"_s, m_tracker.activeJobCount()},
-    });
+    const QString op = params.value(u"op").toString();
+    const QJsonObject opParams = params.value(u"params").toObject();
+    const QString prompt = shortPrompt(opParams);
+    const QString name = prompt.isEmpty() ? u"AI result"_s : prompt;
+    auto submitted = m_engine.submit(op, opParams, params.value(u"backend").toString(), prompt,
+                                     // The engine that runs this owns `this`.
+                                     [this, session = m_projectSession, name](const QJsonObject& job) {
+                                         return bringIntoProject(job, session, name);
+                                     });
+    if (!submitted)
+        return std::unexpected(submitted.error());
+    return ok(QJsonObject{{u"jobId"_s, *submitted}});
 }
 
-CommandResult AiCommandSet::backends()
+std::expected<QJsonObject, QString> AiCommandSet::bringIntoProject(const QJsonObject& job, quint64 session,
+                                                                   const QString& name)
 {
-    if (!m_sidecar)
-        return core::commandFailure(CommandErrorCode::NotAvailable, serviceClosedMessage());
-    if (m_sidecar->state() == SidecarState::Failed) {
-        const QString error = m_sidecar->errorString();
-        m_tracker.ensureSidecar();
-        return core::commandFailure(CommandErrorCode::NotAvailable,
-                                    error + u" Mikser Studio is trying to start it again."_s);
+    if (!m_bus || !m_project)
+        return std::unexpected(u"The project was closed before the AI job finished."_s);
+    if (session != m_projectSession) {
+        return std::unexpected(
+            u"The project was replaced before the AI job finished, so the result was not added to it. Its files are in Mikser Studio’s cache; open the original project and run the job again."_s);
     }
-    m_tracker.ensureSidecar();
-    m_tracker.refreshBackends();
-    if (!m_tracker.backends()) {
-        return core::commandFailure(CommandErrorCode::NotAvailable,
-                                    u"The AI service is starting. Try again in a moment."_s);
-    }
-    QJsonArray list;
-    for (const AiBackendInfo& backend : *m_tracker.backends())
-        list.append(toJson(backend));
-    return ok(QJsonObject{{u"backends"_s, list}});
-}
-
-CommandResult AiCommandSet::upscaleClip(const QJsonObject& params)
-{
-    if (!m_project || !m_bus)
-        return core::commandFailure(CommandErrorCode::NotAvailable, u"There is no open project."_s);
-    const QString clipId = params.value(u"clipId").toString();
-    const int scale = params.value(u"scale").toInt(2);
-    auto source = resolveUpscaleSource(*m_project, clipId);
-    if (!source)
-        return core::commandFailure(CommandErrorCode::Failed, source.error());
-
-    const QString jobId = m_tracker.submit(
-        u"video.upscale"_s, QJsonObject{{u"input"_s, source->mediaPath}, {u"scale"_s, scale}},
-        u"Upscale “%1” x%2"_s.arg(source->mediaName).arg(scale),
-        // The tracker that runs this belongs to `this`.
-        [this, session = m_projectSession, clipId, scale](const AiJobInfo& job) -> std::expected<QJsonObject, QString> {
-            if (!m_bus || !m_project)
-                return std::unexpected(u"The project was closed before the upscale finished."_s);
-            if (session != m_projectSession) {
-                return std::unexpected(
-                    u"The project was replaced before the upscale finished, so the result was not added to it. Open the original project and run the upscale again."_s);
-            }
-            return placeUpscaledVideo(*m_bus, *m_project, clipId, scale, job);
-        });
-    return ok(QJsonObject{{u"jobId"_s, jobId}});
-}
-
-CommandResult AiCommandSet::generateText(const QJsonObject& params)
-{
-    QJsonObject request{{u"prompt"_s, params.value(u"prompt")}};
-    if (params.contains(u"model"))
-        request.insert(u"model"_s, params.value(u"model"));
-    QString title = params.value(u"prompt").toString().simplified();
-    if (title.size() > 40)
-        title = title.left(39) + u"…"_s;
-    const QString jobId = m_tracker.submit(u"text.generate"_s, request, u"Generate text: %1"_s.arg(title));
-    return ok(QJsonObject{{u"jobId"_s, jobId}});
+    return importAiOutputs(*m_bus, job, name);
 }
 
 CommandResult AiCommandSet::cancelJob(const QJsonObject& params)
 {
     const QString jobId = params.value(u"jobId").toString();
-    auto state = m_tracker.cancel(jobId);
+    auto state = m_engine.cancel(jobId);
     if (!state)
         return std::unexpected(state.error());
     return ok(QJsonObject{{u"jobId"_s, jobId}, {u"state"_s, toString(*state)}});
 }
 
+CommandResult AiCommandSet::setSettings(const QJsonObject& params)
+{
+    auto settings = aiSettingsFromJson(params, m_engine.settings());
+    if (!settings)
+        return core::commandFailure(CommandErrorCode::InvalidParams, settings.error());
+    if (auto saved = m_engine.setSettings(*settings); !saved)
+        return core::commandFailure(CommandErrorCode::Failed, saved.error());
+    return ok(toJson(m_engine.settings()));
+}
+
 }  // namespace
 
-void registerAiCommands(core::CommandBus& bus, core::ProjectModel& project, SidecarManager& sidecar, AiClient& client)
+void registerAiCommands(core::CommandBus& bus, core::ProjectModel& project, AiEngine& engine)
 {
-    auto* commands = new AiCommandSet(bus, project, sidecar, client);
+    auto* commands = new AiCommandSet(bus, project, engine);
     commands->registerAll();
 }
 

@@ -57,8 +57,6 @@ DesktopApp::DesktopApp(Studio& studio, const QString& configDir, DesktopOptions 
     registerMonitors();
     if (engine::TimelinePlayer* program = studio.programPlayer())
         m_shell->setProgramTransport(program);
-    QObject::connect(&studio.sidecar(), &services::SidecarManager::errorOccurred, m_shell->mainWindow(),
-                     [](const QString& message) { qCWarning(lcApp) << "AI service:" << message; });
 }
 
 DesktopApp::~DesktopApp() = default;

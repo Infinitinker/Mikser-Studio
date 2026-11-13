@@ -1,4 +1,4 @@
-// Converting job states to and from their names in the AI service's API.
+// Converting job states to and from their names.
 #include "mikserstudio/services/AiTypes.h"
 
 #include <array>
