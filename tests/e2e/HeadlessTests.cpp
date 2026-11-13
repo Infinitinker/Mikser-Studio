@@ -226,6 +226,14 @@ TEST_CASE("The headless studio answers its API and removes its discovery file wh
     CHECK(saved.body.object().value(u"result"_s).toObject().value(u"path"_s).toString() == saveTo + u".msproj"_s);
     CHECK(QFile::exists(saveTo + u".msproj"_s));
 
+    // Saving over it needs the user's agreement, given with overwrite.
+    const Reply asked = send(baseUrl + u"/v1/commands/project.save"_s, token, {{u"path"_s, saveTo}});
+    CHECK(asked.status == 409);
+    CHECK(asked.body.object().value(u"error"_s).toObject().value(u"code"_s).toString() == u"needs_confirmation"_s);
+    const Reply replaced = send(baseUrl + u"/v1/commands/project.save"_s, token,
+                                {{u"path"_s, saveTo}, {u"overwrite"_s, true}});
+    CHECK(replaced.status == 200);
+
     const QString windows = studio.windows();
     const bool stopped = studio.stop();
     INFO("Its windows when asked to close: " << windows.toStdString());

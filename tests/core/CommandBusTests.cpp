@@ -162,16 +162,19 @@ TEST_CASE("CommandBus lists specs sorted and converts them to JSON", "[commands]
     CHECK(spec.value(u"paramsSchema").toObject() == setSpec().paramsSchema);
     CHECK(spec.value(u"readOnly") == QJsonValue(false));
     CHECK(spec.value(u"confirmation") == QJsonValue(QString()));
+    CHECK(spec.value(u"confirmationParam") == QJsonValue(QString()));
 
     CommandSpec guarded = setSpec();
     guarded.id = u"test.guarded"_s;
     guarded.undoable = false;
     guarded.readOnly = true;
     guarded.confirmation = u"Really read the value?"_s;
+    guarded.confirmationParam = u"label"_s;
     REQUIRE(bus.registerCommand(guarded, okHandler()));
     const QJsonObject guardedJson = toJson(*bus.spec(u"test.guarded"_s));
     CHECK(guardedJson.value(u"readOnly").toBool());
     CHECK(guardedJson.value(u"confirmation").toString() == u"Really read the value?"_s);
+    CHECK(guardedJson.value(u"confirmationParam").toString() == u"label"_s);
 }
 
 TEST_CASE("CommandBus fills an empty params schema with one that takes no params", "[commands]")
@@ -314,6 +317,17 @@ TEST_CASE("CommandBus emits executed and failed", "[commands]")
     CHECK(thrown.error().message.contains(u"boom"_s));
     REQUIRE(failures.size() == 2);
     CHECK(failures[0].code == CommandErrorCode::Failed);
+
+    // A run that needs the user's agreement is a question for the caller, not a failure.
+    CommandSpec asking = setSpec();
+    asking.id = u"test.ask"_s;
+    REQUIRE(bus.registerCommand(asking, [](const QJsonObject&) -> CommandResult {
+        return commandFailure(CommandErrorCode::NeedsConfirmation, u"Replace it?"_s);
+    }));
+    const auto asked = bus.execute(u"test.ask"_s, json(R"({"value": 2})"));
+    REQUIRE_FALSE(asked);
+    CHECK(asked.error().code == CommandErrorCode::NeedsConfirmation);
+    CHECK(failures.size() == 2);
     CHECK(executed.size() == 1);
     CHECK(stack.undoText() == u"Set Value"_s);
 }
@@ -418,4 +432,5 @@ TEST_CASE("Command error codes have stable names", "[commands]")
     CHECK(toString(CommandErrorCode::InvalidParams) == u"invalid_params"_s);
     CHECK(toString(CommandErrorCode::Failed) == u"failed"_s);
     CHECK(toString(CommandErrorCode::NotAvailable) == u"not_available"_s);
+    CHECK(toString(CommandErrorCode::NeedsConfirmation) == u"needs_confirmation"_s);
 }

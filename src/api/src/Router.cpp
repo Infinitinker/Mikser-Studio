@@ -61,6 +61,7 @@ HttpStatus statusFor(core::CommandErrorCode code)
     case core::CommandErrorCode::InvalidParams:
         return HttpStatus::BadRequest;
     case core::CommandErrorCode::NotAvailable:
+    case core::CommandErrorCode::NeedsConfirmation:
         return HttpStatus::Conflict;
     case core::CommandErrorCode::Failed:
         return HttpStatus::InternalServerError;

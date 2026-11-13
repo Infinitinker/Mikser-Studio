@@ -43,7 +43,8 @@ public:
 
     // Applies the schema defaults to params, validates the result against the spec's schema
     // (InvalidParams lists every problem), runs the handler with the defaulted params, pushes its
-    // edit to the undo stack and emits executed() (with the defaulted params) or failed().
+    // edit to the undo stack and emits executed() (with the defaulted params) or failed(); a run
+    // that needs confirmation (NeedsConfirmation) emits neither.
     // A handler that throws is reported as Failed. The handler may unregister commands.
     std::expected<QJsonObject, CommandError> execute(const QString& id, const QJsonObject& params = {});
 
@@ -67,7 +68,7 @@ private:
 
 // Converts a spec to the JSON published by the API and used by the command palette.
 [[nodiscard]] QJsonObject toJson(const CommandSpec& spec);
-// "unknown_command", "invalid_params", "failed", "not_available".
+// "unknown_command", "invalid_params", "failed", "not_available", "needs_confirmation".
 [[nodiscard]] QString toString(CommandErrorCode code);
 
 }  // namespace mikserstudio::core

@@ -58,6 +58,21 @@ COMMANDS: list[dict[str, Any]] = [
         "readOnly": False,
         "confirmation": "Start a new project? Unsaved changes will be lost.",
     },
+    {
+        "id": "project.save",
+        "title": "Save project as…",
+        "description": "Saves the project to a .msproj file.",
+        "paramsSchema": {
+            "type": "object",
+            "properties": {"path": {"type": "string"}, "overwrite": {"type": "boolean", "default": False}},
+            "required": ["path"],
+            "additionalProperties": False,
+        },
+        "undoable": False,
+        "readOnly": False,
+        "confirmation": "",
+        "confirmationParam": "overwrite",
+    },
 ]
 
 
@@ -95,6 +110,9 @@ class FakeStudio:
         if command_id == "edit.undo":
             message = "There is nothing to undo."
             return web.json_response({"error": {"code": "not_available", "message": message}}, status=409)
+        if command_id == "project.save" and not params.get("overwrite"):
+            message = f"“{params['path']}” already exists. Replace it with this project?"
+            return web.json_response({"error": {"code": "needs_confirmation", "message": message}}, status=409)
         return web.json_response({"result": {"ran": command_id}})
 
     async def events(self, request: web.Request) -> web.WebSocketResponse:
@@ -218,7 +236,7 @@ async def test_commands_are_listed_as_tools_with_their_hints(
     client = Client(session, discovery_path)
     await client.start()
     tools = await client.tools()
-    assert set(tools) == {"edit_undo", "project_import_media", "project_list", "project_new"}
+    assert set(tools) == {"edit_undo", "project_import_media", "project_list", "project_new", "project_save"}
 
     listing = tools["project_list"]
     assert listing["annotations"]["readOnlyHint"] is True
@@ -233,6 +251,12 @@ async def test_commands_are_listed_as_tools_with_their_hints(
     new = tools["project_new"]
     assert new["annotations"]["destructiveHint"] is True
     assert "Unsaved changes will be lost" in new["description"]
+
+    # Only the person's agreement gives overwrite, so the agent never sees it.
+    save = tools["project_save"]
+    assert set(save["inputSchema"]["properties"]) == {"path"}
+    assert save["annotations"]["destructiveHint"] is True
+    assert "the person is asked first" in save["description"]
 
 
 async def test_a_tool_runs_its_command_with_the_arguments(
@@ -323,6 +347,44 @@ async def test_a_command_with_a_confirmation_runs_only_when_the_person_agrees(
     assert answer["id"] == 99
     assert len(fake.runs) == runs
     assert answer["result"].get("isError", False) is (runs == 0)
+
+
+@pytest.mark.parametrize(("action", "replaced"), [("accept", True), ("decline", False)])
+async def test_a_run_that_needs_agreement_asks_the_person_and_runs_again_only_when_they_agree(
+    session: aiohttp.ClientSession, studio: tuple[FakeStudio, Path], action: str, replaced: bool
+) -> None:
+    fake, discovery_path = studio
+    client = Client(session, discovery_path)
+    await client.start(capabilities={"elicitation": {}})
+    # The agent's own overwrite is dropped: only the person's answer gives it.
+    arguments = {"path": "C:/projects/first.msproj", "overwrite": True}
+    call = {"name": "project_save", "arguments": arguments}
+    await client.send({"jsonrpc": "2.0", "id": 98, "method": "tools/call", "params": call})
+
+    asked = await client.next_message()
+    assert asked["method"] == "elicitation/create"
+    assert asked["params"]["message"] == "“C:/projects/first.msproj” already exists. Replace it with this project?"
+    await client.send({"jsonrpc": "2.0", "id": asked["id"], "result": {"action": action}})
+
+    answer = await client.next_message()
+    assert answer["id"] == 98
+    assert answer["result"].get("isError", False) is not replaced
+    expected: list[tuple[str, dict[str, Any]]] = [("project.save", {"path": "C:/projects/first.msproj"})]
+    if replaced:
+        expected.append(("project.save", {"path": "C:/projects/first.msproj", "overwrite": True}))
+    assert fake.runs == expected
+
+
+async def test_a_run_that_needs_agreement_fails_when_the_client_cannot_ask(
+    session: aiohttp.ClientSession, studio: tuple[FakeStudio, Path]
+) -> None:
+    fake, discovery_path = studio
+    client = Client(session, discovery_path)
+    await client.start()
+    result = await client.call("project_save", {"path": "C:/projects/first.msproj"})
+    assert result["isError"] is True
+    assert "already exists" in result["content"][0]["text"]
+    assert len(fake.runs) == 1
 
 
 async def test_the_client_hears_when_the_app_starts_stops_and_changes_its_commands(

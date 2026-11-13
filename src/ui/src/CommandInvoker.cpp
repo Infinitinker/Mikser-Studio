@@ -16,12 +16,12 @@ using namespace Qt::StringLiterals;
 
 namespace mikserstudio::ui {
 
-bool confirmCommand(const core::CommandBus& bus, const QString& id, QWidget* parent)
+namespace {
+
+// True when the user chose "Continue" in a question box over `parent` (the active window when null).
+bool ask(const QString& title, const QString& question, QWidget* parent)
 {
-    const core::CommandSpec* spec = bus.spec(id);
-    if (!spec || spec->confirmation.isEmpty())
-        return true;
-    QMessageBox box(QMessageBox::Question, spec->title, spec->confirmation, QMessageBox::NoButton,
+    QMessageBox box(QMessageBox::Question, title, question, QMessageBox::NoButton,
                     parent ? parent : QApplication::activeWindow());
     QPushButton* proceed = box.addButton(u"Continue"_s, QMessageBox::AcceptRole);
     QPushButton* cancel = box.addButton(QMessageBox::Cancel);
@@ -31,6 +31,35 @@ bool confirmCommand(const core::CommandBus& bus, const QString& id, QWidget* par
     return box.clickedButton() == proceed;
 }
 
+}  // namespace
+
+bool confirmCommand(const core::CommandBus& bus, const QString& id, QWidget* parent)
+{
+    const core::CommandSpec* spec = bus.spec(id);
+    if (!spec || spec->confirmation.isEmpty())
+        return true;
+    return ask(spec->title, spec->confirmation, parent);
+}
+
+std::optional<std::expected<QJsonObject, core::CommandError>> executeAsking(core::CommandBus& bus, const QString& id,
+                                                                            const QJsonObject& params, QWidget* parent)
+{
+    // Copies, because the run may unregister the command.
+    const core::CommandSpec* spec = bus.spec(id);
+    const QString title = spec ? spec->title : QString();
+    const QString agreement = spec ? spec->confirmationParam : QString();
+    QJsonObject given = params;
+    if (!agreement.isEmpty())
+        given.remove(agreement);  // Only the user's answer below gives it.
+    auto result = bus.execute(id, given);
+    if (result || result.error().code != core::CommandErrorCode::NeedsConfirmation || agreement.isEmpty())
+        return result;
+    if (!ask(title, result.error().message, parent))
+        return std::nullopt;
+    given.insert(agreement, true);
+    return bus.execute(id, given);
+}
+
 std::optional<std::expected<QJsonObject, core::CommandError>> executeInteractive(core::CommandBus& bus,
                                                                                  const QString& id,
                                                                                  const QJsonObject& params,
@@ -38,7 +67,7 @@ std::optional<std::expected<QJsonObject, core::CommandError>> executeInteractive
 {
     if (!confirmCommand(bus, id, parent))
         return std::nullopt;
-    return bus.execute(id, params);
+    return executeAsking(bus, id, params, parent);
 }
 
 void executeReported(core::CommandBus& bus, const QString& id, const QJsonObject& params, QWidget* parent)

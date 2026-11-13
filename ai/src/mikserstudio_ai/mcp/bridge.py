@@ -21,6 +21,9 @@ Send = Callable[[JsonObject], Awaitable[None]]
 PROTOCOL_VERSIONS = ("2025-11-25", "2025-06-18", "2025-03-26", "2024-11-05")
 STRUCTURED_SINCE = "2025-06-18"
 
+# The error code of a run that needs the person's agreement (the command's "confirmationParam").
+NEEDS_CONFIRMATION = "needs_confirmation"
+
 # How long to wait before looking for the app again once it is gone.
 RETRY_SECONDS = 2.0
 # How long requests still running may take to answer once the client has closed its input.
@@ -182,7 +185,16 @@ class Bridge:
                 refusal = await self._ask(str(confirmation))
                 if refusal:
                     return _failure(refusal)
+            agreement = command.get("confirmationParam")
+            if agreement:
+                # Only the person's answer gives it, never the agent.
+                arguments = {key: value for key, value in arguments.items() if key != agreement}
             outcome = await self._app.run(str(command["id"]), arguments)
+            if isinstance(outcome, CommandError) and outcome.code == NEEDS_CONFIRMATION and agreement:
+                refusal = await self._ask(outcome.message)
+                if refusal:
+                    return _failure(refusal)
+                outcome = await self._app.run(str(command["id"]), {**arguments, str(agreement): True})
         except AppUnavailable as error:
             return _failure(str(error))
         if isinstance(outcome, CommandError):

@@ -30,6 +30,12 @@ struct CommandSpec {
     // Non-empty: interactive UIs must ask the user with this English text (a full sentence, e.g.
     // "Start a new project? Unsaved changes are lost.") before running it. The API does not ask.
     QString confirmation = {};
+    // Set when only some runs need the user's agreement: the name of a boolean parameter, such as
+    // "overwrite", that gives it. A run that needs it and lacks the parameter fails with
+    // CommandErrorCode::NeedsConfirmation, whose message is the question to ask; the caller asks the
+    // user and runs the command again with the parameter set to true. Interactive UIs and the MCP
+    // bridge set it only after the user agreed.
+    QString confirmationParam = {};
 };
 
 // A change that can be reverted. Created by a command handler after it has applied the change.
@@ -47,6 +53,7 @@ enum class CommandErrorCode {
     InvalidParams,
     Failed,
     NotAvailable,  // Valid command that cannot run in the current state (e.g. nothing to undo).
+    NeedsConfirmation,  // This run needs the user's agreement first (see CommandSpec::confirmationParam).
 };
 
 // An error in user terms: `message` says what went wrong and what to do about it.

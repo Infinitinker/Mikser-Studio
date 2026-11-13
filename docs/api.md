@@ -85,6 +85,7 @@ TOKEN=$(jq -r .token "$HOME/.local/share/Mikser Studio/api.json")
 | 404 | `not_found` | No such route. |
 | 405 | `method_not_allowed` | Wrong HTTP method (the `Allow` header lists the right ones). |
 | 409 | `not_available` | The command exists but cannot run now (e.g. nothing to undo). |
+| 409 | `needs_confirmation` | This run needs the person's agreement; the message is the question (see `confirmationParam`). |
 | 413 | `payload_too_large` | The body is larger than 1 MiB (1 048 576 bytes). |
 | 426 | `upgrade_required` | A plain GET on `/v1/events`, which is a WebSocket. |
 | 500 | `failed` | The command ran and failed; the message says why. |
@@ -130,7 +131,8 @@ curl -s -H "Authorization: Bearer $TOKEN" "$API/v1/commands"
         "shortcut": "Ctrl+Z",
         "undoable": false,
         "readOnly": false,
-        "confirmation": ""
+        "confirmation": "",
+        "confirmationParam": ""
     },
     ...
 ]
@@ -141,7 +143,11 @@ object. `undoable` is true when a successful run adds a step to the undo history
 when the command only reads and changes nothing (such as `project.list`). `confirmation`, when not
 empty, is the question a client asks the person before it runs the command, because the command
 replaces or deletes their work (such as `project.new` and `project.open`); the API itself runs it
-without asking. Plugins add and remove commands at run time; the events socket reports those changes.
+without asking. `confirmationParam`, when not empty, names a boolean parameter for commands that need
+the person's agreement only on some runs: `project.save` asks only when the file exists. Such a run
+without the parameter fails with `409 needs_confirmation`, whose message is the question to ask; the
+client asks the person and, when they agree, runs the command again with the parameter set to `true`.
+Plugins add and remove commands at run time; the events socket reports those changes.
 
 ### `GET /v1/commands/<id>`
 
@@ -224,13 +230,15 @@ file, `/v1/commands` and `/v1/events`.
 
 - **Tools:** every command is a tool, named after its id with `_` for `.` (`project.import_media`
   is `project_import_media`), with its title, description and `paramsSchema` as the input schema.
-  Read-only commands carry `readOnlyHint`, and commands with a `confirmation` carry
-  `destructiveHint`. A tool's result is the command's `result`, as JSON text and, for clients of
+  Read-only commands carry `readOnlyHint`, and commands with a `confirmation` or a
+  `confirmationParam` carry `destructiveHint`; a `confirmationParam` is left out of the input schema. A tool's result is the command's `result`, as JSON text and, for clients of
   protocol version 2025-06-18 or later, as structured content; a command's error is a tool error
   with its message and code.
 - **Confirmations:** before a command with a `confirmation`, the bridge asks the person through the
-  client (MCP elicitation) and runs the command only when they accept. A client that cannot ask gets
-  a tool error, and the command does not run.
+  client (MCP elicitation) and runs the command only when they accept. When a run answers
+  `needs_confirmation`, the bridge asks with its message and, when they accept, runs it again with
+  the `confirmationParam` set; an agent's own value for that parameter is dropped. A client that
+  cannot ask gets a tool error, and the command does not run.
 - **Following the app:** the bridge reads the discovery file anew for every request, so it follows the
   app when it restarts. While the app is not running it lists no tools, and calls say to start it. It
   keeps the events socket open and tells the client when the tools change: when the app starts or

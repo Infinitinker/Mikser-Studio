@@ -1,5 +1,6 @@
-// The command invoker: commands with a confirmation ask before an interactive run, plugin panels get a
-// canceled error when declined, and read-only commands stay out of the command log and status bar.
+// The command invoker: commands with a confirmation ask before an interactive run, a confirmation
+// parameter is asked for only when a run needs it, plugin panels get a canceled error when declined,
+// and read-only commands stay out of the command log and status bar.
 #include "mikserstudio/core/CommandBus.h"
 #include "mikserstudio/core/PluginManager.h"
 #include "mikserstudio/core/UndoStack.h"
@@ -78,6 +79,59 @@ TEST_CASE("Commands with a confirmation ask before an interactive run; Cancel ru
     CHECK(mikserstudio::ui::confirmCommand(f.bus, u"demo.plain"_s, &f.window));
     REQUIRE(mikserstudio::ui::invokeCommand(f.bus, u"demo.plain"_s, &f.window).has_value());
     CHECK(f.plainRuns == 1);
+}
+
+TEST_CASE("A command asks for its confirmation parameter only when a run needs it", "[invoker]")
+{
+    mikserstudio::core::UndoStack undo;
+    mikserstudio::core::CommandBus bus{undo};
+    QWidget window;
+    bool exists = false;
+    QList<QJsonObject> runs;
+    const auto schema = QJsonObject{
+        {u"type"_s, u"object"_s},
+        {u"properties"_s, QJsonObject{{u"overwrite"_s, QJsonObject{{u"type"_s, u"boolean"_s}, {u"default"_s, false}}}}},
+        {u"additionalProperties"_s, false},
+    };
+    REQUIRE(bus.registerCommand({.id = u"demo.save"_s,
+                                 .title = u"Save"_s,
+                                 .description = u"Saves (test)."_s,
+                                 .category = u"Demo"_s,
+                                 .paramsSchema = schema,
+                                 .shortcut = {},
+                                 .confirmationParam = u"overwrite"_s},
+                                [&](const QJsonObject& params) -> mikserstudio::core::CommandResult {
+                                    runs.append(params);
+                                    if (exists && !params.value(u"overwrite"_s).toBool())
+                                        return mikserstudio::core::commandFailure(
+                                            mikserstudio::core::CommandErrorCode::NeedsConfirmation, u"Replace it?"_s);
+                                    return mikserstudio::core::CommandOutcome{};
+                                }));
+
+    // Nothing to replace: no question.
+    REQUIRE(mikserstudio::ui::executeInteractive(bus, u"demo.save"_s, {}, &window).has_value());
+    CHECK(runs.size() == 1);
+
+    // The run needs agreement; declining runs nothing more, agreeing runs it again with the parameter.
+    exists = true;
+    QString shown;
+    answerNextMessageBox(QMessageBox::RejectRole, &shown);
+    CHECK_FALSE(mikserstudio::ui::executeInteractive(bus, u"demo.save"_s, {}, &window).has_value());
+    CHECK(shown == u"Replace it?"_s);
+    CHECK(runs.size() == 2);
+
+    answerNextMessageBox(QMessageBox::AcceptRole);
+    const auto agreed = mikserstudio::ui::executeInteractive(bus, u"demo.save"_s, {}, &window);
+    REQUIRE(agreed.has_value());
+    CHECK(agreed->has_value());
+    REQUIRE(runs.size() == 4);
+    CHECK(runs.last().value(u"overwrite"_s).toBool());
+
+    // A caller cannot give the agreement itself.
+    answerNextMessageBox(QMessageBox::RejectRole);
+    CHECK_FALSE(mikserstudio::ui::executeInteractive(bus, u"demo.save"_s, QJsonObject{{u"overwrite"_s, true}}, &window)
+                    .has_value());
+    CHECK_FALSE(runs.last().value(u"overwrite"_s).toBool());
 }
 
 TEST_CASE("Menu actions and their shortcuts ask before running a command with a confirmation", "[invoker][menus]")

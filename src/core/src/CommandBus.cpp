@@ -131,6 +131,11 @@ QList<CommandSpec> CommandBus::specs() const
 std::expected<QJsonObject, CommandError> CommandBus::execute(const QString& id, const QJsonObject& params)
 {
     const auto fail = [&](CommandError error) -> std::expected<QJsonObject, CommandError> {
+        if (error.code == CommandErrorCode::NeedsConfirmation) {
+            // A question for the caller to ask, not a failure to report.
+            qCDebug(lcCommands).noquote() << id << "needs confirmation:" << error.message;
+            return std::unexpected(std::move(error));
+        }
         qCInfo(lcCommands).noquote() << id << "failed:" << error.message;
         Q_EMIT failed(id, params, error);
         return std::unexpected(std::move(error));
@@ -180,6 +185,7 @@ QJsonObject toJson(const CommandSpec& spec)
         {u"undoable"_s, spec.undoable},
         {u"readOnly"_s, spec.readOnly},
         {u"confirmation"_s, spec.confirmation},
+        {u"confirmationParam"_s, spec.confirmationParam},
     };
 }
 
@@ -194,6 +200,8 @@ QString toString(CommandErrorCode code)
         return u"failed"_s;
     case CommandErrorCode::NotAvailable:
         return u"not_available"_s;
+    case CommandErrorCode::NeedsConfirmation:
+        return u"needs_confirmation"_s;
     }
     return u"failed"_s;
 }

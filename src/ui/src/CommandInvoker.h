@@ -19,14 +19,21 @@ class CommandBus;
 namespace mikserstudio::ui {
 
 // Every interactive run of a command (menus, shortcuts, the palette, panels) goes through these
-// functions, so a command with a CommandSpec::confirmation always asks the user first.
+// functions, so a command with a CommandSpec::confirmation always asks the user first, and one with a
+// CommandSpec::confirmationParam asks when a run needs it.
 
 // True when the command may run: it has no confirmation text, or the user chose "Continue" in a
 // question box over `parent` (the active window when null). Unknown commands return true; running
 // them reports the error.
 [[nodiscard]] bool confirmCommand(const core::CommandBus& bus, const QString& id, QWidget* parent);
 
-// Asks for confirmation (see confirmCommand) and runs the command. std::nullopt when the user
+// Runs the command. When this run needs the user's agreement (CommandSpec::confirmationParam), asks
+// with the command's question and runs it again with the parameter set to true; a value for that
+// parameter in `params` is ignored. std::nullopt when the user declined, otherwise the result.
+std::optional<std::expected<QJsonObject, core::CommandError>> executeAsking(core::CommandBus& bus, const QString& id,
+                                                                            const QJsonObject& params, QWidget* parent);
+
+// Asks for confirmation (see confirmCommand) and runs the command with executeAsking(). std::nullopt when the user
 // canceled, otherwise the command's result. The bus also reports errors through failed(), which
 // feeds the status bar and the log.
 std::optional<std::expected<QJsonObject, core::CommandError>> executeInteractive(core::CommandBus& bus,

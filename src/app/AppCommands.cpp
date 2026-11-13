@@ -42,9 +42,12 @@ QString projectFilePath(const QString& path)
     return QFileInfo(path).suffix().isEmpty() ? path + u".msproj"_s : path;
 }
 
-core::CommandResult saveProject(const core::ProjectModel& project, const QString& requested)
+core::CommandResult saveProject(const core::ProjectModel& project, const QString& requested, bool overwrite)
 {
     const QString path = projectFilePath(requested);
+    if (!overwrite && QFileInfo::exists(path))
+        return commandFailure(CommandErrorCode::NeedsConfirmation,
+                              u"“%1” already exists. Replace it with this project?"_s.arg(path));
     QSaveFile file(path);
     if (!file.open(QIODevice::WriteOnly))
         return commandFailure(CommandErrorCode::Failed,
@@ -100,11 +103,29 @@ void registerAppCommands(core::CommandBus& bus, core::ProjectModel& project, eng
                             undo.clear();
                             return core::CommandOutcome{};
                         });
-    bus.registerCommand(
-        {u"project.save"_s, u"Save project as…"_s, u"Saves the project to a .msproj file."_s, u"File"_s,
-         pathSchema(u"Where to save the project. A path without an extension gets .msproj."_s), u"Ctrl+Shift+S"_s,
-         false},
-        [&project](const QJsonObject& params) { return saveProject(project, params.value(u"path"_s).toString()); });
+    QJsonObject saveSchema = pathSchema(u"Where to save the project. A path without an extension gets .msproj."_s);
+    QJsonObject saveProperties = saveSchema.value(u"properties"_s).toObject();
+    saveProperties.insert(
+        u"overwrite"_s,
+        QJsonObject{{u"type"_s, u"boolean"_s},
+                    {u"default"_s, false},
+                    {u"description"_s, u"Replace the file when it exists. Set only after the user agreed."_s}});
+    saveSchema.insert(u"properties"_s, saveProperties);
+    bus.registerCommand({.id = u"project.save"_s,
+                         .title = u"Save project as…"_s,
+                         .description = u"Saves the project to a .msproj file. The user is asked before an "
+                                        u"existing file is replaced."_s,
+                         .category = u"File"_s,
+                         .paramsSchema = saveSchema,
+                         .shortcut = u"Ctrl+Shift+S"_s,
+                         .undoable = false,
+                         .readOnly = false,
+                         .confirmation = {},
+                         .confirmationParam = u"overwrite"_s},
+                        [&project](const QJsonObject& params) {
+                            return saveProject(project, params.value(u"path"_s).toString(),
+                                               params.value(u"overwrite"_s).toBool());
+                        });
     bus.registerCommand({.id = u"project.open"_s,
                          .title = u"Open project…"_s,
                          .description = u"Opens a .msproj project file. The undo history is cleared."_s,
