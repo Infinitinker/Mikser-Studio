@@ -46,7 +46,7 @@ TEST_FOLDERS: dict[str, set[str]] = {
     "plugins": {"core"},
 }
 """The folders of tests/ that test no single module, with the modules they may include. The end-to-end
-tests run the app as a process, and the real AI service through the services module; the bundled
+tests run the app and the MCP bridge as processes, with the services tests' fake AI tools; the bundled
 plugins' tests load them through the core's PluginManager."""
 SOURCES = (".cpp", ".h", ".hpp")
 UNKNOWN_FOLDER = "is in a folder check_includes.py does not know: add it to MODULES or TEST_FOLDERS"

@@ -52,9 +52,9 @@ def test_a_private_header_is_found_in_the_module() -> None:
 
 def test_the_end_to_end_tests_include_only_the_modules_they_name() -> None:
     tracked = ("tests/services/ServicesTestSupport.h", "tests/ui/TestCommands.h")
-    path = "tests/e2e/RealSidecarTests.cpp"
+    path = "tests/e2e/AiRunTests.cpp"
     assert problems(path, "#include <QProcess>\n") == []
-    assert problems(path, '#include "mikserstudio/services/AiClient.h"\n') == []
+    assert problems(path, '#include "mikserstudio/services/AiEngine.h"\n') == []
     assert problems(path, '#include "ServicesTestSupport.h"\n', tracked) == []
     assert problems(path, '#include "mikserstudio/ui/Shell.h"\n') == [
         f'{path}:1: "mikserstudio/ui/Shell.h" goes from e2e to ui'

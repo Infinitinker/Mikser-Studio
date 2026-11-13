@@ -1,16 +1,16 @@
 """Builds the Windows release files of Mikser Studio from the package build (cmake --preset package, then
 cmake --build --preset package) into build/dist:
 
-- MikserStudio-<version>-windows-x64.zip: the program with everything it needs from MSYS2
-  (tools/msys2_packages.py), LICENSE.txt and THIRD-PARTY-NOTICES.txt, unpacked and run anywhere;
+- MikserStudio-<version>-windows-x64.zip: the program and the MCP bridge with everything they need from
+  MSYS2 (tools/msys2_packages.py), LICENSE.txt and THIRD-PARTY-NOTICES.txt, unpacked and run anywhere;
 - MikserStudio-<version>-windows-x64-setup.exe: the same files in an installer (tools/installer.iss),
   built with Inno Setup 7's ISCC.exe, found through ISCC or in Program Files;
 - MikserStudio-<version>-third-party-notices.md: THIRD-PARTY-NOTICES.md, to read without the app.
 
-It fails unless THIRD-PARTY-NOTICES.md covers exactly what ships: when the program or a bundled plugin
-imports an MSYS2 library that PROGRAM_LIBRARIES in tools/msys2_packages.py does not list, when what it
-copies is not what tools/notices.py walks, or when the committed notices are not what tools/notices.py
-writes from this MSYS2.
+It fails unless THIRD-PARTY-NOTICES.md covers exactly what ships: when the program, the MCP bridge or a
+bundled plugin imports an MSYS2 library that PROGRAM_LIBRARIES in tools/msys2_packages.py does not list,
+when what it copies is not what tools/notices.py walks, or when the committed notices are not what
+tools/notices.py writes from this MSYS2.
 
 Run it from the repository root, with MSYS2's packages installed as docs/development.md describes:
     python tools/build_release.py              build the release files
