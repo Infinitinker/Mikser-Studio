@@ -128,15 +128,20 @@ curl -s -H "Authorization: Bearer $TOKEN" "$API/v1/commands"
         "category": "Edit",
         "paramsSchema": {"type": "object", "properties": {}, "additionalProperties": false},
         "shortcut": "Ctrl+Z",
-        "undoable": false
+        "undoable": false,
+        "readOnly": false,
+        "confirmation": ""
     },
     ...
 ]
 ```
 
 `paramsSchema` is a JSON Schema (draft 2020-12 subset, see `mikserstudio/core/JsonSchema.h`) of the params
-object. `undoable` is true when a successful run adds a step to the undo history. Plugins add and
-remove commands at run time; the events socket reports those changes.
+object. `undoable` is true when a successful run adds a step to the undo history. `readOnly` is true
+when the command only reads and changes nothing (such as `project.list`). `confirmation`, when not
+empty, is the question a client asks the person before it runs the command, because the command
+replaces or deletes their work (such as `project.new` and `project.open`); the API itself runs it
+without asking. Plugins add and remove commands at run time; the events socket reports those changes.
 
 ### `GET /v1/commands/<id>`
 
