@@ -1,16 +1,8 @@
-# Sets up Python 3.13 for the AI service and the checks of the scripts in tools/ (CLAUDE.md,
-# ai/pyproject.toml's requires-python), with pip's download cache, and with `venv: true` also the AI
-# service's virtual environment ai/.venv with the dev extra, where the app and the tests look for it.
-# Used in checks.yml and e2e.yml; jobs that run Python inside MSYS2 (Licenses, build-windows.yml) use
-# MSYS2's own. Needs a checkout first, as every local action does.
+# Sets up Python 3.13, the version CLAUDE.md names, for the checks of the scripts in tools/, with pip's
+# download cache keyed on tools/pyproject.toml. Used in checks.yml; jobs that run Python inside MSYS2
+# (Licenses, build-windows.yml) use MSYS2's own. Needs a checkout first, as every local action does.
 name: Python
-description: Sets up Python 3.13 with pip's download cache, and optionally the AI service's ai/.venv.
-
-inputs:
-  venv:
-    description: Whether to create ai/.venv and install the AI service with its dev extra into it.
-    required: false
-    default: "false"
+description: Sets up Python 3.13 with pip's download cache.
 
 runs:
   using: composite
@@ -19,15 +11,4 @@ runs:
       with:
         python-version: "3.13"
         cache: pip
-        cache-dependency-path: |
-          ai/pyproject.toml
-          tools/pyproject.toml
-
-    # The same commands as in docs/development.md, with bin/ in place of Scripts/ on Linux.
-    - name: Create ai/.venv
-      if: inputs.venv == 'true'
-      shell: bash
-      run: |
-        python -m venv ai/.venv
-        if [ -d ai/.venv/Scripts ]; then bin=ai/.venv/Scripts; else bin=ai/.venv/bin; fi
-        "$bin/python" -m pip install -e "./ai[dev]"
+        cache-dependency-path: tools/pyproject.toml
