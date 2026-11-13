@@ -19,11 +19,12 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 include(MikserStudioCompilerOptions)
 
 # Every module can be switched off so it can be built and tested on its own.
-# Dependencies between modules: core <- engine, api, services <- ui <- app.
+# Dependencies between modules: core <- engine, api, services <- ui <- app; mcp depends on none.
 option(MIKSERSTUDIO_WITH_ENGINE "Build the playback engine and monitors (MLT)" ON)
 option(MIKSERSTUDIO_WITH_API "Build the local /v1 API server" ON)
 option(MIKSERSTUDIO_WITH_SERVICES "Build the sidecar services (AI bridge)" ON)
 option(MIKSERSTUDIO_WITH_UI "Build the desktop UI" ON)
+option(MIKSERSTUDIO_WITH_MCP "Build the MCP bridge, mikser-studio-mcp, which uses only the local API" ON)
 option(MIKSERSTUDIO_WITH_PLUGINS "Build the bundled example plugins" ON)
 option(MIKSERSTUDIO_BUILD_TESTS "Build the test suite" ON)
 option(MIKSERSTUDIO_INSTALLED_APP "Run as the installed Mikser Studio, not Mikser Studio Dev, when MIKSERSTUDIO_INSTANCE is unset. Only the package preset sets it (docs/releasing.md)." OFF)
@@ -56,6 +57,9 @@ if(MIKSERSTUDIO_WITH_SERVICES)
 endif()
 if(MIKSERSTUDIO_WITH_UI)
     add_subdirectory(src/ui)
+endif()
+if(MIKSERSTUDIO_WITH_MCP)
+    add_subdirectory(src/mcp)
 endif()
 if(MIKSERSTUDIO_WITH_UI AND MIKSERSTUDIO_WITH_ENGINE AND MIKSERSTUDIO_WITH_API AND MIKSERSTUDIO_WITH_SERVICES)
     add_subdirectory(src/app)
