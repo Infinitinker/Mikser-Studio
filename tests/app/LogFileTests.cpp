@@ -35,13 +35,13 @@ TEST_CASE("Messages go to the log file with their level and category", "[log]")
         path = (*log)->path();
         CHECK(path == QDir(folder).filePath(u"mikser-studio.log"_s));
         CHECK_FALSE(LogFile::open(folder).has_value());  // One at a time.
-        qCInfo(lcLogTest) << "The AI service is ready";
+        qCInfo(lcLogTest) << "The AI engine is ready";
         qCWarning(lcLogTest) << "Health check 1 of 3 failed";
     }
     qCInfo(lcLogTest) << "After the log was closed";
 
     const QString text = contents(path);
-    CHECK(text.contains(u" info mikserstudio.test.log: The AI service is ready"_s));
+    CHECK(text.contains(u" info mikserstudio.test.log: The AI engine is ready"_s));
     CHECK(text.contains(u" warning mikserstudio.test.log: Health check 1 of 3 failed"_s));
     CHECK_FALSE(text.contains(u"After the log was closed"_s));
 }

@@ -36,7 +36,7 @@ QList<CommandSpec> sampleSpecs()
         spec(u"timeline.add_clip"_s, u"Add clip to timeline"_s, u"Timeline"_s),
         spec(u"project.import_media"_s, u"Import media"_s, u"Project"_s, u"Ctrl+I"_s),
         spec(u"edit.undo"_s, u"Undo"_s, u"Edit"_s, u"Ctrl+Z"_s),
-        spec(u"ai.upscale_clip"_s, u"Upscale clip"_s, u"AI"_s),
+        spec(u"ai.run"_s, u"Run AI operation"_s, u"AI"_s),
         spec(u"timeline.remove_clip"_s, u"Remove clip"_s, u"Timeline"_s),
     };
 }
@@ -66,10 +66,10 @@ TEST_CASE("CommandPaletteModel lists everything by category and title for an emp
 {
     CommandPaletteModel model;
     model.setSpecs(sampleSpecs());
-    CHECK(model.ids() == QStringList{u"ai.upscale_clip"_s, u"edit.undo"_s, u"project.import_media"_s,
+    CHECK(model.ids() == QStringList{u"ai.run"_s, u"edit.undo"_s, u"project.import_media"_s,
                                      u"timeline.add_clip"_s, u"timeline.remove_clip"_s});
     const QModelIndex first = model.index(0);
-    CHECK(model.data(first, Qt::DisplayRole) == u"Upscale clip"_s);
+    CHECK(model.data(first, Qt::DisplayRole) == u"Run AI operation"_s);
     CHECK(model.data(first, CommandPaletteModel::CategoryRole) == u"AI"_s);
     CHECK(model.data(model.index(1), CommandPaletteModel::ShortcutRole).toString().contains(u"Z"_s));
 }
@@ -79,12 +79,12 @@ TEST_CASE("CommandPaletteModel filters and ranks by title, id and category", "[p
     CommandPaletteModel model;
     model.setSpecs(sampleSpecs());
 
-    model.setQuery(u"upsc"_s);
-    CHECK(model.ids() == QStringList{u"ai.upscale_clip"_s});
+    model.setQuery(u"run"_s);
+    CHECK(model.ids() == QStringList{u"ai.run"_s});
 
     model.setQuery(u"clip"_s);
     const QStringList clips = model.ids();
-    CHECK(clips.size() == 3);
+    CHECK(clips.size() == 2);
     CHECK_FALSE(clips.contains(u"project.import_media"_s));
 
     model.setQuery(u"import_media"_s);  // By id.
