@@ -20,6 +20,8 @@
 #include <QUuid>
 #include <QWebSocket>
 
+#include <algorithm>
+#include <chrono>
 #include <memory>
 
 using namespace Qt::StringLiterals;
@@ -36,6 +38,9 @@ constexpr auto kQueue = 30s;
 // Saved images can be large; reading one should still not take long on loopback.
 constexpr auto kDownload = 120s;
 constexpr auto kSocketOpen = 10s;
+// A queued prompt is given up when ComfyUI's socket stays silent this long: it sends progress while
+// it works and status while the prompt waits, so a silent ComfyUI is stuck.
+constexpr auto kSilence = 10min;
 // The seed's range, as ComfyUI's KSampler takes it and the schema says.
 constexpr qint64 kMaxSeed = qint64{1} << 48;
 
@@ -170,12 +175,21 @@ public:
             fail(u"ComfyUI's socket did not open at %1. Check that ComfyUI is still running and try again."_s.arg(
                 m_baseUrl.toString()));
         });
+        m_silenceTimer.setSingleShot(true);
+        m_silenceTimer.setInterval(kSilence);
+        connect(&m_silenceTimer, &QTimer::timeout, this, [this] {
+            if (!m_finishedInComfy)
+                deleteQueued(m_network, m_baseUrl, m_promptId);
+            fail(u"ComfyUI sent nothing about the job for %1 minutes. Check ComfyUI's window or log, then try again."_s
+                     .arg(std::chrono::duration_cast<std::chrono::minutes>(kSilence).count()));
+        });
         QTimer::singleShot(0, this, &ImageTask::begin);
     }
 
     void cancel() override
     {
         m_canceled = true;
+        m_silenceTimer.stop();
         if (m_reply)
             m_reply->abort();
         if (m_socket)
@@ -241,6 +255,8 @@ private:
             return;
         }
         const QJsonObject event = QJsonDocument::fromJson(text.toUtf8()).object();
+        if (m_silenceTimer.isActive())
+            m_silenceTimer.start();
         if (m_promptId.isEmpty())
             m_early.append(event);  // Sent before ComfyUI's answer to the prompt arrived.
         else
@@ -267,6 +283,7 @@ private:
                     return;
                 }
                 m_context.report(0.0, u"Waiting in ComfyUI's queue"_s);
+                m_silenceTimer.start();
                 const QList<QJsonObject> early = std::exchange(m_early, {});
                 for (const QJsonObject& event : early) {
                     if (m_finished || m_finishedInComfy)
@@ -386,6 +403,7 @@ private:
     void succeed()
     {
         m_finished = true;
+        m_silenceTimer.stop();
         if (m_socket)
             m_socket->close();
         m_context.report(1.0, u"Done"_s);
@@ -417,6 +435,7 @@ private:
             return;
         m_finished = true;
         m_openTimer.stop();
+        m_silenceTimer.stop();
         if (m_socket)
             m_socket->abort();
         m_context.finish(std::unexpected(message));
@@ -429,6 +448,7 @@ private:
     comfyui::ImageRequest m_request;
     QString m_version;
     QTimer m_openTimer;
+    QTimer m_silenceTimer;  // Runs while the prompt is queued or running in ComfyUI.
     QPointer<QWebSocket> m_socket;
     QPointer<QNetworkReply> m_reply;
     QPointer<QNetworkReply> m_queueReply;
@@ -524,6 +544,12 @@ std::unique_ptr<AiTask> ComfyUiBackend::start(const QString& op, const QJsonObje
 {
     Q_ASSERT(op == kGenerate);
     return std::make_unique<ImageTask>(*m_network, m_baseUrl, params, std::move(context));
+}
+
+bool ComfyUiBackend::hasPendingRequests() const
+{
+    const QList<QNetworkReply*> replies = m_network->findChildren<QNetworkReply*>(Qt::FindDirectChildrenOnly);
+    return std::ranges::any_of(replies, [](const QNetworkReply* reply) { return reply->isRunning(); });
 }
 
 }  // namespace mikserstudio::services

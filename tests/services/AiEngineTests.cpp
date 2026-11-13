@@ -297,6 +297,16 @@ TEST_CASE("Canceling takes only the job's own prompt off ComfyUI's queue", "[ser
     CHECK_FALSE(fixture.engine->cancel(u"aijob-unknown"_s));
 }
 
+TEST_CASE("Closing the engine takes its queued prompts off ComfyUI's queue", "[services][ai]")
+{
+    EngineFixture fixture;
+    fixture.comfy.holdPrompts = true;
+    fixture.submit(u"image.generate"_s, {{u"prompt"_s, u"One"_s}});
+    REQUIRE(waitFor([&] { return fixture.comfy.prompts().size() == 1; }));
+    fixture.engine.reset();
+    CHECK(fixture.comfy.deleted() == QStringList{u"prompt-1"_s});
+}
+
 TEST_CASE("A new address applies at once and running jobs go on with the old one", "[services][ai]")
 {
     EngineFixture fixture;

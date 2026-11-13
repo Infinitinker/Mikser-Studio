@@ -9,7 +9,11 @@
 #include "mikserstudio/core/JsonSchema.h"
 #include "mikserstudio/core/Project.h"
 
+#include <QCoreApplication>
+#include <QDeadlineTimer>
 #include <QDir>
+#include <QEventLoop>
+#include <QTimer>
 
 #include <algorithm>
 
@@ -22,6 +26,8 @@ namespace {
 
 // How long a check of a backend's availability counts as current.
 constexpr auto kAvailabilityMaxAge = 5s;
+// How long closing waits for the requests that take canceled work off the tools' queues.
+constexpr auto kShutdownWait = 3s;
 
 QJsonArray outputsJson(const QList<AiOutput>& outputs)
 {
@@ -83,6 +89,21 @@ AiEngine::~AiEngine()
             job->task->cancel();
     }
     m_jobs.clear();
+    // Those requests go with the backends' network managers, so they are given a moment to go out.
+    const auto pending = [this] {
+        return std::ranges::any_of(m_slots, [](const auto& slot) { return slot->backend->hasPendingRequests(); });
+    };
+    if (!QCoreApplication::instance() || !pending())
+        return;
+    QEventLoop loop;
+    QTimer poll;
+    const QDeadlineTimer deadline(kShutdownWait);
+    connect(&poll, &QTimer::timeout, &loop, [&] {
+        if (deadline.hasExpired() || !pending())
+            loop.quit();
+    });
+    poll.start(20ms);
+    loop.exec(QEventLoop::ExcludeUserInputEvents);
 }
 
 void AiEngine::addBackend(std::unique_ptr<AiBackend> backend)

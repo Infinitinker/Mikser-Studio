@@ -68,6 +68,10 @@ public:
     // Starts `op` with params that passed its schema, with the defaults applied.
     [[nodiscard]] virtual std::unique_ptr<AiTask> start(const QString& op, const QJsonObject& params,
                                                         AiTaskContext context) = 0;
+
+    // Whether requests are still on their way, such as one taking a canceled task's work off the
+    // tool's queue. They go with the backend.
+    [[nodiscard]] virtual bool hasPendingRequests() const { return false; }
 };
 
 }  // namespace mikserstudio::services

@@ -31,6 +31,7 @@ public:
     void checkAvailability(const QObject* context, std::function<void(AiAvailability)> done) override;
     [[nodiscard]] std::unique_ptr<AiTask> start(const QString& op, const QJsonObject& params,
                                                 AiTaskContext context) override;
+    [[nodiscard]] bool hasPendingRequests() const override;
 
 private:
     QNetworkAccessManager* m_network;
