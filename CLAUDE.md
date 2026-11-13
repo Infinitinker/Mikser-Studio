@@ -1,10 +1,13 @@
 # Mikser Studio
 
-Mikser Studio is an AI-backed multimedia studio: media is gathered in a media bin, cut on a timeline and
-played in its monitors, and AI tools generate and change media in the same flow, from a local AI service.
-The aim is a creative flow no studio has offered yet, in an interface that stays polished and simple and
-can be arranged at will: every panel can be moved, docked and undocked, as in Adobe Premiere. The app is
-built around plugins and modules; a new tool comes as a plugin.
+Mikser Studio is a multimedia studio where a person and AI agents make things together. Media is
+gathered in a media bin, cut on a timeline and played in its monitors, and agents work in the same
+project through the same commands as the person. A generator that turns one prompt into one finished
+video leaves nothing to change; in Mikser Studio, what AI makes arrives as an editable project: every
+shot, stem, title and effect stays a piece of its own that the person and the agents can change,
+replace or generate again. The interface stays polished and simple and can be arranged at will: every
+panel can be moved, docked and undocked, as in Adobe Premiere. The app is built around plugins and
+modules; a new tool comes as a plugin.
 
 The developer docs are in `docs/`: [architecture.md](docs/architecture.md) (the design, the modules,
 import directions, the terms and the conventions), [development.md](docs/development.md) (setup,
@@ -68,22 +71,29 @@ A package whose metadata states its license otherwise is checked by hand and lis
 with the reason. GPL-2.0-only code, and licenses such as MPL-1.1 or AFL-2.1, can be used only where
 another license is offered next to them.
 
-Existing open-source projects are a source of know-how and of what is in use today; learn from them,
-and check a project's license before taking anything from it:
+## Learning from other projects
 
-- Video editing: [Kdenlive](https://github.com/KDE/kdenlive), [Shotcut](https://github.com/mltframework/shotcut),
-  [Blender](https://github.com/blender/blender), [VLC](https://github.com/videolan/vlc)
-- Audio: [LMMS](https://github.com/LMMS/lmms), [Audacity](https://github.com/audacity/audacity)
-- AI: [ComfyUI](https://github.com/Comfy-Org/ComfyUI), [InvokeAI](https://github.com/invoke-ai/InvokeAI),
-  [Ollama](https://github.com/ollama/ollama), [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness/tree/master)
-- Images and graphics: [GIMP](https://github.com/GNOME/gimp), [Inkscape](https://gitlab.com/inkscape/inkscape)
-- Documents: [Euro-Office DesktopEditors](https://github.com/Euro-Office/DesktopEditors),
-  [LibreOffice](https://github.com/LibreOffice/core)
-- Other: [Strata](https://github.com/Niko1221/Strata/releases), [UniExtract2](https://github.com/Bioruebe/UniExtract2)
+Other open-source projects show how things are done and what people use today. Read each one for what
+it is listed for. Don't build their engines into Mikser Studio, and don't copy their code unless the
+user decides to, after checking that its license can be combined with ours.
 
-[ReflektorTTS](https://github.com/Infinitinker/ReflektorTTS) and
-[Mockup Director](https://github.com/Infinitinker/Mockup-Director) are made the same way, with well-tried
-guidelines: read them for how things are done there, but never change them from here.
+- How video editing, effects, 3D animation and an editor's layout work:
+  [Kdenlive](https://github.com/KDE/kdenlive), [Shotcut](https://github.com/mltframework/shotcut),
+  [Blender](https://github.com/blender/blender), [VLC](https://github.com/videolan/vlc).
+- Advanced audio editing, filters and plugins such as VST: [LMMS](https://github.com/LMMS/lmms),
+  [Audacity](https://github.com/audacity/audacity).
+- How offline AI tools work, to plan how people and agents work together. Each has its own API,
+  offline or online; Mikser Studio connects to them and never rebuilds them:
+  [ComfyUI](https://github.com/Comfy-Org/ComfyUI), [InvokeAI](https://github.com/invoke-ai/InvokeAI),
+  [Ollama](https://github.com/ollama/ollama), [Strata](https://github.com/Niko1221/Strata).
+- How to talk to agents from inside the app, and let them act in it:
+  [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness/tree/master).
+- Image editing, raster and vector graphics, filters and effects: [GIMP](https://github.com/GNOME/gimp),
+  [Inkscape](https://gitlab.com/inkscape/inkscape).
+- Presentations and their animations, diagrams and fonts:
+  [Euro-Office DesktopEditors](https://github.com/Euro-Office/DesktopEditors) (AGPL-3.0),
+  [LibreOffice](https://github.com/LibreOffice/core).
+- Opening many kinds of files: [UniExtract2](https://github.com/Bioruebe/UniExtract2).
 
 ## Principles
 
@@ -101,6 +111,48 @@ user does is a command on its command bus, so menus, shortcuts, the command pale
 the local API all work alike. Modules include only in the directions
 [docs/architecture.md](docs/architecture.md#import-directions) allows; plugins see only the SDK. New
 tools come as plugins, without changes to the core or the interface.
+
+### Made together with agents
+
+Agents are partners in the work, not a button that returns a finished file. These rules describe
+where the app is going; new code moves toward them and never works against them.
+
+- An agent acts only through the command bus, as the person does. Every change it makes shows in the
+  project and can be undone. Where the app is going: each change says who made it (the person or
+  which agent), and changes that belong together are one undo step with a name.
+- Commands that delete or overwrite the person's work carry a `confirmation`. The agent's client (the
+  MCP bridge or the assistant in the app) shows it and runs the command only after the person agrees;
+  the local API itself doesn't ask.
+- An agent sees the project through read-only commands: today `project.list` (media, tracks and
+  clips). As the app grows: effects, keyframes and markers with stable ids, frames and contact sheets
+  it can look at, audio analysis (loudness, silences, beats), and a transcript with word timings from
+  a speech backend.
+- The person guides the agents in the project itself. Where the app is going: a note on the timeline
+  asks for a change at that spot, and a locked clip or track is left alone.
+- Agents learn of the person's changes as they happen, through the API's events, and never overwrite
+  them unseen.
+- Agents outside the app, such as Claude Code, connect through the MCP bridge, a separate program that
+  uses the local API; an assistant inside the app uses the same commands. The bridge and the assistant
+  listen only on this computer. What leaves the computer is what an online service or an outside
+  agent the person connects reads, and the interface says when one is connected.
+
+### AI: connect, don't host
+
+Mikser Studio runs no AI models itself and ships none. It connects to the AI tools the user runs,
+local and offline first (Ollama, ComfyUI, InvokeAI, Strata), through their own APIs: one backend in
+the AI service per API. An online service is used only when the user sets it up. The AI service never
+downloads models or installs extensions unless the user asks.
+
+What a backend makes arrives in the project as media of its own, with its provenance (the job,
+backend, operation, model, parameters such as the prompt and seed, the time and the tool versions),
+so it can be changed, replaced or generated again without touching the work around it.
+
+### Scope
+
+Video and sound on the timeline come first, with agents working in them. Images and graphics,
+presentations and documents, 3D and more kinds of files come later, each as a module or plugin, when
+the user decides to start them. Kinds of files will come from libraries such as FFmpeg and
+libarchive, behind plugins that import them, not from parsers of our own.
 
 ### Portability
 
