@@ -7,7 +7,7 @@ dist/
 /.cache/
 compile_commands.json
 
-# Python: the virtual environments (ai/.venv, tools/.venv), bytecode and package metadata
+# Python: the virtual environment (tools/.venv), bytecode and package metadata
 __pycache__/
 *.py[cod]
 .venv/

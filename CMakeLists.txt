@@ -22,7 +22,7 @@ include(MikserStudioCompilerOptions)
 # Dependencies between modules: core <- engine, api, services <- ui <- app; mcp depends on none.
 option(MIKSERSTUDIO_WITH_ENGINE "Build the playback engine and monitors (MLT)" ON)
 option(MIKSERSTUDIO_WITH_API "Build the local /v1 API server" ON)
-option(MIKSERSTUDIO_WITH_SERVICES "Build the sidecar services (AI bridge)" ON)
+option(MIKSERSTUDIO_WITH_SERVICES "Build the services, the AI engine" ON)
 option(MIKSERSTUDIO_WITH_UI "Build the desktop UI" ON)
 option(MIKSERSTUDIO_WITH_MCP "Build the MCP bridge, mikser-studio-mcp, which uses only the local API" ON)
 option(MIKSERSTUDIO_WITH_PLUGINS "Build the bundled example plugins" ON)
