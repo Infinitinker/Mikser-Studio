@@ -243,6 +243,11 @@ void Bridge::runCommand(const QJsonValue& id, const QJsonObject& command, const 
 
 void Bridge::ask(QObject* context, const QString& confirmation, std::function<void(bool agreed)> answered)
 {
+    // A client that has gone cannot answer.
+    if (m_closing) {
+        answered(false);
+        return;
+    }
     const QString askId = u"ask-%1"_s.arg(++m_questionCount);
     m_questions.insert(askId, Question{.request = context, .answered = std::move(answered)});
     const QJsonObject schema{{u"type"_s, u"object"_s}, {u"properties"_s, QJsonObject{}}};

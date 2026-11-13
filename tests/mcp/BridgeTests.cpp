@@ -308,3 +308,25 @@ TEST_CASE("closing answers open questions as declined and then ends", "[mcp]")
     CHECK(closed);
     CHECK(studio.runs.isEmpty());
 }
+
+TEST_CASE("a confirmation due after the client has gone is declined at once", "[mcp]")
+{
+    Folder folder;
+    FakeStudio studio(folder.discoveryPath);
+    Client client(folder.discoveryPath);
+    client.start({{u"elicitation"_s, QJsonObject{}}});
+    // The bridge asks for the commands first; the client goes before they arrive.
+    client.send({{u"jsonrpc"_s, u"2.0"_s},
+                 {u"id"_s, 6},
+                 {u"method"_s, u"tools/call"_s},
+                 {u"params"_s, QJsonObject{{u"name"_s, u"project_new"_s}}}});
+    bool closed = false;
+    QObject::connect(&client.bridge(), &mcp::Bridge::closed, [&closed] { closed = true; });
+    client.bridge().close();
+
+    const QJsonObject answer = client.nextMessage();
+    CHECK(answer[u"id"_s] == 6);
+    CHECK(answer[u"result"_s][u"isError"_s] == true);
+    CHECK(closed);
+    CHECK(studio.runs.isEmpty());
+}
