@@ -5,8 +5,8 @@
 <h1 align="center">Mikser Studio</h1>
 
 <p align="center">
-  <b>A multimedia studio where you and AI agents make things together.</b><br>
-  Edit video and sound on a timeline, and work on it with the AI tools on your own computer.
+  <b>A multimedia studio you share with AI agents.</b><br>
+  Create video, sound and more, with the AI tools on your computer.
 </p>
 
 <p align="center">
