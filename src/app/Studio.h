@@ -1,4 +1,4 @@
-// Everything except the UI, wired together: the core, the playback engine, the AI service, plugins and the
+// Everything except the UI, wired together: the core, the playback engine, the AI engine, plugins and the
 // local API.
 #pragma once
 
@@ -10,8 +10,7 @@
 #include "mikserstudio/engine/ClipPlayer.h"
 #include "mikserstudio/engine/MltMediaProbe.h"
 #include "mikserstudio/engine/TimelinePlayer.h"
-#include "mikserstudio/services/AiClient.h"
-#include "mikserstudio/services/SidecarManager.h"
+#include "mikserstudio/services/AiEngine.h"
 
 #include <QString>
 
@@ -27,7 +26,7 @@ struct StudioOptions {
     quint16 apiPort = 0;  // 0: a free port, published in the discovery file.
 };
 
-// Everything except the UI: the core, the playback engine, the AI service, plugins and the API.
+// Everything except the UI: the core, the playback engine, the AI engine, plugins and the API.
 //
 // Members are declared in construction order so they are destroyed in reverse: the API and the
 // plugins go before the bus, the players before the project they play. Playback is paused before
@@ -45,7 +44,7 @@ public:
     [[nodiscard]] core::CommandBus& bus() { return m_bus; }
     [[nodiscard]] core::ProjectModel& project() { return m_project; }
     [[nodiscard]] core::PluginManager& plugins() { return m_plugins; }
-    [[nodiscard]] services::SidecarManager& sidecar() { return m_sidecar; }
+    [[nodiscard]] services::AiEngine& ai() { return m_ai; }
 
     // Null when MLT could not be initialized; engineError() then says why.
     [[nodiscard]] engine::ClipPlayer* sourcePlayer() const { return m_source.get(); }
@@ -64,8 +63,7 @@ private:
     std::unique_ptr<engine::ClipPlayer> m_source;
     std::unique_ptr<engine::TimelinePlayer> m_program;
 
-    services::SidecarManager m_sidecar;
-    services::AiClient m_aiClient;
+    services::AiEngine m_ai;
 
     QString m_discoveryFile;
     core::PluginManager m_plugins;

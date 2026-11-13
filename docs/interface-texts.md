@@ -28,5 +28,5 @@ Texts take values through the language's string formatting (template literals, f
 ## This project's own rules
 
 - A command's title and description (`CommandSpec::title` and `description`) are interface texts: menus, the command palette, tooltips and the `/v1` API show them. A title follows the rules for menu items, and a description those for hints.
-- Messages that the local API and the AI service return in an error's `message` reach the user through the app, so they follow the rules for errors too.
+- Messages that the local API and the AI commands return in an error's `message` reach the user through the app, so they follow the rules for errors too.
 - Names of fields and commands in developer messages take curly quotes too: The answer has no “jobId”.

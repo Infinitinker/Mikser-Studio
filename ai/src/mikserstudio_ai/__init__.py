@@ -1,4 +1,4 @@
-"""Mikser Studio AI sidecar: runs AI backends for Mikser Studio behind a local, token-protected HTTP API."""
+"""The Python side of Mikser Studio: the MCP bridge (`python -m mikserstudio_ai.mcp`)."""
 
 from importlib.metadata import PackageNotFoundError, version
 

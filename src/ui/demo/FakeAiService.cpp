@@ -2,7 +2,6 @@
 #include "FakeAiService.h"
 
 #include "mikserstudio/core/CommandBus.h"
-#include "mikserstudio/core/Project.h"
 
 #include <QJsonObject>
 #include <QUuid>
@@ -17,6 +16,10 @@ namespace {
 
 constexpr int kTickMs = 250;
 constexpr double kProgressPerTick = 0.02;
+constexpr qsizetype kTitleChars = 40;
+
+const auto kImageOp = u"image.generate"_s;
+const auto kTextOp = u"text.generate"_s;
 
 QJsonObject stringParam(const QString& description)
 {
@@ -45,12 +48,17 @@ core::CommandResult ok(QJsonObject result)
     return core::CommandOutcome{std::move(result), nullptr};
 }
 
+// The backend that runs `op` in the real app.
+QString backendOf(const QString& op)
+{
+    return op == kImageOp ? u"comfyui"_s : u"ollama"_s;
+}
+
 }  // namespace
 
-FakeAiService::FakeAiService(core::CommandBus& bus, const core::ProjectModel& project, QObject* parent)
+FakeAiService::FakeAiService(core::CommandBus& bus, QObject* parent)
     : QObject(parent)
     , m_bus(bus)
-    , m_project(project)
 {
     const auto add = [this](core::CommandSpec spec, core::CommandHandler handler) {
         const QString id = spec.id;
@@ -76,31 +84,31 @@ FakeAiService::FakeAiService(core::CommandBus& bus, const core::ProjectModel& pr
             }
             return core::commandFailure(core::CommandErrorCode::Failed, u"There is no AI job “%1”."_s.arg(id));
         });
-    add(aiSpec(u"ai.upscale_clip"_s, u"Upscale clip"_s,
-               u"Upscales a video clip and places the result on the video track above it."_s,
-               QJsonObject{{u"clipId"_s, stringParam(u"Id of the video clip to upscale."_s)},
-                           {u"scale"_s, QJsonObject{{u"type"_s, u"integer"_s},
-                                                    {u"enum"_s, QJsonArray{2, 3, 4}},
-                                                    {u"default"_s, 2},
-                                                    {u"description"_s, u"Scale factor."_s}}}},
-               {u"clipId"_s}),
+    add(aiSpec(
+            u"ai.run"_s, u"Run AI operation"_s,
+            u"Runs an AI operation, such as image.generate or text.generate, in the AI tool of its backend; images, video and audio it makes come into the project."_s,
+            QJsonObject{
+                {u"op"_s, QJsonObject{{u"type"_s, u"string"_s},
+                                      {u"enum"_s, QJsonArray{kImageOp, kTextOp}},
+                                      {u"description"_s, u"The operation, from ai.backends."_s}}},
+                {u"params"_s,
+                 QJsonObject{{u"type"_s, u"object"_s},
+                             {u"default"_s, QJsonObject{}},
+                             {u"description"_s, u"The operation's parameters, as its schema in ai.backends says."_s}}},
+                {u"backend"_s, stringParam(u"The backend to run it on; the first that offers it when omitted."_s)}},
+            {u"op"_s}),
         [this](const QJsonObject& params) -> core::CommandResult {
-            const core::Clip* clip = m_project.findClip(params.value(u"clipId").toString());
-            const core::MediaItem* media = clip ? m_project.findMedia(clip->mediaId) : nullptr;
-            if (!media || media->info.kind != core::MediaKind::Video)
-                return core::commandFailure(core::CommandErrorCode::Failed, u"Select a video clip to upscale."_s);
-            const QString title = u"Upscale “%1” x%2"_s.arg(media->name).arg(params.value(u"scale").toInt());
-            return ok(QJsonObject{{u"jobId"_s, submit(u"video.upscale"_s, title, 0.0)}});
-        });
-    add(aiSpec(u"ai.generate_text"_s, u"Generate text"_s, u"Answers a prompt with a local language model."_s,
-               QJsonObject{{u"prompt"_s, stringParam(u"What to ask the model."_s)},
-                           {u"model"_s, stringParam(u"Model name; the first installed model when omitted."_s)}},
-               {u"prompt"_s}),
-        [this](const QJsonObject& params) {
-            QString prompt = params.value(u"prompt").toString();
-            if (prompt.size() > 40)
-                prompt = prompt.left(39) + u"…"_s;
-            return ok(QJsonObject{{u"jobId"_s, submit(u"text.generate"_s, u"Generate text: %1"_s.arg(prompt), 0.0)}});
+            const QString op = params.value(u"op").toString();
+            QString prompt = params.value(u"params").toObject().value(u"prompt").toString().simplified();
+            if (prompt.isEmpty()) {
+                return core::commandFailure(core::CommandErrorCode::InvalidParams,
+                                            u"Invalid parameters for “%1”: “prompt” is required."_s.arg(op));
+            }
+            if (prompt.size() > kTitleChars)
+                prompt = prompt.left(kTitleChars - 1) + u"…"_s;
+            const QString title = op == kImageOp ? u"Generate image: %1"_s.arg(prompt)
+                                                 : u"Generate text: %1"_s.arg(prompt);
+            return ok(QJsonObject{{u"jobId"_s, submit(op, title, 0.0)}});
         });
 
     m_timer.setInterval(kTickMs);
@@ -122,7 +130,7 @@ QString FakeAiService::submit(const QString& op, const QString& title, double pr
     job.title = title;
     job.progress = std::clamp(progress, 0.0, 1.0);
     job.state = job.progress >= 1.0 ? u"succeeded"_s : job.progress > 0.0 ? u"running"_s : u"queued"_s;
-    if (job.state == u"succeeded" && op == u"text.generate")
+    if (job.state == u"succeeded" && op == kTextOp)
         job.resultText = u"A calm, slow push-in on the interview, then cut to the city at dusk."_s;
     m_jobs.append(job);
     return job.id;
@@ -138,15 +146,15 @@ void FakeAiService::tick()
         if (job.state != u"running")
             continue;
         job.progress = std::min(1.0, job.progress + kProgressPerTick);
-        job.message = job.op == u"video.upscale" ? u"Upscaling frames (demo)"_s : u"Thinking (demo)"_s;
+        job.message = job.op == kImageOp ? u"Sampling (demo)"_s : u"Thinking (demo)"_s;
         if (job.progress < 1.0)
             continue;
         job.state = u"succeeded"_s;
-        if (job.op == u"text.generate") {
+        if (job.op == kTextOp) {
             job.message = u"Done"_s;
-            job.resultText = u"This is the demo AI service; the real answer comes from the local model."_s;
+            job.resultText = u"This is the demo AI; the real answer comes from the local model."_s;
         } else {
-            job.message = u"Demo only: no upscaled file was produced."_s;
+            job.message = u"Demo only: no image was made."_s;
         }
     }
 }
@@ -161,6 +169,7 @@ QJsonArray FakeAiService::jobsJson() const
         list.append(QJsonObject{
             {u"id"_s, job.id},
             {u"op"_s, job.op},
+            {u"backend"_s, backendOf(job.op)},
             {u"title"_s, job.title},
             {u"state"_s, job.state},
             {u"progress"_s, job.progress},

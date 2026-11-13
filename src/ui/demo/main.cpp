@@ -121,7 +121,7 @@ int main(int argc, char** argv)
         program.setDuration(project.duration());
     });
 
-    ui::demo::FakeAiService ai(bus, project);
+    ui::demo::FakeAiService ai(bus);
 
     core::PluginManager plugins(bus, QDir(configDir).filePath(u"plugins"_s));
     plugins.addSearchPath(QDir(QCoreApplication::applicationDirPath()).filePath(u"plugins"_s));
@@ -140,7 +140,7 @@ int main(int argc, char** argv)
     }
     undo.clear();
     ai.submit(u"text.generate"_s, u"Generate text: shot ideas for the opening"_s, 1.0);
-    ai.submit(u"video.upscale"_s, u"Upscale “Interview A” x2"_s, 0.35);
+    ai.submit(u"image.generate"_s, u"Generate image: the city at dusk, wide shot"_s, 0.35);
     program.seek(static_cast<core::FramePos>(project.frameRate().toDouble() * 11.5));
     if (clips->size() > 1)
         shell.selection().select(clips->at(1));

@@ -1,5 +1,4 @@
-// The ai.* commands (status, backends, jobs, cancel, upscale a clip, generate text) and the job tracking behind
-// them.
+// The ai.* commands: run an AI operation, list the backends and jobs, cancel a job, and the AI settings.
 #pragma once
 
 namespace mikserstudio::core {
@@ -9,33 +8,27 @@ class ProjectModel;
 
 namespace mikserstudio::services {
 
-class AiClient;
-class SidecarManager;
+class AiEngine;
 
-// Registers the AI commands (category "AI"). Jobs are tracked here, in C++: each gets a local id
-// ("aijob-<uuid>") at once, is sent to the sidecar when it is running (starting it on demand)
-// and is polled while active. Results stay in ai.jobs.
+// Registers the AI commands (category "AI") on the engine:
 //
-//   ai.status        {}                     -> {state, error, baseUrl, restarts, activeJobs}   (readOnly)
-//   ai.backends      {}                     -> {backends: [{id, title, ops, available, reason}]}
-//                                              NotAvailable while the service is starting/failed.
-//   ai.jobs          {}                     -> {jobs: [{id, remoteId, op, title, state, progress,
-//                                               message, error, createdAt, result, placement}]}
-//                                              (readOnly)
-//   ai.cancel_job    {jobId}                -> {jobId, state}
-//   ai.upscale_clip  {clipId, scale = 2}    -> {jobId}
-//   ai.generate_text {prompt, model?}       -> {jobId}
+//   ai.run          {op, params = {}, backend?} -> {jobId}
+//   ai.jobs         {}                          -> {jobs: [{id, op, backend, title, params, state, progress,
+//                                                   message, error, createdAt, startedAt, finishedAt, result,
+//                                                   placement}]}                                      (readOnly)
+//   ai.cancel_job   {jobId}                     -> {jobId, state}
+//   ai.backends     {}                          -> {backends: [{id, title, ops, available, reason}]}
+//   ai.status       {}                          -> {activeJobs, ollamaUrl, comfyuiUrl}               (readOnly)
+//   ai.settings     {}                          -> {ollamaUrl, comfyuiUrl}                           (readOnly)
+//   ai.set_settings {ollamaUrl?, comfyuiUrl?}   -> {ollamaUrl, comfyuiUrl}
 //
-// ai.upscale_clip runs "video.upscale" on the clip's media. When it succeeds, one undo step
-// ("Place AI result") imports the output with "project.import_media" and the job provenance,
-// adds a video track on top with "timeline.add_track" when the clip is on the top video track,
-// and places the result with "timeline.add_clip" at the clip's position on the video track above
-// the clip's track. The command fails at once when the clip is not a video clip. A job whose
-// project was replaced (ProjectModel::projectReset) before it finished fails without changing
-// the new project.
+// When an ai.run job succeeds, its image, video and audio outputs are imported into the project
+// with the job's provenance, as one undo step ("Add AI result"), and the job's placement is
+// {mediaIds}; text comes back in the job's result ("text"). A job whose project was replaced
+// (ProjectModel::projectReset) before it finished fails without changing the new project.
 //
-// The commands and the job tracker belong to `client` (they go away with it, and unregister
-// themselves from the bus). `bus`, `project` and `sidecar` may be destroyed first. Call once.
-void registerAiCommands(core::CommandBus& bus, core::ProjectModel& project, SidecarManager& sidecar, AiClient& client);
+// The commands belong to `engine` (they go away with it, and unregister themselves from the bus).
+// `bus` and `project` may be destroyed first. Call once.
+void registerAiCommands(core::CommandBus& bus, core::ProjectModel& project, AiEngine& engine);
 
 }  // namespace mikserstudio::services

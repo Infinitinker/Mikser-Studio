@@ -1,10 +1,9 @@
-// Creating the core, engine, AI service, plugins and local API, registering their commands, and starting and
+// Creating the core, engine, AI engine, plugins and local API, registering their commands, and starting and
 // stopping them in order.
 #include "Studio.h"
 
 #include "AppCommands.h"
 #include "AppPaths.h"
-#include "LogFile.h"
 #include "Logging.h"
 #include "UnavailableProbe.h"
 
@@ -21,21 +20,19 @@ namespace mikserstudio::app {
 
 namespace {
 
-services::SidecarOptions sidecarOptions(const AppPaths& paths)
+services::AiEngineOptions aiOptions(const AppPaths& paths)
 {
-    services::SidecarOptions options;
-    options.aiDirectory = paths.aiDir;
-    options.cacheDirectory = QDir(paths.user.cache).filePath(u"ai"_s);
-    options.ffmpegPath = paths.ffmpegPath;
-    options.logFile = LogFile::pathIn(paths.user.logs);
-    return options;
+    return services::AiEngineOptions{
+        .cacheDirectory = QDir(paths.user.cache).filePath(u"ai"_s),
+        .settingsFile = QDir(paths.user.config).filePath(u"ai-settings.json"_s),
+    };
 }
 
 }  // namespace
 
 Studio::Studio(const AppPaths& paths, StudioOptions options)
     : m_options(options)
-    , m_sidecar(sidecarOptions(paths))
+    , m_ai(aiOptions(paths))
     , m_discoveryFile(paths.user.discoveryFile)
     , m_plugins(m_bus, QDir(paths.user.config).filePath(u"plugins"_s))
 {
@@ -62,9 +59,7 @@ Studio::Studio(const AppPaths& paths, StudioOptions options)
         QObject::connect(&m_project, &core::ProjectModel::projectReset, m_source.get(), &engine::ClipPlayer::close);
     }
 
-    if (paths.aiDir.isEmpty())
-        qCInfo(lcApp) << "No AI service in this build (ai/ was not found): the AI commands say so.";
-    services::registerAiCommands(m_bus, m_project, m_sidecar, m_aiClient);
+    services::registerAiCommands(m_bus, m_project, m_ai);
 
     m_plugins.addSearchPath(paths.pluginsDir);
     m_plugins.discover();
@@ -75,7 +70,7 @@ Studio::Studio(const AppPaths& paths, StudioOptions options)
 
 Studio::~Studio()
 {
-    // Silence playback first: stopping plugins and the AI service below can take seconds.
+    // Silence playback first: stopping plugins below can take seconds.
     if (m_program)
         m_program->pause();
     if (m_source)

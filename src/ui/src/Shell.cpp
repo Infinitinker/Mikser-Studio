@@ -233,7 +233,7 @@ void Shell::registerCorePanels()
                             return new PropertiesPanel(m_bus, m_project, *m_selection, parent);
                         }});
     host.registerPanel({kAi.toString(), u"AI"_s, DockArea::Right, true,
-                        [this](QWidget* parent) { return new AiPanel(m_bus, m_project, *m_selection, parent); }});
+                        [this](QWidget* parent) { return new AiPanel(m_bus, parent); }});
     host.registerPanel({kLog.toString(), u"Log"_s, DockArea::Bottom, true,
                         [this](QWidget* parent) { return new LogPanel(*m_log, parent); }});
     host.registerPanel({kPlugins.toString(), u"Plugins"_s, DockArea::Right, true,

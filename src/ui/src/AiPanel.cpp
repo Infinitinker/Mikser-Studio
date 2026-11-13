@@ -1,4 +1,5 @@
-// The AI panel: the AI command forms, the job list polled from "ai.jobs" and the unavailable state.
+// The AI panel: the prompt cards that run AI operations, the job list polled from "ai.jobs" and the unavailable
+// state.
 #include "AiPanel.h"
 
 #include "AiJobRow.h"
@@ -6,10 +7,7 @@
 #include "PanelLayout.h"
 
 #include "mikserstudio/core/CommandBus.h"
-#include "mikserstudio/core/Project.h"
-#include "mikserstudio/ui/ClipSelection.h"
 
-#include <QComboBox>
 #include <QHBoxLayout>
 #include <QJsonObject>
 #include <QLabel>
@@ -26,81 +24,70 @@ namespace mikserstudio::ui {
 
 namespace {
 
-const auto kUpscale = u"ai.upscale_clip"_s;
-const auto kGenerate = u"ai.generate_text"_s;
+const auto kRun = u"ai.run"_s;
 const auto kJobs = u"ai.jobs"_s;
 const auto kCancel = u"ai.cancel_job"_s;
+const auto kImageOp = u"image.generate"_s;
+const auto kTextOp = u"text.generate"_s;
 
-QFrame* card(QWidget* parent)
+// A card with a heading, a prompt editor and a primary Generate button.
+struct PromptCard {
+    QFrame* frame = nullptr;
+    QPlainTextEdit* prompt = nullptr;
+    QPushButton* button = nullptr;
+};
+
+PromptCard makePromptCard(const QString& heading, const QString& placeholder, QWidget* parent)
 {
     auto* frame = new QFrame(parent);
     frame->setProperty("role", u"card"_s);
-    return frame;
+    auto* layout = new QVBoxLayout(frame);
+    layout->setContentsMargins(12, 10, 12, 12);
+    layout->setSpacing(8);
+    layout->addWidget(makeLabel(heading, u"heading"_s, frame));
+    auto* prompt = new QPlainTextEdit(frame);
+    prompt->setPlaceholderText(placeholder);
+    prompt->setFixedHeight(72);
+    prompt->setTabChangesFocus(true);
+    layout->addWidget(prompt);
+    auto* row = new QHBoxLayout;
+    auto* button = new QPushButton(u"Generate"_s, frame);
+    button->setProperty("role", u"primary"_s);
+    row->addStretch();
+    row->addWidget(button);
+    layout->addLayout(row);
+    return PromptCard{.frame = frame, .prompt = prompt, .button = button};
 }
 
 }  // namespace
 
-AiPanel::AiPanel(core::CommandBus& bus, const core::ProjectModel& project, const ClipSelection& selection,
-                 QWidget* parent)
+AiPanel::AiPanel(core::CommandBus& bus, QWidget* parent)
     : QWidget(parent)
     , m_bus(bus)
-    , m_project(project)
-    , m_selection(selection)
     , m_poll(new QTimer(this))
 {
     auto* layout = makePanelLayout(this);
     layout->addLayout(makePanelHeader(u"AI"_s));
 
-    m_unavailable = makeLabel(u"The AI service is not available."_s, u"placeholder"_s, this);
+    m_unavailable = makeLabel(u"The AI commands are not available."_s, u"placeholder"_s, this);
     m_unavailable->setObjectName(u"unavailable"_s);
     m_unavailable->setWordWrap(true);
     layout->addWidget(m_unavailable);
 
-    // Upscale.
-    auto* upscaleCard = card(this);
-    auto* upscaleLayout = new QVBoxLayout(upscaleCard);
-    upscaleLayout->setContentsMargins(12, 10, 12, 12);
-    upscaleLayout->setSpacing(8);
-    upscaleLayout->addWidget(makeLabel(u"Upscale selected clip"_s, u"heading"_s, upscaleCard));
-    m_clipLabel = makeLabel({}, u"muted"_s, upscaleCard);
-    m_clipLabel->setWordWrap(true);
-    upscaleLayout->addWidget(m_clipLabel);
-    auto* upscaleRow = new QHBoxLayout;
-    upscaleRow->setSpacing(8);
-    m_scale = new QComboBox(upscaleCard);
-    m_scale->setObjectName(u"scale"_s);
-    for (const int factor : {2, 3, 4})
-        m_scale->addItem(u"%1×"_s.arg(factor), factor);
-    m_scale->setToolTip(u"Scale factor of the upscaled clip."_s);
-    m_upscale = new QPushButton(u"Upscale"_s, upscaleCard);
-    m_upscale->setObjectName(u"upscale"_s);
-    m_upscale->setProperty("role", u"primary"_s);
-    upscaleRow->addWidget(m_scale);
-    upscaleRow->addStretch();
-    upscaleRow->addWidget(m_upscale);
-    upscaleLayout->addLayout(upscaleRow);
-    layout->addWidget(upscaleCard);
+    const PromptCard imageCard = makePromptCard(u"Generate image"_s, u"Describe the image…"_s, this);
+    m_imagePrompt = imageCard.prompt;
+    m_imagePrompt->setObjectName(u"imagePrompt"_s);
+    m_generateImage = imageCard.button;
+    m_generateImage->setObjectName(u"generateImage"_s);
+    m_generateImage->setToolTip(u"Makes the image in ComfyUI and adds it to the media bin."_s);
+    layout->addWidget(imageCard.frame);
 
-    // Generate text.
-    auto* textCard = card(this);
-    auto* textLayout = new QVBoxLayout(textCard);
-    textLayout->setContentsMargins(12, 10, 12, 12);
-    textLayout->setSpacing(8);
-    textLayout->addWidget(makeLabel(u"Generate text"_s, u"heading"_s, textCard));
-    m_prompt = new QPlainTextEdit(textCard);
+    const PromptCard textCard = makePromptCard(u"Generate text"_s, u"Ask the local language model…"_s, this);
+    m_prompt = textCard.prompt;
     m_prompt->setObjectName(u"prompt"_s);
-    m_prompt->setPlaceholderText(u"Ask the local language model…"_s);
-    m_prompt->setFixedHeight(72);
-    m_prompt->setTabChangesFocus(true);
-    textLayout->addWidget(m_prompt);
-    auto* textRow = new QHBoxLayout;
-    m_generate = new QPushButton(u"Generate"_s, textCard);
+    m_generate = textCard.button;
     m_generate->setObjectName(u"generate"_s);
-    m_generate->setProperty("role", u"primary"_s);
-    textRow->addStretch();
-    textRow->addWidget(m_generate);
-    textLayout->addLayout(textRow);
-    layout->addWidget(textCard);
+    layout->addWidget(textCard.frame);
 
     m_error = makeLabel({}, u"error"_s, this);
     m_error->setObjectName(u"error"_s);
@@ -124,11 +111,10 @@ AiPanel::AiPanel(core::CommandBus& bus, const core::ProjectModel& project, const
     scroll->setWidget(jobsHost);
     layout->addWidget(scroll, 1);
 
-    connect(m_upscale, &QPushButton::clicked, this, &AiPanel::upscaleSelected);
+    connect(m_generateImage, &QPushButton::clicked, this, &AiPanel::generateImage);
     connect(m_generate, &QPushButton::clicked, this, &AiPanel::generateText);
+    connect(m_imagePrompt, &QPlainTextEdit::textChanged, this, &AiPanel::updateControls);
     connect(m_prompt, &QPlainTextEdit::textChanged, this, &AiPanel::updateControls);
-    connect(&selection, &ClipSelection::changed, this, &AiPanel::updateControls);
-    connect(&project, &core::ProjectModel::clipChanged, this, &AiPanel::updateControls);
     connect(&bus, &core::CommandBus::commandRegistered, this, &AiPanel::updateAvailability);
     connect(&bus, &core::CommandBus::commandUnregistered, this, &AiPanel::updateAvailability);
     m_poll->setObjectName(u"jobPoll"_s);
@@ -137,29 +123,23 @@ AiPanel::AiPanel(core::CommandBus& bus, const core::ProjectModel& project, const
     updateAvailability();
 }
 
-void AiPanel::upscaleSelected()
+void AiPanel::generateImage()
 {
-    const QString clipId = m_selection.current();
-    if (!m_available || clipId.isEmpty())
-        return;
-    const auto run = executeInteractive(
-        m_bus, kUpscale, QJsonObject{{u"clipId"_s, clipId}, {u"scale"_s, m_scale->currentData().toInt()}}, this);
-    if (!run)
-        return;
-    if (const auto& result = *run; !result) {
-        showError(result.error().message);
-        return;
-    }
-    m_error->hide();
-    refreshJobs();
+    runOperation(kImageOp, m_imagePrompt);
 }
 
 void AiPanel::generateText()
 {
-    const QString prompt = m_prompt->toPlainText().trimmed();
+    runOperation(kTextOp, m_prompt);
+}
+
+void AiPanel::runOperation(const QString& op, QPlainTextEdit* editor)
+{
+    const QString prompt = editor->toPlainText().trimmed();
     if (!m_available || prompt.isEmpty())
         return;
-    const auto run = executeInteractive(m_bus, kGenerate, QJsonObject{{u"prompt"_s, prompt}}, this);
+    const auto run = executeInteractive(
+        m_bus, kRun, QJsonObject{{u"op"_s, op}, {u"params"_s, QJsonObject{{u"prompt"_s, prompt}}}}, this);
     if (!run)
         return;
     if (const auto& result = *run; !result) {
@@ -167,7 +147,7 @@ void AiPanel::generateText()
         return;
     }
     m_error->hide();
-    m_prompt->clear();
+    editor->clear();
     refreshJobs();
 }
 
@@ -196,7 +176,7 @@ void AiPanel::hideEvent(QHideEvent* event)
 
 void AiPanel::updateAvailability()
 {
-    const bool available = m_bus.contains(kUpscale) && m_bus.contains(kGenerate) && m_bus.contains(kJobs);
+    const bool available = m_bus.contains(kRun) && m_bus.contains(kJobs);
     m_available = available;
     m_unavailable->setVisible(!available);
     updateControls();
@@ -205,18 +185,8 @@ void AiPanel::updateAvailability()
 
 void AiPanel::updateControls()
 {
-    const core::Clip* clip = m_project.findClip(m_selection.current());
-    const core::MediaItem* media = clip ? m_project.findMedia(clip->mediaId) : nullptr;
-    const bool isVideo = media && media->info.kind == core::MediaKind::Video;
-    if (!clip)
-        m_clipLabel->setText(u"Select a video clip on the timeline."_s);
-    else if (!isVideo)
-        m_clipLabel->setText(u"“%1” is not a video clip."_s.arg(media ? media->name : clip->id));
-    else
-        m_clipLabel->setText(u"Clip: %1"_s.arg(media->name));
-
-    m_scale->setEnabled(m_available);
-    m_upscale->setEnabled(m_available && isVideo);
+    m_imagePrompt->setEnabled(m_available);
+    m_generateImage->setEnabled(m_available && !m_imagePrompt->toPlainText().trimmed().isEmpty());
     m_prompt->setEnabled(m_available);
     m_generate->setEnabled(m_available && !m_prompt->toPlainText().trimmed().isEmpty());
 }

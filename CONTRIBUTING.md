@@ -58,7 +58,7 @@ include which, and the names the project uses for its concepts.
    through a pull request.
 2. Run the checks before pushing, as "Checks" in [docs/development.md](docs/development.md) lists
    them: the build and its tests, clang-format, clang-tidy and `tools/check_includes.py` for the C++
-   code; Ruff, mypy, pytest and `lint-imports` for the AI service. The `Checks` workflow runs them for
+   code; Ruff, mypy, pytest and `lint-imports` for the MCP bridge and `tools/`. The `Checks` workflow runs them for
    every pull request, and the `E2E tests` workflow the end-to-end tests.
 3. Modules include only what [docs/architecture.md](docs/architecture.md#import-directions) allows:
    plugins see only the SDK, and the app's modules only the core. A new dependency is justified and its
@@ -67,7 +67,7 @@ include which, and the names the project uses for its concepts.
 4. Tests live in `tests/`, mirroring `src/` (the tests for `src/core` are in `tests/core`) and
    `plugins/` (`tests/plugins/hello`), together with their fakes; nothing test-only goes in `src/`.
    They run without the network; a sound device is never needed, as MLT falls back to its silent
-   output. The AI service's tests are in `ai/tests/`, mirroring `ai/src/mikserstudio_ai/`. The
+   output. The MCP bridge's tests are in `ai/tests/`, mirroring `ai/src/mikserstudio_ai/`. The
    end-to-end tests in `tests/e2e/` and the GPU test in `tests/engine/gpu/` run apart
    ([docs/development.md](docs/development.md)).
 5. Update the docs in the same pull request as the code they describe. Commits follow

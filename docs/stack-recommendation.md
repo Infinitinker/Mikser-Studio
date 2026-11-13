@@ -2,7 +2,7 @@
 
 ## Recommendation
 
-**Build Mikser Studio as a native C++23 app on Qt 6.12, with a headless core and a Python AI service that connects to the AI tools the user runs.** It starts from the qt-native proposal, which scored highest (24.1/30), and adds the best plugin and isolation ideas from python-first (21.7).
+**Build Mikser Studio as a native C++23 app on Qt 6.12, with a headless core and an AI engine that connects to the AI tools the user runs.** It starts from the qt-native proposal, which scored highest (24.1/30), and adds the best plugin and isolation ideas from python-first (21.7).
 
 All the multiplatform media apps you listed as references ship on this foundation: Kdenlive, Shotcut, Krita, OBS and Audacity 4. Qt draws through the native graphics API on each OS (D3D11/12 on Windows, Metal on macOS, Vulkan or GL on Linux). That avoids differences between the three system webviews. It also gives you mature Wayland, HiDPI, multi-monitor, accessibility and input-method support.
 
@@ -18,16 +18,16 @@ All the multiplatform media apps you listed as references ship on this foundatio
 | Audio engine | Our own C++ real-time graph. Device I/O through RtAudio 6 (WASAPI/ASIO, CoreAudio, PipeWire/JACK/ALSA). Hosts CLAP, VST3 SDK 3.8 (MIT) and LV2 via lilv. MIDI through libremidi. **The audio device clock is the master clock** for all playback. |
 | Core / API | `mikserstudio-core` is a C++ library with a command bus: every action is a typed, undoable command described in JSON Schema. That one registry feeds undo, the command palette, macros, shortcuts, the /v1 HTTP+WebSocket API on 127.0.0.1 (with a session token) and an MCP bridge, a separate program that offers the commands to agents such as Claude Code through that API. `mikser-studio --headless` runs the core with no UI. |
 | Scripting | Embedded CPython 3.13 with nanobind, for trusted macros only. |
-| AI | Mikser Studio runs no AI models itself and ships none. A Python 3.13 AI service in its own virtual environment connects to the AI tools the user runs, local and offline first, through their own APIs, one backend per API: Ollama, ComfyUI, later InvokeAI and Strata. An online service is used only when the user sets it up. |
+| AI | Mikser Studio runs no AI models itself and ships none. The AI engine, in the app's C++ services module, connects to the AI tools the user runs, local and offline first, through their own APIs, one backend per API: Ollama, ComfyUI, later InvokeAI and Strata. An online service is used only when the user sets it up. |
 | Other domains | Later, each as a module or plugin, when the user decides to start it: images and graphics, presentations and documents, 3D. More kinds of files come from libraries such as FFmpeg and libarchive, behind plugins that import them, not from parsers of our own. |
-| Packaging | GitHub Actions. Windows builds run in MSYS2's UCRT64 environment, whose packages setup-msys2 caches, with ccache through the CMake presets and pip's download cache for the Python side; macOS arm64 and Ubuntu builds come later. Windows: `tools/build_release.py` copies the program with the MSYS2 libraries it imports, MLT's modules and Qt's plugins and QML modules, then makes a zip and an Inno Setup 7 installer. macOS: macdeployqt, notarization, DMG. Linux: Flatpak on the KDE runtime, plus AppImage. The AI service downloads no models: it uses the AI tools the user has installed. |
+| Packaging | GitHub Actions. Windows builds run in MSYS2's UCRT64 environment, whose packages setup-msys2 caches, with ccache through the CMake presets and pip's download cache for the Python side; macOS arm64 and Ubuntu builds come later. Windows: `tools/build_release.py` copies the program with the MSYS2 libraries it imports, MLT's modules and Qt's plugins and QML modules, then makes a zip and an Inno Setup 7 installer. macOS: macdeployqt, notarization, DMG. Linux: Flatpak on the KDE runtime, plus AppImage. The AI engine downloads no models: it uses the AI tools the user has installed. |
 
 ## Process model
 
 - **Main process:** UI, core, MLT playback, audio graph, embedded Python.
 - **`mikserstudio-render`:** export runs in its own process, as Kdenlive's render process and Shotcut's melt jobs do. A crash or long export cannot stall editing.
 - **Plugin scanner:** CLAP/VST3/LV2/OFX scanning runs out of process, and plugins that crash are blocklisted. Out-of-process audio plugin hosting is optional.
-- **AI service:** the Python process in `ai/`, which calls the AI tools the user runs (Ollama, ComfyUI) through their APIs. Those tools are programs of their own and manage their own GPU memory; the AI service runs one job at a time per backend.
+- **AI engine:** in the main process, it calls the AI tools the user runs (Ollama, ComfyUI) through their APIs, with asynchronous requests. Those tools are programs of their own and manage their own GPU memory; the engine runs one job at a time per backend.
 - **MCP bridge:** a separate program, started by the agent's client, that offers the commands to agents outside the app through the local API.
 - **Generated media** arrives in the project as media of its own, with its provenance (the job, backend, operation, model, parameters such as the prompt and seed, the time and the tool versions), so it can be changed, replaced or generated again.
 
@@ -55,7 +55,7 @@ Possible later addition: WASM components (wasmtime) as a sandboxed tier for non-
 - **App:** GPL-3.0-or-later. KDDockWidgets, QtHttpServer, GPL FFmpeg encoders, the ASIO SDK (now GPLv3) and borrowed Kdenlive/Shotcut code all point there anyway.
 - **SDK:** the C header, Protocol package and manifest schema under MIT/Apache-2.0.
 - **Plugin exception:** you can add one for your own code, but it cannot cover third-party GPL parts like KDDockWidgets. Closed-source plugins should therefore talk to Mikser Studio over /v1 or run as sidecars.
-- **License gating in CI:** `tools/licenses.py` checks the licenses of the MSYS2 packages a release ships against an allow list, and `tools/notices.py` writes their notices, so no AGPL or GPL-only dependency slips in unnoticed. The Python dependencies get the same check once the AI service ships.
+- **License gating in CI:** `tools/licenses.py` checks the licenses of the MSYS2 packages a release ships against an allow list, and `tools/notices.py` writes their notices, so no AGPL or GPL-only dependency slips in unnoticed. The Python dependencies get the same check once a release ships Python code.
 - **FFmpeg build switch:** choose per channel between LGPL FFmpeg with OS/hardware encoders and a GPL build with x264/x265. Codec patents are a separate distribution question.
 - **Model weights:** Mikser Studio ships none; where it lists the models an AI tool offers, it shows each model's license when the tool reports it.
 - **Permissive escape hatch if ever needed:** Qt ADS instead of KDDockWidgets, cpp-httplib instead of QtHttpServer, LGPL FFmpeg.
