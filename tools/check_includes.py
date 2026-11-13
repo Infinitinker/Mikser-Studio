@@ -25,7 +25,7 @@ import sys
 from pathlib import PurePosixPath
 from typing import NamedTuple
 
-MODULES = ("sdk", "core", "engine", "api", "services", "ui", "app")
+MODULES = ("sdk", "core", "engine", "api", "services", "ui", "app", "mcp")
 """The modules, each with its folder: sdk/ and src/<module>/."""
 ALLOWED = {
     "sdk": set(),
@@ -35,10 +35,12 @@ ALLOWED = {
     "services": {"core"},
     "ui": {"core"},
     "app": {"core", "engine", "api", "services", "ui"},
+    "mcp": set(),
     "plugins": {"sdk"},
 }
 """The modules each module may include from, besides itself. plugins/ holds the bundled plugins, which
-see only the plugin ABI."""
+see only the plugin ABI. mcp, the MCP bridge, drives the app only through its local API, so it includes
+no other module."""
 TEST_FOLDERS: dict[str, set[str]] = {
     "e2e": {"core", "services"},
     "plugins": {"core"},
