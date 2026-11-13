@@ -7,6 +7,7 @@ add_executable(mikserstudio-ui-tests
     CommandMenuTests.cpp
     CommandPaletteTests.cpp
     KddwDockHostTests.cpp
+    MediaBinPanelTests.cpp
     MessageBoxAnswer.h
     PluginPanelBridgeTests.cpp
     PropertiesPanelTests.cpp

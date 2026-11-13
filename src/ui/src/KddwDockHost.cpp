@@ -98,6 +98,32 @@ KDDockWidgets::InitialOption sizeOption(Placement placement, int size)
     return KDDockWidgets::InitialOption(horizontal ? QSize(size, 0) : QSize(0, size));
 }
 
+// Gives a placed panel the size its workspace step asks for, by moving its edge that faces the rest
+// of the layout. KDDockWidgets takes the room for every later panel of a row from all the panels in
+// it, so without this the media bin of "Editing" ends up a third narrower than the workspace says.
+void restoreStepSize(KDDockWidgets::QtWidgets::DockWidget& dock, const WorkspaceStep& step)
+{
+    if (step.size <= 0 || step.placement == Placement::Tab)
+        return;
+    const QSize current = dock.dockWidget()->sizeInLayout();
+    switch (step.placement) {
+    case Placement::Left:
+        dock.dockWidget()->resizeInLayout(0, 0, step.size - current.width(), 0);
+        break;
+    case Placement::Right:
+        dock.dockWidget()->resizeInLayout(step.size - current.width(), 0, 0, 0);
+        break;
+    case Placement::Top:
+        dock.dockWidget()->resizeInLayout(0, 0, 0, step.size - current.height());
+        break;
+    case Placement::Bottom:
+        dock.dockWidget()->resizeInLayout(0, step.size - current.height(), 0, 0);
+        break;
+    case Placement::Tab:
+        break;
+    }
+}
+
 void collectPlacedDocks(const QJsonValue& value, QSet<QString>& names)
 {
     if (value.isArray()) {
@@ -519,6 +545,10 @@ void KddwDockHost::applyPreset(const WorkspacePreset& preset)
             groupLeaders.append(dock);
         }
         placed.insert(step.panelId, dock);
+    }
+    for (const WorkspaceStep& step : preset.steps) {
+        if (Dock* dock = placed.value(step.panelId, nullptr))
+            restoreStepSize(*dock, step);
     }
     for (Dock* leader : groupLeaders)
         leader->setAsCurrentTab();

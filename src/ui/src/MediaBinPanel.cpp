@@ -22,6 +22,8 @@
 #include <QTreeView>
 #include <QUrl>
 
+#include <algorithm>
+
 using namespace Qt::StringLiterals;
 
 namespace mikserstudio::ui {
@@ -31,6 +33,11 @@ namespace {
 const auto kMediaFilter =
     u"Media files (*.mp4 *.mov *.mkv *.webm *.avi *.mxf *.m4v *.mts *.wav *.mp3 *.flac *.aac *.ogg *.m4a *.opus "
     u"*.png *.jpg *.jpeg *.tif *.tiff *.bmp *.webp *.exr);;All files (*)"_s;
+
+// A typical clip name, which the name column keeps room for, and the room the theme's item padding and the kind
+// swatch's spacing take beside it.
+const auto kTypicalName = u"Interview_CamA_take03.mp4"_s;
+constexpr int kNameMargins = 24;
 
 QStringList showFileDialog(QWidget* parent)
 {
@@ -68,6 +75,7 @@ MediaBinPanel::MediaBinPanel(core::CommandBus& bus, const core::ProjectModel& pr
     m_view->header()->setSectionResizeMode(MediaBinModel::DurationColumn, QHeaderView::ResizeToContents);
     m_view->header()->setSectionResizeMode(MediaBinModel::KindColumn, QHeaderView::ResizeToContents);
     m_view->installEventFilter(this);
+    m_view->viewport()->installEventFilter(this);
     connect(m_view, &QTreeView::doubleClicked, this,
             [this](const QModelIndex& index) { appendToTimeline(m_model->mediaIdAt(index.row())); });
     layout->addWidget(m_view, 1);
@@ -77,6 +85,7 @@ MediaBinPanel::MediaBinPanel(core::CommandBus& bus, const core::ProjectModel& pr
     layout->addWidget(m_empty, 1);
 
     connect(m_model, &MediaBinModel::modelReset, this, &MediaBinPanel::updateEmptyState);
+    connect(m_model, &MediaBinModel::modelReset, this, &MediaBinPanel::updateColumns);
     updateEmptyState();
     setAcceptDrops(true);
 }
@@ -130,6 +139,8 @@ void MediaBinPanel::dropEvent(QDropEvent* event)
 
 bool MediaBinPanel::eventFilter(QObject* watched, QEvent* event)
 {
+    if (watched == m_view->viewport() && event->type() == QEvent::Resize)
+        updateColumns();
     if (watched == m_view && event->type() == QEvent::KeyPress) {
         const int key = static_cast<QKeyEvent*>(event)->key();
         if (key == Qt::Key_Delete || key == Qt::Key_Backspace) {
@@ -145,6 +156,20 @@ void MediaBinPanel::updateEmptyState()
     const bool empty = m_model->rowCount() == 0;
     m_view->setVisible(!empty);
     m_empty->setVisible(empty);
+}
+
+void MediaBinPanel::updateColumns()
+{
+    const QHeaderView* header = m_view->header();
+    const QAbstractItemView* items = m_view;  // QTreeView hides sizeHintForColumn().
+    const auto contentWidth = [items, header](int column) {
+        return std::max(header->sectionSizeHint(column), items->sizeHintForColumn(column));
+    };
+    const int nameRoom = m_view->viewport()->width() - contentWidth(MediaBinModel::DurationColumn) -
+                         contentWidth(MediaBinModel::KindColumn);
+    const int typicalName = m_view->fontMetrics().horizontalAdvance(kTypicalName) + m_view->iconSize().width() +
+                            kNameMargins;
+    m_view->setColumnHidden(MediaBinModel::KindColumn, nameRoom < typicalName);
 }
 
 }  // namespace mikserstudio::ui
