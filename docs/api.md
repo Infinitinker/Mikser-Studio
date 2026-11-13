@@ -248,8 +248,13 @@ discovery file, `/v1/commands` and `/v1/events`.
 To connect Claude Code to Mikser Studio Dev, from the repository after a `debug` build:
 
 ```sh
-claude mcp add mikser-studio -- "$PWD/build/debug/bin/mikser-studio-mcp" --instance dev
+claude mcp add mikser-studio -e 'PATH=C:\msys64\ucrt64\bin' -- "$PWD/build/debug/bin/mikser-studio-mcp" --instance dev
 ```
+
+A build from source needs MSYS2's libraries (Qt and the C++ run time), which are not on the `PATH`
+Claude Code starts programs with, so the command gives the bridge a `PATH` of MSYS2's UCRT64 `bin`
+folder, as `start.bat` does for the app (with MSYS2 elsewhere, its `ucrt64\bin`; on Linux and macOS
+leave `-e` out). Without it the bridge does not start, and Claude Code shows it as failed.
 
 To connect it to the installed Mikser Studio, give the program in the installation's `bin` folder,
 for one user by default `%LOCALAPPDATA%\Programs\Mikser Studio\bin\mikser-studio-mcp.exe`:
