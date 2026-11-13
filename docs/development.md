@@ -24,14 +24,16 @@ The C++ checks need clang-format and clang-tidy, and the license tools MSYS2's P
 pacman -S --needed mingw-w64-ucrt-x86_64-{clang,clang-tools-extra,python}
 ```
 
-The AI service needs [Python 3.13](https://www.python.org/downloads/) and its own virtual environment
-in `ai/.venv`, made with `venv` and `pip` once (and again after its dependencies change), from Git Bash
-or PowerShell. An MSYS2 shell doesn't see the Windows `py` launcher, and MSYS2's own `python` makes a
-venv the app does not look for.
+A release ships no Python. The scripts in `tools/` (the release build, the notices, the license and
+include checks) run with Python's standard library alone, and never ship. Their checks, Ruff, mypy and
+pytest, need [Python 3.13](https://www.python.org/downloads/) and a virtual environment of their own in
+`tools/.venv`, made with `venv` and `pip` once (and again after the development tools
+`tools/pyproject.toml` lists change), from Git Bash or PowerShell; an MSYS2 shell doesn't see the
+Windows `py` launcher. `--group` needs pip 25.1 or newer.
 
 ```sh
-py -3.13 -m venv ai/.venv
-ai/.venv/Scripts/python -m pip install -e "./ai[dev]"
+py -3.13 -m venv tools/.venv
+tools/.venv/Scripts/python -m pip install --group tools/pyproject.toml:dev
 ```
 
 Ollama and ComfyUI are optional: the AI commands use them when they run ([ai.md](ai.md)), and the
@@ -146,26 +148,29 @@ git ls-files '*.cpp' | xargs -P 8 -n 1 clang-tidy -p build/ci --quiet
 
 `clang-format -i <files>` formats files in place.
 
-**Lint** (job `Lint`): Ruff, for the AI service and the scripts in `tools/`; the AI service's import
-contracts; the C++ include directions ("Import directions" in [architecture.md](architecture.md));
-and the tests of the scripts in `tools/` (`tools/tests/`), with the AI service's pytest settings.
+**Lint** (job `Lint`): Ruff, for the AI service and the scripts in `tools/`, each with its own
+settings (`ai/pyproject.toml`, `tools/pyproject.toml`); the AI service's import contracts; the C++
+include directions ("Import directions" in [architecture.md](architecture.md)); and the tests of the
+scripts in `tools/` (`tools/tests/`).
 
 ```sh
 cd ai
-.venv/Scripts/python -m ruff check . ../tools
-.venv/Scripts/python -m ruff format --check . ../tools
+.venv/Scripts/python -m ruff check .
+.venv/Scripts/python -m ruff format --check .
 .venv/Scripts/lint-imports
-.venv/Scripts/python -m pytest -c pyproject.toml ../tools/tests
+cd ../tools
+.venv/Scripts/python -m ruff check .
+.venv/Scripts/python -m ruff format --check .
+.venv/Scripts/python -m pytest
 cd ..
-ai/.venv/Scripts/python tools/check_includes.py
+tools/.venv/Scripts/python tools/check_includes.py
 ```
 
 **Types** (job `Types`): mypy, strict, for the AI service and `tools/`.
 
 ```sh
-cd ai
-.venv/Scripts/python -m mypy
-.venv/Scripts/python -m mypy ../tools
+(cd ai && .venv/Scripts/python -m mypy)
+(cd tools && .venv/Scripts/python -m mypy)
 ```
 
 **Licenses** (job `Licenses`): `THIRD-PARTY-NOTICES.md` is up to date, and every license a release
@@ -224,11 +229,14 @@ The code is portable (QRhi picks Vulkan/OpenGL or Metal; KDDockWidgets, MLT and 
 cross-platform) but only the Windows build has been run so far. The same packages exist in the
 usual package managers; CI for Linux and macOS comes with their ports.
 
-The AI service's environment is made the same way, with `bin/` in place of `Scripts/`:
+The AI service's environment and that of the scripts in `tools/` are made the same way, with `bin/`
+in place of `Scripts/`:
 
 ```sh
 python3.13 -m venv ai/.venv
 ai/.venv/bin/python -m pip install -e "./ai[dev]"
+python3.13 -m venv tools/.venv
+tools/.venv/bin/python -m pip install --group tools/pyproject.toml:dev
 ```
 
 ## Branches

@@ -1,7 +1,8 @@
 # Mikser Studio architecture
 
 Mikser Studio is a native C++23 / Qt 6 desktop app with a headless core, a plugin system and an AI engine
-that connects to the AI tools the user runs. Why this stack was chosen is in `stack-recommendation.md`.
+that connects to the AI tools the user runs. A release ships no Python. Why this stack was chosen is in
+`stack-recommendation.md`.
 
 ## Principles
 
@@ -31,6 +32,7 @@ that connects to the AI tools the user runs. Why this stack was chosen is in `st
 | `src/app/` | `mikser-studio` | all | Wires the modules together; `mikser-studio --headless` runs without UI. |
 | `src/mcp/` | `mikser-studio-mcp` | Qt Network/WebSockets | The MCP bridge, a program of its own: offers the commands to agents as MCP tools through the local API. |
 | `plugins/` | plugin libraries | sdk | Bundled example plugins. |
+| `tools/` | development scripts | — | The release build, the third-party notices, the license and include checks and what they read from MSYS2, in Python with its standard library alone; never shipped. Checked with the settings in `tools/pyproject.toml`. |
 | `tests/` | `*-tests` | Catch2 | Tests mirroring `src/` and `plugins/`, and the end-to-end tests. |
 
 ## Import directions

@@ -10,6 +10,7 @@ Please do not open a public issue. Report it privately through GitHub instead: o
 
 - The local API on `127.0.0.1` and its discovery file `api.json`, including what a web page or another program on the same computer can make it do.
 - The AI engine's connections to the AI tools the user runs (Ollama, ComfyUI), and what their answers can make Mikser Studio do.
+- The MCP bridge, which offers the app's commands to agents through the local API.
 - Project files (`.msproj`) and media files: anything a crafted file can make Mikser Studio do.
 - Plugins: how they are found, loaded and given access to the app.
 

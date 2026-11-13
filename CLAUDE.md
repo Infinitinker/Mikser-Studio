@@ -178,6 +178,8 @@ mind: every panel can be moved, docked and undocked, and layouts are saved as wo
   wheels, may come from any compiler, with the runtime they need.
 - Python 3.13 for the MCP bridge in `ai/`, in a plain `venv` in `ai/.venv`, with Ruff, mypy (strict),
   pytest and import-linter.
+- Python 3.13 for the development scripts in `tools/`, which never ship, with their checks (Ruff, mypy
+  (strict) and pytest, set up by `tools/pyproject.toml`) in a plain `venv` in `tools/.venv`.
 - clang-format and clang-tidy, set up by `.clang-format` and `.clang-tidy`.
 - Inno Setup 7 for the Windows installer.
 
@@ -189,13 +191,13 @@ Before committing, run every check, from Git Bash with `/c/msys64/ucrt64/bin` fi
 - clang-format: `git ls-files '*.cpp' '*.h' | xargs clang-format --dry-run --Werror`.
 - clang-tidy: `cmake --build --preset ci --target autogen`, then
   `git ls-files '*.cpp' | xargs -P 8 -n 1 clang-tidy -p build/ci --quiet`.
-- The include directions: `ai/.venv/Scripts/python tools/check_includes.py`.
-- In `ai/`: `.venv/Scripts/python -m ruff check . ../tools`, `.venv/Scripts/python -m ruff format --check . ../tools`,
-  `.venv/Scripts/python -m mypy`, `.venv/Scripts/python -m mypy ../tools`,
-  `.venv/Scripts/python -m pytest` and `.venv/Scripts/lint-imports`.
+- The include directions: `tools/.venv/Scripts/python tools/check_includes.py`.
+- In `ai/`: `.venv/Scripts/python -m ruff check .`, `.venv/Scripts/python -m ruff format --check .`,
+  `.venv/Scripts/python -m mypy`, `.venv/Scripts/python -m pytest` and `.venv/Scripts/lint-imports`.
+- In `tools/`: `.venv/Scripts/python -m ruff check .`, `.venv/Scripts/python -m ruff format --check .`,
+  `.venv/Scripts/python -m mypy` and `.venv/Scripts/python -m pytest`.
 - After changing what a release ships: `python tools/notices.py --check` and `python tools/licenses.py`,
   with MSYS2's Python.
-- The tests of the scripts in `tools/`: from `ai/`, `.venv/Scripts/python -m pytest -c pyproject.toml ../tools/tests`.
 - After changes to start-up, shutdown, the local API or the AI engine, the end-to-end tests:
   `ctest --preset e2e`. After changes to the monitor, the GPU test: `ctest --preset gpu`.
 

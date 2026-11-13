@@ -29,7 +29,7 @@ const QJsonObject& manifestSchema()
             },
             "description": {"type": "string", "default": ""},
             "apiVersion": {"type": "integer", "minimum": 1},
-            "kind": {"enum": ["native", "python"]},
+            "kind": {"enum": ["native"]},
             "entry": {"type": "string", "minLength": 1},
             "capabilities": {"type": "array", "items": {"type": "string", "minLength": 1}, "default": []},
             "settingsSchema": {"type": "object"},
@@ -54,18 +54,11 @@ const QJsonObject& manifestSchema()
     return schema;
 }
 
-std::expected<void, QString> checkEntry(const QString& kind, const QString& entry)
+std::expected<void, QString> checkEntry(const QString& entry)
 {
-    if (kind == u"native") {
-        static const QRegularExpression libraryName(u"^[A-Za-z0-9_][A-Za-z0-9_.-]*$"_s);
-        if (!libraryName.match(entry).hasMatch() || entry.contains(u".."))
-            return std::unexpected(
-                u"/entry: must be the library file name without folder or extension, e.g. \"hello\""_s);
-        return {};
-    }
-    static const QRegularExpression pythonEntry(u"^[A-Za-z_][A-Za-z0-9_.]*:[A-Za-z_][A-Za-z0-9_]*$"_s);
-    if (!pythonEntry.match(entry).hasMatch())
-        return std::unexpected(u"/entry: must be \"module:attribute\" for Python plugins, e.g. \"my_plugin:Plugin\""_s);
+    static const QRegularExpression libraryName(u"^[A-Za-z0-9_][A-Za-z0-9_.-]*$"_s);
+    if (!libraryName.match(entry).hasMatch() || entry.contains(u".."))
+        return std::unexpected(u"/entry: must be the library file name without folder or extension, e.g. \"hello\""_s);
     return {};
 }
 
@@ -99,6 +92,11 @@ std::expected<QList<PanelContribution>, QString> parsePanels(const QJsonArray& p
 
 std::expected<PluginManifest, QString> parsePluginManifest(const QJsonObject& json, const QString& directory)
 {
+    // Python plugins were once listed for the AI service to run; named apart so their authors learn why.
+    if (json.value(u"kind") == u"python"_s) {
+        return std::unexpected(
+            u"/kind: Mikser Studio no longer runs Python plugins, only native ones; install a native build of the plugin"_s);
+    }
     const QJsonObject manifest = JsonSchema::applyDefaults(json, manifestSchema());
     if (const QStringList problems = JsonSchema::validate(manifest, manifestSchema()); !problems.isEmpty())
         return std::unexpected(problems.join(u"; "_s));
@@ -110,9 +108,8 @@ std::expected<PluginManifest, QString> parsePluginManifest(const QJsonObject& js
             "install a plugin build made for this Mikser Studio version"_s.arg(apiVersion)
                 .arg(kPluginApiVersion));
     }
-    const QString kind = manifest.value(u"kind").toString();
     const QString entry = manifest.value(u"entry").toString();
-    if (auto entryOk = checkEntry(kind, entry); !entryOk)
+    if (auto entryOk = checkEntry(entry); !entryOk)
         return std::unexpected(entryOk.error());
 
     const QJsonObject settingsSchema = manifest.value(u"settingsSchema").toObject();
@@ -133,7 +130,7 @@ std::expected<PluginManifest, QString> parsePluginManifest(const QJsonObject& js
         .version = manifest.value(u"version").toString(),
         .description = manifest.value(u"description").toString(),
         .apiVersion = apiVersion,
-        .kind = kind,
+        .kind = manifest.value(u"kind").toString(),
         .entry = entry,
         .capabilities = capabilities,
         .settingsSchema = settingsSchema,

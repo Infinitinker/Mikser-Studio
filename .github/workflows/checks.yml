@@ -29,19 +29,27 @@ jobs:
       - uses: ./.github/actions/python
       - name: Install
         run: python -m pip install -e "./ai[dev]"
-      # The MCP bridge and the scripts in tools/, both with the settings in ai/pyproject.toml.
+      - name: Install the checks of tools/
+        run: python -m pip install --group tools/pyproject.toml:dev
+      # The scripts in tools/, with the settings in tools/pyproject.toml.
       - name: Lint
         working-directory: ai
-        run: python -m ruff check . ../tools
+        run: python -m ruff check .
       - name: Format
         working-directory: ai
-        run: python -m ruff format --check . ../tools
+        run: python -m ruff format --check .
       - name: Imports
         working-directory: ai
         run: lint-imports
+      - name: Lint tools/
+        working-directory: tools
+        run: python -m ruff check .
+      - name: Format tools/
+        working-directory: tools
+        run: python -m ruff format --check .
       - name: Tests of tools/
-        working-directory: ai
-        run: python -m pytest -c pyproject.toml ../tools/tests
+        working-directory: tools
+        run: python -m pytest
       - name: Include directions
         run: python tools/check_includes.py
 
@@ -56,12 +64,14 @@ jobs:
       - uses: ./.github/actions/python
       - name: Install
         run: python -m pip install -e "./ai[dev]"
+      - name: Install the checks of tools/
+        run: python -m pip install --group tools/pyproject.toml:dev
       - name: Types
         working-directory: ai
         run: python -m mypy
       - name: Types of tools/
-        working-directory: ai
-        run: python -m mypy ../tools
+        working-directory: tools
+        run: python -m mypy
 
   # The C++ build with the ci preset, where warnings are errors, and its tests; then the MCP bridge's
   # tests. The whole AI path, through the app against a fake AI tool, is tested in e2e.yml.

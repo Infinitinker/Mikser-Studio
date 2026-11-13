@@ -46,7 +46,8 @@ run `build/package` from source: it would use the installed app's settings and f
 The version is the one in `CMakeLists.txt`'s `project()`, Mikser Studio's only version.
 
 The AI commands run in the app itself, so a release has them; they use the AI tools the user runs
-([ai.md](ai.md)). The MCP bridge (`ai/`) is not part of a release yet.
+([ai.md](ai.md)). A release ships no Python: the scripts in `tools/` build and check it, and stay
+behind.
 
 ## Dependencies and notices
 

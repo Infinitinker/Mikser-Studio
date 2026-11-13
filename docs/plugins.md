@@ -50,8 +50,8 @@ valid manifests share an id, the first folder in name order wins.
 | `id` | Dotted lower_snake, at least two parts (`^[a-z0-9_]+(\.[a-z0-9_]+)+$`). Prefix of all your command ids. |
 | `name`, `version` | Display name; SemVer version. |
 | `apiVersion` | Must be `1`. |
-| `kind` | `"native"` (this document) or `"python"` (run by the AI sidecar, not by the core). |
-| `entry` | Native: library file name without folder, `lib` prefix or extension. Python: `module:attribute`. |
+| `kind` | `"native"`, the one kind. Mikser Studio no longer runs Python plugins: a manifest with `"python"` is listed as *Failed*, with a message that says so. |
+| `entry` | The library file name without folder, `lib` prefix or extension. |
 | `settingsSchema` | Optional JSON Schema with `"type": "object"`; see Settings. |
 | `panels` | Optional. `qml` is a path inside the plugin folder; `defaultArea` is `left`, `right` (default), `bottom`, `center` or `floating`. Each panel is registered as `<plugin-id>/<panel-id>`. |
 

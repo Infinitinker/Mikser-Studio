@@ -10,7 +10,7 @@ cmake --build --preset package) into build/dist:
 It fails unless THIRD-PARTY-NOTICES.md covers exactly what ships: when the program or a bundled plugin
 imports an MSYS2 library that PROGRAM_LIBRARIES in tools/msys2_packages.py does not list, when what it
 copies is not what tools/notices.py walks, or when the committed notices are not what tools/notices.py
-writes from this MSYS2. The AI service (ai/) is not part of a release yet; see docs/releasing.md.
+writes from this MSYS2.
 
 Run it from the repository root, with MSYS2's packages installed as docs/development.md describes:
     python tools/build_release.py              build the release files

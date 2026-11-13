@@ -1,0 +1,22 @@
+# The development scripts in tools/: the release build, the third-party notices, the license and
+# include checks, and what they read from MSYS2. They never ship. Their checks run from tools/ in a
+# virtual environment of their own, tools/.venv, with the tools below ("Checks" in
+# docs/development.md); the scripts themselves need only the standard library.
+
+# Installed with `pip install --group tools/pyproject.toml:dev` (pip 25.1 or newer).
+[dependency-groups]
+dev = ["mypy>=2.4", "pytest>=9.2", "ruff>=0.17"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 120
+target-version = "py313"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+
+[tool.mypy]
+strict = true
+files = ["*.py", "tests"]

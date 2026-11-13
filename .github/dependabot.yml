@@ -1,7 +1,7 @@
 # Once a month, one pull request to dev with new versions of the actions the workflows and the shared
 # actions in .github/actions use. Package ecosystems are left out: the C++ libraries come from MSYS2,
-# which has no Dependabot support, and the AI service's Python packages have floors in
-# ai/pyproject.toml rather than pins, so a new release needs no change here; upgrading what a release
+# which has no Dependabot support, and the Python packages have floors in ai/pyproject.toml and
+# tools/pyproject.toml rather than pins, so a new release needs no change here; upgrading what a release
 # ships means testing the app and writing THIRD-PARTY-NOTICES.md again (docs/releasing.md).
 version: 2
 updates:
