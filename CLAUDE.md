@@ -1,14 +1,14 @@
 # Mikser Studio
 
-Mikser Studio is a multimedia studio that a person shares with AI agents, to create video, sound and
-more with the AI tools they choose, local or online. Media is gathered in a media bin, cut on a
-timeline and played in its monitors, and agents work in the same project through the same commands as
-the person. A generator that turns one prompt into one finished video leaves nothing to change; in
-Mikser Studio, what AI makes arrives as an editable project: every shot, stem, title and effect stays
-a piece of its own that the person and the agents can change, replace or generate again. The
-interface stays polished and simple and can be arranged at will: every panel can be moved, docked and
-undocked, as in Adobe Premiere. The app is built around plugins and modules; a new tool comes as a
-plugin.
+Mikser Studio is a multimedia studio that a person shares with AI agents, to create and edit video,
+sound, images and more with the AI tools they choose, local or online. Media is gathered in a media
+bin, cut on a timeline and played in its monitors, and agents work in the same project through the
+same commands as the person. A generator that turns one prompt into one finished video leaves nothing
+to change; in Mikser Studio, what AI makes arrives as an editable project: every shot, stem, title
+and effect stays a piece of its own that the person and the agents can change, replace or generate
+again. The interface stays polished and simple and can be arranged at will: every panel can be moved,
+docked and undocked, as in Adobe Premiere. The app is built around plugins and modules; a new tool
+comes as a plugin.
 
 The developer docs are in `docs/`: [architecture.md](docs/architecture.md) (the design, the modules,
 import directions, the terms and the conventions), [development.md](docs/development.md) (setup,
