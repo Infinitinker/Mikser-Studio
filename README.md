@@ -5,8 +5,8 @@
 <h1 align="center">Mikser Studio</h1>
 
 <p align="center">
-  <b>A multimedia studio with AI built in.</b><br>
-  Edit video and sound on a timeline, and let AI models work on your clips without leaving it.
+  <b>A multimedia studio where you and AI agents make things together.</b><br>
+  Edit video and sound on a timeline, and work on it with the AI tools on your own computer.
 </p>
 
 <p align="center">
@@ -26,7 +26,7 @@ Mikser Studio is a desktop studio for video and sound. You put clips on a timeli
 - 🤖 **Brings AI into your project**: generate images with [ComfyUI](https://www.comfy.org) and text with [Ollama](https://ollama.com), the AI tools on your own computer. Images come into the media bin with a record of how they were made, and a slow or stopped tool never holds up the editor.
 - ⌨️ **Does everything through commands**: menus, shortcuts and the command palette (**Ctrl+K**) run the same commands, and every change can be undone.
 - 🧩 **Grows with plugins**: a plugin adds commands, settings and panels without changing Mikser Studio itself.
-- 🔌 **Can be driven from outside**: other programs and scripts on your computer can run its commands through a local API.
+- 🔌 **Can be driven from outside**: other programs and scripts on your computer can run its commands through a local API, and AI agents such as Claude Code through the MCP bridge that comes with it.
 - 🔒 **Stays on your computer**: it works offline, and your media and the AI's work never leave your computer.
 
 ## Getting started
