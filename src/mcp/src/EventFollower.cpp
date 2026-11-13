@@ -10,7 +10,8 @@
 
 namespace mikserstudio::mcp {
 
-EventFollower::EventFollower(QString discoveryPath, std::chrono::milliseconds retry, QObject* parent)
+EventFollower::EventFollower(QString discoveryPath, std::chrono::milliseconds retry,
+                             std::chrono::milliseconds handshakeTimeout, QObject* parent)
     : QObject(parent)
     , m_discoveryPath(std::move(discoveryPath))
 {
@@ -19,7 +20,16 @@ EventFollower::EventFollower(QString discoveryPath, std::chrono::milliseconds re
     m_retry.setSingleShot(true);
     m_retry.setInterval(retry);
     connect(&m_retry, &QTimer::timeout, this, &EventFollower::tryToConnect);
+    // QWebSocket has no time limit of its own for opening.
+    m_handshake.setSingleShot(true);
+    m_handshake.setInterval(handshakeTimeout);
+    connect(&m_handshake, &QTimer::timeout, this, [this] {
+        qCDebug(lcMcp) << "The events socket did not open in time; trying again.";
+        m_socket.abort();
+        socketGone();
+    });
     connect(&m_socket, &QWebSocket::connected, this, [this] {
+        m_handshake.stop();
         m_connected = true;
         Q_EMIT connected();
     });
@@ -51,10 +61,12 @@ void EventFollower::tryToConnect()
     QNetworkRequest request(discovery->eventsUrl);
     request.setRawHeader("Authorization", "Bearer " + discovery->token);
     m_socket.open(request);
+    m_handshake.start();
 }
 
 void EventFollower::socketGone()
 {
+    m_handshake.stop();
     if (m_connected) {
         m_connected = false;
         Q_EMIT disconnected();

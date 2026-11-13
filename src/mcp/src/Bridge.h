@@ -42,6 +42,8 @@ public:
         std::chrono::milliseconds retry{std::chrono::seconds(2)};
         // How long requests still running may take to answer once the client has closed its input.
         std::chrono::milliseconds closeTimeout{std::chrono::seconds(10)};
+        // How long the events socket may take to open before the bridge gives up and tries again.
+        std::chrono::milliseconds handshakeTimeout{std::chrono::seconds(5)};
     };
 
     Bridge(QString discoveryPath, Send send, Options options, QObject* parent = nullptr);

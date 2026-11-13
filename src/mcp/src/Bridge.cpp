@@ -51,7 +51,7 @@ Bridge::Bridge(QString discoveryPath, Send send, Options options, QObject* paren
     , m_app(discoveryPath)
     , m_send(std::move(send))
     , m_options(options)
-    , m_events(std::move(discoveryPath), options.retry)
+    , m_events(std::move(discoveryPath), options.retry, options.handshakeTimeout)
     , m_protocol(protocolVersions().constFirst())
 {
     m_closeTimer.setSingleShot(true);

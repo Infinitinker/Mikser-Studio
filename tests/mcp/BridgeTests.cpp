@@ -9,7 +9,9 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/generators/catch_generators.hpp>
 
+#include <QFile>
 #include <QJsonArray>
+#include <QTcpServer>
 #include <QTemporaryDir>
 
 using namespace Qt::StringLiterals;
@@ -329,4 +331,30 @@ TEST_CASE("a confirmation due after the client has gone is declined at once", "[
     CHECK(answer[u"result"_s][u"isError"_s] == true);
     CHECK(closed);
     CHECK(studio.runs.isEmpty());
+}
+
+TEST_CASE("an events socket that never opens is given up, and the app found when it starts", "[mcp]")
+{
+    Folder folder;
+    // A port that a crashed app left in its discovery file, now taken by a program that never answers.
+    QTcpServer silent;
+    REQUIRE(silent.listen(QHostAddress::LocalHost, 0));
+    QFile stale(folder.discoveryPath);
+    REQUIRE(stale.open(QIODevice::WriteOnly));
+    stale.write(QJsonDocument(QJsonObject{{u"apiVersion"_s, 1},
+                                          {u"baseUrl"_s, u"http://127.0.0.1:%1"_s.arg(silent.serverPort())},
+                                          {u"eventsUrl"_s, u"ws://127.0.0.1:%1/v1/events"_s.arg(silent.serverPort())},
+                                          {u"token"_s, u"stale"_s}})
+                    .toJson());
+    stale.close();
+    Client client(folder.discoveryPath, {.retry = std::chrono::milliseconds(50),
+                                         .closeTimeout = {},
+                                         .handshakeTimeout = std::chrono::milliseconds(200)});
+    client.start();
+    client.bridge().start();
+    REQUIRE(tests::waitFor([&] { return silent.hasPendingConnections(); }));
+
+    FakeStudio studio(folder.discoveryPath);
+    CHECK(methodOf(client.nextMessage()) == u"notifications/tools/list_changed"_s);
+    CHECK(client.tools().contains(u"project_list"_s));
 }

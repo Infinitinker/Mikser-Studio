@@ -13,12 +13,14 @@ namespace mikserstudio::mcp {
 
 // Keeps the events socket open while the app runs. Whenever the socket is closed or cannot be opened, it
 // tries again after `retry`, reading the discovery file anew, since the app writes a new port and token at
-// each start.
+// each start. A socket that is not open after `handshakeTimeout`, such as one to a port a crashed app left in
+// its discovery file and another program took, is given up.
 class EventFollower : public QObject {
     Q_OBJECT
 
 public:
-    EventFollower(QString discoveryPath, std::chrono::milliseconds retry, QObject* parent = nullptr);
+    EventFollower(QString discoveryPath, std::chrono::milliseconds retry, std::chrono::milliseconds handshakeTimeout,
+                  QObject* parent = nullptr);
 
     void start();
 
@@ -37,6 +39,7 @@ private:
     QString m_discoveryPath;
     QWebSocket m_socket;
     QTimer m_retry;
+    QTimer m_handshake;
     bool m_connected = false;
 };
 
