@@ -232,9 +232,10 @@ discovery file, `/v1/commands` and `/v1/events`.
 - **Tools:** every command is a tool, named after its id with `_` for `.` (`project.import_media`
   is `project_import_media`), with its title, description and `paramsSchema` as the input schema.
   Read-only commands carry `readOnlyHint`, and commands with a `confirmation` or a
-  `confirmationParam` carry `destructiveHint`; a `confirmationParam` is left out of the input schema. A tool's result is the command's `result`, as JSON text and, for clients of
-  protocol version 2025-06-18 or later, as structured content; a command's error is a tool error
-  with its message and code.
+  `confirmationParam` carry `destructiveHint`; a `confirmationParam` is left out of the input schema,
+  and the description says that the person is asked first. A tool's result is the command's
+  `result`, as JSON text and, for clients of protocol version 2025-06-18 or later, as structured
+  content; a command's error is a tool error with its message and code.
 - **Confirmations:** before a command with a `confirmation`, the bridge asks the person through the
   client (MCP elicitation) and runs the command only when they accept. When a run answers
   `needs_confirmation`, the bridge asks with its message and, when they accept, runs it again with

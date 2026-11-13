@@ -75,7 +75,7 @@ TEST_CASE("commands are listed as tools with their hints", "[mcp]")
     Client client(folder.discoveryPath);
     client.start();
     const QHash<QString, QJsonObject> tools = client.tools();
-    CHECK(tools.size() == 5);
+    CHECK(tools.size() == 6);
     REQUIRE(tools.contains(u"edit_undo"_s));
     REQUIRE(tools.contains(u"recent_events"_s));
 
@@ -93,6 +93,13 @@ TEST_CASE("commands are listed as tools with their hints", "[mcp]")
     const QJsonObject created = tools.value(u"project_new"_s);
     CHECK(created[u"annotations"_s][u"destructiveHint"_s] == true);
     CHECK(created[u"description"_s].toString().contains(u"Unsaved changes will be lost"_s));
+
+    // Only the person's agreement gives a confirmationParam, so the agent does not see it.
+    const QJsonObject saved = tools.value(u"project_save"_s);
+    CHECK(saved[u"annotations"_s][u"destructiveHint"_s] == true);
+    CHECK(saved[u"description"_s].toString().contains(u"the person is asked first"_s));
+    CHECK(!saved[u"inputSchema"_s][u"properties"_s].toObject().contains(u"overwrite"_s));
+    CHECK(saved[u"inputSchema"_s][u"required"_s].toArray() == QJsonArray{u"path"_s});
 
     CHECK(tools.value(u"recent_events"_s)[u"annotations"_s][u"readOnlyHint"_s] == true);
 }
@@ -203,6 +210,50 @@ TEST_CASE("a command with a confirmation runs only when the person agrees", "[mc
     CHECK(answer[u"id"_s] == 99);
     CHECK(studio.runs.size() == runs);
     CHECK(answer[u"result"_s][u"isError"_s].toBool() == (runs == 0));
+}
+
+TEST_CASE("a run that needs confirmation is asked about and run again only when the person agrees", "[mcp]")
+{
+    const auto [action, runs] = GENERATE(table<const char*, qsizetype>({{"accept", 2}, {"decline", 1}}));
+    Folder folder;
+    FakeStudio studio(folder.discoveryPath);
+    Client client(folder.discoveryPath);
+    client.start({{u"elicitation"_s, QJsonObject{}}});
+    // The agent's own overwrite is dropped.
+    client.send({{u"jsonrpc"_s, u"2.0"_s},
+                 {u"id"_s, 99},
+                 {u"method"_s, u"tools/call"_s},
+                 {u"params"_s,
+                  QJsonObject{{u"name"_s, u"project_save"_s},
+                              {u"arguments"_s, QJsonObject{{u"path"_s, u"a.mikser"_s}, {u"overwrite"_s, true}}}}}});
+
+    const QJsonObject asked = client.nextMessage();
+    REQUIRE(methodOf(asked) == u"elicitation/create"_s);
+    CHECK(asked[u"params"_s][u"message"_s] == u"Replace the existing file?"_s);
+    REQUIRE(studio.runs.size() == 1);
+    CHECK(studio.runs[0].second == QJsonObject{{u"path"_s, u"a.mikser"_s}});
+    client.send({{u"jsonrpc"_s, u"2.0"_s},
+                 {u"id"_s, asked[u"id"_s]},
+                 {u"result"_s, QJsonObject{{u"action"_s, QString::fromLatin1(action)}}}});
+
+    const QJsonObject answer = client.nextMessage();
+    CHECK(answer[u"id"_s] == 99);
+    REQUIRE(studio.runs.size() == runs);
+    if (runs == 2)
+        CHECK(studio.runs[1].second == QJsonObject{{u"path"_s, u"a.mikser"_s}, {u"overwrite"_s, true}});
+    CHECK(answer[u"result"_s][u"isError"_s].toBool() == (runs == 1));
+}
+
+TEST_CASE("a run that needs confirmation fails when the client cannot ask", "[mcp]")
+{
+    Folder folder;
+    FakeStudio studio(folder.discoveryPath);
+    Client client(folder.discoveryPath);
+    client.start();
+    const QJsonObject result = client.call(u"project_save"_s, {{u"path"_s, u"a.mikser"_s}});
+    CHECK(result[u"isError"_s] == true);
+    CHECK(textOf(result).contains(u"Replace the existing file?"_s));
+    CHECK(studio.runs.size() == 1);
 }
 
 TEST_CASE("a canceled request gets no answer", "[mcp]")
@@ -427,8 +478,8 @@ TEST_CASE("requests with the ids 1 and \"1\" each get their own answer", "[mcp]"
     const QJsonObject other = client.nextMessage();
     CHECK(QJsonArray{one[u"id"_s], other[u"id"_s]}.contains(QJsonValue(1)));
     CHECK(QJsonArray{one[u"id"_s], other[u"id"_s]}.contains(QJsonValue(u"1"_s)));
-    CHECK(one[u"result"_s][u"tools"_s].toArray().size() == 5);
-    CHECK(other[u"result"_s][u"tools"_s].toArray().size() == 5);
+    CHECK(one[u"result"_s][u"tools"_s].toArray().size() == 6);
+    CHECK(other[u"result"_s][u"tools"_s].toArray().size() == 6);
 }
 
 TEST_CASE("a request still running when the client goes is answered before the bridge ends", "[mcp]")

@@ -48,6 +48,11 @@ QJsonArray fakeCommands()
         parse(R"({"id": "project.new", "title": "New project", "description": "Starts an empty project.",
                   "paramsSchema": {}, "undoable": false, "readOnly": false,
                   "confirmation": "Start a new project? Unsaved changes will be lost."})"),
+        parse(R"({"id": "project.save", "title": "Save project", "description": "Saves the project to a file.",
+                  "paramsSchema": {"type": "object",
+                                   "properties": {"path": {"type": "string"}, "overwrite": {"type": "boolean"}},
+                                   "required": ["path", "overwrite"]},
+                  "undoable": false, "readOnly": false, "confirmation": "", "confirmationParam": "overwrite"})"),
     };
 }
 
@@ -73,6 +78,10 @@ FakeStudio::FakeStudio(QString discoveryPath, QByteArray token)
                         if (id == u"edit.undo"_s) {
                             return error(QHttpServerResponse::StatusCode::Conflict, u"not_available"_s,
                                          u"There is nothing to undo."_s);
+                        }
+                        if (id == u"project.save"_s && !runs.constLast().second.value(u"overwrite"_s).toBool()) {
+                            return error(QHttpServerResponse::StatusCode::Conflict, u"needs_confirmation"_s,
+                                         u"Replace the existing file?"_s);
                         }
                         return QHttpServerResponse(QJsonObject{{u"result"_s, QJsonObject{{u"ran"_s, id}}}});
                     });

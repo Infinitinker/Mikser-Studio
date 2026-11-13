@@ -74,6 +74,7 @@ private:
     void listTools(const QJsonValue& id, QObject* context);
     void callTool(const QJsonValue& id, const QJsonObject& params, QObject* context);
     void runCommand(const QJsonValue& id, const QJsonObject& command, const QJsonObject& arguments, QObject* context);
+    void finish(const QJsonValue& id, const AppClient::Outcome& outcome);
     void ask(QObject* context, const QString& confirmation, std::function<void(bool agreed)> answered);
 
     // A tool's result: the command's result as JSON text and, for clients of 2025-06-18 or later, as

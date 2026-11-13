@@ -37,10 +37,25 @@ QJsonObject toolFor(const QJsonObject& command)
     const QString confirmation = command.value(u"confirmation"_s).toString();
     if (!confirmation.isEmpty())
         description += u" The person is asked before it runs: “%1”"_s.arg(confirmation);
+    const QString agreement = command.value(u"confirmationParam"_s).toString();
+    if (!agreement.isEmpty())
+        description += u" When a run would replace something, the person is asked first."_s;
     QJsonObject schema = command.value(u"paramsSchema"_s).toObject();
     if (schema.value(u"type"_s) != u"object"_s) {
         schema = QJsonObject{
             {u"type"_s, u"object"_s}, {u"properties"_s, QJsonObject{}}, {u"additionalProperties"_s, false}};
+    } else if (!agreement.isEmpty()) {
+        // Only the person's agreement gives this parameter, never the agent.
+        QJsonObject properties = schema.value(u"properties"_s).toObject();
+        properties.remove(agreement);
+        schema.insert(u"properties"_s, properties);
+        if (schema.contains(u"required"_s)) {
+            QJsonArray required;
+            for (const QJsonValue name : schema.value(u"required"_s).toArray())
+                if (name.toString() != agreement)
+                    required.append(name);
+            schema.insert(u"required"_s, required);
+        }
     }
     const bool readOnly = command.value(u"readOnly"_s).toBool();
     return QJsonObject{
@@ -52,7 +67,7 @@ QJsonObject toolFor(const QJsonObject& command)
          QJsonObject{
              {u"title"_s, title},
              {u"readOnlyHint"_s, readOnly},
-             {u"destructiveHint"_s, !confirmation.isEmpty() && !readOnly},
+             {u"destructiveHint"_s, (!confirmation.isEmpty() || !agreement.isEmpty()) && !readOnly},
              {u"openWorldHint"_s, false},
          }},
     };

@@ -231,14 +231,47 @@ void Bridge::callTool(const QJsonValue& id, const QJsonObject& params, QObject* 
 void Bridge::runCommand(const QJsonValue& id, const QJsonObject& command, const QJsonObject& arguments,
                         QObject* context)
 {
-    m_app.run(context, command.value(u"id"_s).toString(), arguments, [this, id](const AppClient::Outcome& outcome) {
-        if (!outcome)
-            finishRequest(id, failure(outcome.error()));
-        else if (const auto* refused = std::get_if<CommandError>(&*outcome))
-            finishRequest(id, failure(u"%1 (%2)"_s.arg(refused->message, refused->code)));
-        else
-            finishRequest(id, success(std::get<QJsonObject>(*outcome)));
-    });
+    // Only the person's answer gives the command's confirmationParam, never the agent.
+    const QString agreement = command.value(u"confirmationParam"_s).toString();
+    QJsonObject given = arguments;
+    if (!agreement.isEmpty())
+        given.remove(agreement);
+    const QString commandId = command.value(u"id"_s).toString();
+    m_app.run(context, commandId, given,
+              [this, id, agreement, given, commandId, context](const AppClient::Outcome& outcome) {
+                  const auto* refused = outcome ? std::get_if<CommandError>(&*outcome) : nullptr;
+                  if (refused && refused->code == u"needs_confirmation"_s && !agreement.isEmpty()) {
+                      if (!m_canAsk) {
+                          finishRequest(
+                              id, failure(u"This run needs the person's agreement (“%1”), and this MCP client "
+                                          "cannot ask for it. Ask the person to run it in Mikser Studio instead."_s.arg(
+                                              refused->message)));
+                          return;
+                      }
+                      ask(context, refused->message, [this, id, agreement, given, commandId, context](bool agreed) {
+                          if (!agreed) {
+                              finishRequest(id, failure(u"The person did not agree, so the command did not run."_s));
+                              return;
+                          }
+                          QJsonObject agreedArguments = given;
+                          agreedArguments.insert(agreement, true);
+                          m_app.run(context, commandId, agreedArguments,
+                                    [this, id](const AppClient::Outcome& rerun) { finish(id, rerun); });
+                      });
+                      return;
+                  }
+                  finish(id, outcome);
+              });
+}
+
+void Bridge::finish(const QJsonValue& id, const AppClient::Outcome& outcome)
+{
+    if (!outcome)
+        finishRequest(id, failure(outcome.error()));
+    else if (const auto* refused = std::get_if<CommandError>(&*outcome))
+        finishRequest(id, failure(u"%1 (%2)"_s.arg(refused->message, refused->code)));
+    else
+        finishRequest(id, success(std::get<QJsonObject>(*outcome)));
 }
 
 void Bridge::ask(QObject* context, const QString& confirmation, std::function<void(bool agreed)> answered)
