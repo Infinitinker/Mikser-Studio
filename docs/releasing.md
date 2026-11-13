@@ -44,8 +44,7 @@ run `build/package` from source: it would use the installed app's settings and f
 
 The version is the one in `CMakeLists.txt`'s `project()`, Mikser Studio's only version.
 
-The AI service (`ai/`) is not part of a release yet: a release has no Python, so its AI commands are
-unavailable until the service ships with it.
+A release ships no Python: the scripts in `tools/` build and check it, and stay behind.
 
 ## Dependencies and notices
 
