@@ -50,7 +50,7 @@ new and changed code, and don't extend what they replace.
 - Commits follow Conventional Commits, such as `fix(engine): keep the monitor in sync`; `build`, `ci`
   and `docs` take no scope.
 
-Commit scopes: `ai`, `api`, `app`, `core`, `engine`, `plugins`, `sdk`, `services`, `ui`.
+Commit scopes: `ai`, `api`, `app`, `core`, `engine`, `mcp`, `plugins`, `sdk`, `services`, `ui`.
 
 ## Open source
 

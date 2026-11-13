@@ -17,7 +17,8 @@ GitHub, under the tag `v<version>`:
   settings, layouts and cache in `%LOCALAPPDATA%\Mikser Studio` too; removing an install for all users
   leaves each user's own folder.
 - `MikserStudio-<version>-windows-x64.zip`: `bin\mikser-studio.exe` with the bundled plugins in
-  `bin\plugins`, everything it needs from MSYS2 (the C++ run time, Qt with its plugins and QML modules,
+  `bin\plugins` and the MCP bridge `bin\mikser-studio-mcp.exe` ([api.md](api.md#mcp-bridge)),
+  everything it needs from MSYS2 (the C++ run time, Qt with its plugins and QML modules,
   KDDockWidgets, MLT with its modules in `lib\mlt` and its data in `share\mlt`, FFmpeg and the
   libraries they need), `LICENSE.txt`, Mikser Studio's license, and `THIRD-PARTY-NOTICES.txt`, the
   committed `THIRD-PARTY-NOTICES.md`.
@@ -50,7 +51,7 @@ The AI commands run in the app itself, so a release has them; they use the AI to
 ## Dependencies and notices
 
 A release takes its libraries from MSYS2's UCRT64 environment. `tools/msys2_packages.py` works out
-which: the libraries `mikser-studio.exe` and the bundled plugins import (`PROGRAM_LIBRARIES`), the
+which: the libraries the programs and the bundled plugins import (`PROGRAM_LIBRARIES`), the
 MLT modules and Qt plugins a release copies (`MLT_MODULES` and `COPIED`), the libraries those load by
 name (`LOADED_LIBRARIES`), and every library all of these import in turn, read from the files
 themselves; then the MSYS2 packages they come from, with their licenses, from MSYS2's package database.

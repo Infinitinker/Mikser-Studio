@@ -133,5 +133,7 @@ jobs:
             [ -f "$file" ] || { echo "::error::$file did not arrive as a file."; exit 1; }
           done
           unzip -tq "MikserStudio-$VERSION-windows-x64.zip" || { echo "::error::The Windows zip is not a whole zip."; exit 1; }
-          unzip -l "MikserStudio-$VERSION-windows-x64.zip" | grep -q "MikserStudio/bin/mikser-studio.exe" \
-            || { echo "::error::The Windows zip has no MikserStudio/bin/mikser-studio.exe."; exit 1; }
+          for program in mikser-studio.exe mikser-studio-mcp.exe; do
+            unzip -l "MikserStudio-$VERSION-windows-x64.zip" | grep -q "MikserStudio/bin/$program" \
+              || { echo "::error::The Windows zip has no MikserStudio/bin/$program."; exit 1; }
+          done

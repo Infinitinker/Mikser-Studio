@@ -224,9 +224,10 @@ Each text message is one JSON object with a `type`:
 
 The MCP bridge offers the commands to agents that speak the
 [Model Context Protocol](https://modelcontextprotocol.io), such as Claude Code. It is a program of
-its own, `python -m mikserstudio_ai.mcp` in `ai/` (`ai/src/mikserstudio_ai/mcp`), that the agent's
-client starts and talks to on stdin and stdout. It uses only what this page describes: the discovery
-file, `/v1/commands` and `/v1/events`.
+its own, `mikser-studio-mcp` (`src/mcp`), built and shipped next to `mikser-studio`, that the agent's
+client starts and talks to on stdin and stdout, one JSON-RPC message a line. It speaks the protocol
+versions 2025-11-25, 2025-06-18, 2025-03-26 and 2024-11-05. It uses only what this page describes: the
+discovery file, `/v1/commands` and `/v1/events`.
 
 - **Tools:** every command is a tool, named after its id with `_` for `.` (`project.import_media`
   is `project_import_media`), with its title, description and `paramsSchema` as the input schema.
@@ -243,17 +244,34 @@ file, `/v1/commands` and `/v1/events`.
   app when it restarts. While the app is not running it lists no tools, and calls say to start it. It
   keeps the events socket open and tells the client when the tools change: when the app starts or
   stops, and when plugins add or remove commands.
-- **Which app:** `--instance` chooses the installed app (the default), `dev` (a build from source) or
-  `e2e`; `--discovery-file` names another `api.json`. Its log goes to stderr.
+- **Recent events:** the bridge's own read-only tool `recent_events` lists the last 100 events it
+  received, newest last, each with a `number`, the `time` it arrived and the `event` as the socket sent
+  it, so an agent sees what the person changed. Its result's `latest` is the newest number; pass it as
+  `after` the next time to get only the events since. The tool is listed with the commands, and a
+  command whose tool would take its name is left out.
+- **Which app:** `--instance` chooses the installed app (`installed`, the default unless
+  `MIKSERSTUDIO_INSTANCE` names another), `dev` (a build from source) or `e2e`; `--discovery-file`
+  names another `api.json`. Its log goes to stderr.
 
-To connect Claude Code to Mikser Studio Dev, from the repository:
+To connect Claude Code to Mikser Studio Dev, from the repository after a `debug` build:
 
 ```sh
-claude mcp add mikser-studio -- "$PWD/ai/.venv/Scripts/python" -m mikserstudio_ai.mcp --instance dev
+claude mcp add mikser-studio -e 'PATH=C:\msys64\ucrt64\bin' -- "$PWD/build/debug/bin/mikser-studio-mcp" --instance dev
 ```
 
-(`ai/.venv/bin/python` on Linux and macOS.) Other clients take the same command and arguments in
-their MCP settings.
+A build from source needs MSYS2's libraries (Qt and the C++ run time), which are not on the `PATH`
+Claude Code starts programs with, so the command gives the bridge a `PATH` of MSYS2's UCRT64 `bin`
+folder, as `start.bat` does for the app (with MSYS2 elsewhere, its `ucrt64\bin`; on Linux and macOS
+leave `-e` out). Without it the bridge does not start, and Claude Code shows it as failed.
+
+To connect it to the installed Mikser Studio, give the program in the installation's `bin` folder,
+for one user by default `%LOCALAPPDATA%\Programs\Mikser Studio\bin\mikser-studio-mcp.exe`:
+
+```sh
+claude mcp add mikser-studio -- "$LOCALAPPDATA/Programs/Mikser Studio/bin/mikser-studio-mcp.exe"
+```
+
+Other clients take the same program and arguments in their MCP settings.
 
 ## Embedding (C++)
 

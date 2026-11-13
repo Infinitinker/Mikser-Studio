@@ -29,15 +29,14 @@ that connects to the AI tools the user runs. Why this stack was chosen is in `st
 | `src/services/` | `MikserStudio::services` | core, Qt Network/WebSockets | The AI engine: its backends connect to the AI tools the user runs (Ollama, ComfyUI), and its `ai.*` commands run their operations as jobs. |
 | `src/ui/` | `MikserStudio::ui` | core, Qt Widgets/Quick, KDDockWidgets | Main window, docking, workspaces, panels (media bin, timeline, AI, palette, properties, log). |
 | `src/app/` | `mikser-studio` | all | Wires the modules together; `mikser-studio --headless` runs without UI. |
+| `src/mcp/` | `mikser-studio-mcp` | Qt Network/WebSockets | The MCP bridge, a program of its own: offers the commands to agents as MCP tools through the local API. |
 | `plugins/` | plugin libraries | sdk | Bundled example plugins. |
-| `ai/` | Python package `mikserstudio-ai` | — | The MCP bridge (`mikserstudio_ai.mcp`), a program of its own, run from its own virtual environment (`ai/.venv`). |
 | `tests/` | `*-tests` | Catch2 | Tests mirroring `src/` and `plugins/`, and the end-to-end tests. |
 
 ## Import directions
 
 Code includes and imports only in these directions, so each module can be built, tested and replaced
-on its own. `tools/check_includes.py` checks the C++ and the import-linter contracts in
-`ai/pyproject.toml` the Python; the `Checks` workflow runs both.
+on its own. `tools/check_includes.py` checks them, and the `Checks` workflow runs it.
 
 - `sdk/` includes nothing of Mikser Studio: it is the plugin ABI, a plain C header.
 - `src/core/` includes only itself and the plugin ABI.
@@ -45,17 +44,18 @@ on its own. `tools/check_includes.py` checks the C++ and the import-linter contr
   never includes the engine: the app creates the engine's monitor panels and hands them to the UI,
   and the UI controls playback through `core::Transport`.
 - `src/app/` includes every module, and nothing includes `src/app/`.
+- `src/mcp/`, the MCP bridge, includes only itself and links no other module: it drives the app only
+  through its local API, as any other program can. Nothing includes it.
 - `plugins/` include only the plugin ABI.
 - A module's public headers are included in quotes as `"mikserstudio/<module>/..."`. Its private
   headers are included in quotes by name, and only by the module itself and its tests in
   `tests/<module>/`. The plugin ABI is included in angle brackets, `<mikserstudio/plugin_api.h>`, as
   a plugin built apart from Mikser Studio includes it.
-- `tests/e2e/` includes only the core: the end-to-end tests run the app as a process, and use the
-  services tests' fake AI tools. `tests/plugins/` includes only the core, whose PluginManager loads
-  the bundled plugins as the app does. Both may use the support files of those modules' tests.
-  Every C++ file is in a folder the check knows, so a new folder has to be added to it before its
-  includes pass.
-- The MCP bridge (`mikserstudio_ai.mcp`) drives the app only through its local API.
+- `tests/e2e/` includes only the core: the end-to-end tests run the app and the MCP bridge as
+  processes, and use the services tests' fake AI tools. `tests/plugins/` includes only the core, whose
+  PluginManager loads the bundled plugins as the app does. Both may use the support files of those
+  modules' tests. Every C++ file is in a folder the check knows, so a new folder has to be added to it
+  before its includes pass.
 
 ## Terms
 
@@ -79,7 +79,7 @@ messages.
 | command palette | The popup that finds and runs commands (Ctrl+K). | quick open |
 | plugin | A shared library with a `mikserstudio-plugin.json` manifest that adds commands, settings and panels. | extension, add-on, module |
 | local API | The versioned `/v1` HTTP and WebSocket API on `127.0.0.1`. | server, remote control |
-| MCP bridge | The program that offers the commands to agents as MCP tools, through the local API (`python -m mikserstudio_ai.mcp`). | MCP server, agent API |
+| MCP bridge | The program that offers the commands to agents as MCP tools, through the local API (`mikser-studio-mcp`). | MCP server, agent API |
 | instance | Which Mikser Studio runs: the installed app, Mikser Studio Dev or Mikser Studio E2E, each with its own name, app id and folders (`MIKSERSTUDIO_INSTANCE`). | profile, variant |
 | discovery file | `api.json`, which tells other programs the local API's address and session token. | config file |
 | session token | The secret a client needs for the local API, made anew at each start. | key, password |
