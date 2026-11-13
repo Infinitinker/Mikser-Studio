@@ -230,9 +230,6 @@ std::expected<void, QString> PluginManager::activate(const QString& id)
         return std::unexpected(record->state.error);
     if (record->state.status == PluginStatus::Disabled)
         return std::unexpected(u"“%1” is disabled. Enable it in the plugin manager first."_s.arg(displayName(*record)));
-    if (record->state.manifest.kind != u"native")
-        return std::unexpected(
-            u"“%1” is a Python plugin; the AI services sidecar runs it."_s.arg(displayName(*record)));
 
     auto native = NativePlugin::activate(record->state.manifest, d->bus, [this, id] { return settings(id); });
     record = d->find(id);  // The plugin may have run commands that changed the plugin list.
@@ -265,8 +262,7 @@ void PluginManager::activateAll()
 {
     QStringList ids;
     for (const auto& [id, record] : d->records) {
-        if (record.manifestValid && record.state.status == PluginStatus::Discovered &&
-            record.state.manifest.kind == u"native")
+        if (record.manifestValid && record.state.status == PluginStatus::Discovered)
             ids.append(id);
     }
     for (const QString& id : std::as_const(ids))

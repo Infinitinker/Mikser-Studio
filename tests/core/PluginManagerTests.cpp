@@ -136,15 +136,12 @@ TEST_CASE("Discovery lists valid plugins and reports broken manifests", "[plugin
     env.installFixture();
     env.writeManifest(u"broken_json"_s, "{ not json");
     env.writeManifest(u"bad_manifest"_s, R"({"id": "mikserstudio.tests.bad", "name": "Bad"})");
-    env.writeManifest(u"python_plugin"_s, R"({"id": "mikserstudio.tests.py", "name": "Py", "version": "0.1.0",
-        "apiVersion": 1, "kind": "python", "entry": "mikserstudio_py:Plugin"})");
     REQUIRE(QDir().mkpath(env.pluginsDir() + u"/not_a_plugin"_s));
 
     Manager m(env);
     const QList<PluginState> plugins = m.manager.plugins();
-    REQUIRE(plugins.size() == 4);
+    REQUIRE(plugins.size() == 3);
     CHECK(m.status(kFixtureId) == PluginStatus::Discovered);
-    CHECK(m.status(u"mikserstudio.tests.py"_s) == PluginStatus::Discovered);
     CHECK(m.status(u"broken_json"_s) == PluginStatus::Failed);
     CHECK(m.manager.plugin(u"broken_json"_s)->error.contains(u"not a valid JSON object"_s));
     // A broken manifest is listed under its folder name, not under the id it claims.
@@ -159,11 +156,22 @@ TEST_CASE("Discovery lists valid plugins and reports broken manifests", "[plugin
     failedIds.sort();
     CHECK(failedIds == QStringList{u"bad_manifest"_s, u"broken_json"_s});
 
-    const auto python = m.manager.activate(u"mikserstudio.tests.py"_s);
-    REQUIRE_FALSE(python);
-    CHECK(python.error().contains(u"Python"_s));
     CHECK_FALSE(m.manager.activate(u"bad_manifest"_s));
     CHECK_FALSE(m.manager.activate(u"mikserstudio.tests.unknown"_s));
+}
+
+TEST_CASE("A Python plugin is listed as failed, with the reason", "[plugins]")
+{
+    Environment env;
+    env.writeManifest(u"python_plugin"_s, R"({"id": "mikserstudio.tests.py", "name": "Py", "version": "0.1.0",
+        "apiVersion": 1, "kind": "python", "entry": "mikserstudio_py:Plugin"})");
+
+    Manager m(env);
+    CHECK(m.status(u"python_plugin"_s) == PluginStatus::Failed);
+    CHECK(m.manager.plugin(u"python_plugin"_s)->error.contains(u"no longer runs Python plugins"_s));
+    REQUIRE(m.failures.size() == 1);
+    CHECK(m.failures[0].first == u"python_plugin"_s);
+    CHECK_FALSE(m.manager.activate(u"python_plugin"_s));
 }
 
 TEST_CASE("Discovery ignores a second plugin with the same id", "[plugins]")

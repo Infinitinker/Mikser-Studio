@@ -30,8 +30,8 @@ struct PanelContribution {
 //   "name": "Hello", "version": "0.1.0",   // SemVer
 //   "description": "...",
 //   "apiVersion": 1,                       // Must equal kPluginApiVersion
-//   "kind": "native" | "python",
-//   "entry": "hello",                      // native: library base name; python: module:attr
+//   "kind": "native",                      // The one kind; "python" is refused with a message
+//   "entry": "hello",                      // Library base name
 //   "capabilities": ["commands", "panels"],
 //   "settingsSchema": { JSON Schema },
 //   "panels": [ { "id", "title", "qml", "defaultArea" } ]
@@ -69,7 +69,6 @@ struct PluginState {
 // Discovers plugins in search paths, activates native ones through the C ABI in
 // sdk/include/mikserstudio/plugin_api.h and keeps their settings (validated against settingsSchema,
 // stored as JSON in the settings directory). A failing plugin never takes down the app.
-// Python plugins are discovered and listed; they are run by the AI/services sidecar.
 class PluginManager final : public QObject {
     Q_OBJECT
 
@@ -84,12 +83,11 @@ public:
     [[nodiscard]] const PluginState* plugin(const QString& id) const;
 
     // Loads a native plugin and calls its activate(). On failure the library is unloaded, the
-    // plugin is marked Failed, pluginFailed() is emitted and the reason returned. Python plugins
-    // cannot be activated here (the services sidecar runs them).
+    // plugin is marked Failed, pluginFailed() is emitted and the reason returned.
     std::expected<void, QString> activate(const QString& id);
     // Unregisters the plugin's commands, calls its deactivate() and unloads it.
     void deactivate(const QString& id);
-    void activateAll();  // Activates every discovered native plugin that is not disabled.
+    void activateAll();  // Activates every discovered plugin that is not disabled.
 
     // Disabled plugins are never activated; the choice is stored in <settingsDirectory>/plugins.json.
     // Disabling an active plugin deactivates it.

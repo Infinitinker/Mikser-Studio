@@ -22,9 +22,9 @@ namespace mikserstudio::ui {
 
 namespace {
 
-QString statusText(const core::PluginState& state)
+QString statusText(core::PluginStatus status)
 {
-    switch (state.status) {
+    switch (status) {
     case core::PluginStatus::Active:
         return u"Active"_s;
     case core::PluginStatus::Failed:
@@ -34,7 +34,7 @@ QString statusText(const core::PluginState& state)
     case core::PluginStatus::Discovered:
         break;
     }
-    return state.manifest.kind == u"python" ? u"Runs in the AI service"_s : u"Not active"_s;
+    return u"Not active"_s;
 }
 
 QColor statusColor(core::PluginStatus status)
@@ -197,7 +197,7 @@ void PluginsPanel::reloadList()
         auto* item = new QListWidgetItem(u"%1  %2"_s.arg(state.manifest.name, state.manifest.version), m_list);
         item->setData(Qt::UserRole, state.manifest.id);
         item->setData(Qt::DecorationRole, statusColor(state.status));
-        item->setToolTip(u"%1 — %2"_s.arg(state.manifest.id, statusText(state)));
+        item->setToolTip(u"%1 — %2"_s.arg(state.manifest.id, statusText(state.status)));
         if (state.manifest.id == keep)
             m_list->setCurrentItem(item);
     }
@@ -219,15 +219,14 @@ void PluginsPanel::showDetails()
     m_meta->setText(u"%1  ·  %2  ·  %3"_s.arg(manifest.id, manifest.version, manifest.kind));
     m_description->setText(manifest.description);
     m_description->setVisible(!manifest.description.isEmpty());
-    m_status->setText(statusText(*state));
+    m_status->setText(statusText(state->status));
     m_status->setStyleSheet(u"color: %1; font-weight: 600;"_s.arg(statusColor(state->status).name()));
     m_error->setText(state->error);
     m_error->setVisible(!state->error.isEmpty());
 
-    const bool native = manifest.kind == u"native";
     const bool active = state->status == core::PluginStatus::Active;
     m_activate->setText(active ? u"Deactivate"_s : u"Activate"_s);
-    m_activate->setEnabled(native && state->status != core::PluginStatus::Disabled);
+    m_activate->setEnabled(state->status != core::PluginStatus::Disabled);
     {
         const QSignalBlocker blocker(m_enabled);
         m_enabled->setChecked(state->status != core::PluginStatus::Disabled);

@@ -1,5 +1,5 @@
-// Plugin manifests: a valid one is parsed with defaults, errors name the field, and panel contributions and
-// Python entries are checked.
+// Plugin manifests: a valid one is parsed with defaults, errors name the field, panel contributions are
+// checked, and Python plugins are refused.
 #include "TestSupport.h"
 
 #include "mikserstudio/core/PluginManager.h"
@@ -114,11 +114,11 @@ TEST_CASE("Panel contributions are checked", "[plugins][manifest]")
             .contains(u"/panels/1/id"_s));
 }
 
-TEST_CASE("Python plugin entries use module:attribute", "[plugins][manifest]")
+TEST_CASE("Python plugins are refused with the reason", "[plugins][manifest]")
 {
     QJsonObject manifest = with(u"kind"_s, u"python"_s);
     manifest.insert(u"entry"_s, u"mikserstudio_upscale.plugin:Plugin"_s);
-    CHECK(errorFor(manifest).isEmpty());
-    manifest.insert(u"entry"_s, u"hello"_s);
-    CHECK(errorFor(manifest).contains(u"/entry"_s));
+    CHECK(
+        errorFor(manifest) ==
+        u"/kind: Mikser Studio no longer runs Python plugins, only native ones; install a native build of the plugin"_s);
 }
