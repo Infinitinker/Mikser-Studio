@@ -9,6 +9,7 @@
 #include <catch2/catch_test_macros.hpp>
 
 #include <QApplication>
+#include <QCoreApplication>
 #include <QDir>
 #include <QFile>
 #include <QLabel>
@@ -64,6 +65,15 @@ struct HostFixture {
 };
 
 }  // namespace
+
+TEST_CASE("KddwDockHost titles the main window after the running instance", "[docking]")
+{
+    const QString name = QCoreApplication::applicationName();
+    QCoreApplication::setApplicationName(u"Mikser Studio Dev"_s);
+    const HostFixture f;
+    CHECK(f.host->mainWindow()->windowTitle() == u"Mikser Studio Dev"_s);
+    QCoreApplication::setApplicationName(name);
+}
 
 TEST_CASE("KddwDockHost opens, raises and closes panels", "[docking]")
 {

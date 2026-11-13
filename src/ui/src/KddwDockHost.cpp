@@ -138,7 +138,8 @@ KddwDockHost::KddwDockHost(QString workspaceDirectory, QObject* parent)
     configureKddw(&KddwDockHost::createDockForLayout);
     s_instance = this;
     m_mainWindow = std::make_unique<KDDockWidgets::QtWidgets::MainWindow>(kMainWindowName);
-    m_mainWindow->setWindowTitle(u"Mikser Studio"_s);
+    // The instance's name, so a build from source says "Mikser Studio Dev" (core/Instance.h).
+    m_mainWindow->setWindowTitle(QCoreApplication::applicationName());
 }
 
 KddwDockHost::~KddwDockHost()

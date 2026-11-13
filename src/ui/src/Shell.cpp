@@ -77,7 +77,6 @@ Shell::Shell(core::CommandBus& bus, core::ProjectModel& project, core::PluginMan
     , m_dockHost(std::make_unique<KddwDockHost>(QDir(m_configDir).filePath(u"workspaces"_s)))
 {
     QMainWindow* window = mainWindow();
-    window->setWindowTitle(u"Mikser Studio"_s);
     window->resize(kDefaultWindowSize);
     window->installEventFilter(this);
 
