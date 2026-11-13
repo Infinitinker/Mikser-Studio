@@ -10,7 +10,7 @@ namespace mikserstudio::app {
 
 // Turns Ctrl+C, Ctrl+Break and closing the console (Windows) or SIGINT, SIGTERM and SIGHUP
 // (POSIX) into QCoreApplication::quit(), so exec() returns and everything is torn down normally:
-// the API removes its discovery file, plugins are deactivated and the AI service is stopped. A
+// the API removes its discovery file, plugins are deactivated and running AI jobs are canceled. A
 // second signal while Mikser Studio is quitting ends the process at once.
 //
 // On Windows it also turns a close request from another program (`taskkill` without /F posts

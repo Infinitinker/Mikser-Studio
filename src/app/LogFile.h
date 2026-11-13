@@ -1,5 +1,4 @@
-// The log file: every message of Mikser Studio, and the AI service's output with them, in the per-user
-// logs folder.
+// The log file: every message of Mikser Studio, in the per-user logs folder.
 #pragma once
 
 #include <QString>
@@ -10,8 +9,7 @@
 namespace mikserstudio::app {
 
 // While it exists, every Qt log message goes to <folder>/mikser-studio.log as well as where it went
-// before (the console, or the debugger's output in a build without a console). The AI service's
-// output arrives as messages of mikserstudio.services.sidecar, so it is in the log too.
+// before (the console, or the debugger's output in a build without a console).
 //
 // The log rotates: at the start of a run, and whenever it grows past maxBytes, the log becomes
 // mikser-studio.1.log, the one before mikser-studio.2.log, and so on; the oldest of kKeptLogs is
