@@ -95,6 +95,50 @@ type = "independence"
 modules = ["mikserstudio_ai.backends.builtin", "mikserstudio_ai.backends.ollama"]
 
 [[tool.importlinter.contracts]]
+name = "The MCP bridge is a program of its own: it uses the app's local API, never the AI service or its backends"
+type = "forbidden"
+source_modules = ["mikserstudio_ai.mcp"]
+forbidden_modules = [
+    "mikserstudio_ai.__main__",
+    "mikserstudio_ai.arguments",
+    "mikserstudio_ai.auth",
+    "mikserstudio_ai.backend",
+    "mikserstudio_ai.errors",
+    "mikserstudio_ai.jobs",
+    "mikserstudio_ai.logs",
+    "mikserstudio_ai.params",
+    "mikserstudio_ai.processes",
+    "mikserstudio_ai.provenance",
+    "mikserstudio_ai.registry",
+    "mikserstudio_ai.server",
+    "mikserstudio_ai.service",
+    "mikserstudio_ai.stop_signals",
+    "mikserstudio_ai.backends",
+]
+
+[[tool.importlinter.contracts]]
+name = "Neither the AI service nor its backends import the MCP bridge"
+type = "forbidden"
+source_modules = [
+    "mikserstudio_ai.__main__",
+    "mikserstudio_ai.arguments",
+    "mikserstudio_ai.auth",
+    "mikserstudio_ai.backend",
+    "mikserstudio_ai.errors",
+    "mikserstudio_ai.jobs",
+    "mikserstudio_ai.logs",
+    "mikserstudio_ai.params",
+    "mikserstudio_ai.processes",
+    "mikserstudio_ai.provenance",
+    "mikserstudio_ai.registry",
+    "mikserstudio_ai.server",
+    "mikserstudio_ai.service",
+    "mikserstudio_ai.stop_signals",
+    "mikserstudio_ai.backends",
+]
+forbidden_modules = ["mikserstudio_ai.mcp"]
+
+[[tool.importlinter.contracts]]
 name = "The service is layered: entry point, service, server, its parts, the backend contract"
 type = "layers"
 layers = [

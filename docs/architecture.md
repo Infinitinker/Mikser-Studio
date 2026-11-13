@@ -30,7 +30,7 @@ separate Python processes. Why this stack was chosen is in `stack-recommendation
 | `src/ui/` | `MikserStudio::ui` | core, Qt Widgets/Quick, KDDockWidgets | Main window, docking, workspaces, panels (media bin, timeline, AI, palette, properties, log). |
 | `src/app/` | `mikser-studio` | all | Wires the modules together; `mikser-studio --headless` runs without UI. |
 | `plugins/` | plugin libraries | sdk | Bundled example plugins. |
-| `ai/` | Python package `mikserstudio-ai` | — | AI sidecar service, run from its own virtual environment (`ai/.venv`); it connects to the AI tools the user runs and runs no models itself. |
+| `ai/` | Python package `mikserstudio-ai` | — | AI sidecar service, run from its own virtual environment (`ai/.venv`); it connects to the AI tools the user runs and runs no models itself. Also holds the MCP bridge (`mikserstudio_ai.mcp`), a program of its own. |
 | `tests/` | `*-tests` | Catch2 | Tests mirroring `src/` and `plugins/`, and the end-to-end tests. |
 
 ## Import directions
@@ -61,6 +61,8 @@ on its own. `tools/check_includes.py` checks the C++ and the import-linter contr
   `provenance.py`, `logs.py`), and never each other. The service is layered: `__main__`, `service`,
   `server`, then `jobs`, `registry`, `auth` and `params`, then `backend`; each imports only from the
   layers below it.
+- The MCP bridge (`mikserstudio_ai.mcp`) drives the app only through its local API: it imports
+  nothing of the AI service or its backends, and they import nothing of it.
 
 ## Terms
 
@@ -84,6 +86,7 @@ messages.
 | command palette | The popup that finds and runs commands (Ctrl+K). | quick open |
 | plugin | A shared library with a `mikserstudio-plugin.json` manifest that adds commands, settings and panels. | extension, add-on, module |
 | local API | The versioned `/v1` HTTP and WebSocket API on `127.0.0.1`. | server, remote control |
+| MCP bridge | The program that offers the commands to agents as MCP tools, through the local API (`python -m mikserstudio_ai.mcp`). | MCP server, agent API |
 | instance | Which Mikser Studio runs: the installed app, Mikser Studio Dev or Mikser Studio E2E, each with its own name, app id and folders (`MIKSERSTUDIO_INSTANCE`). | profile, variant |
 | discovery file | `api.json`, which tells other programs the local API's address and session token. | config file |
 | session token | The secret a client needs for the local API or the AI service, made anew at each start. | key, password |

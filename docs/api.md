@@ -214,6 +214,39 @@ Each text message is one JSON object with a `type`:
   stops reading and lets more than 8 MiB of events pile up is disconnected.
 - When the server stops, clients are closed with code 1001 (going away).
 
+## MCP bridge
+
+The MCP bridge offers the commands to agents that speak the
+[Model Context Protocol](https://modelcontextprotocol.io), such as Claude Code. It is a program of
+its own, `python -m mikserstudio_ai.mcp` in `ai/` (`ai/src/mikserstudio_ai/mcp`), that the agent's
+client starts and talks to on stdin and stdout. It uses only what this page describes: the discovery
+file, `/v1/commands` and `/v1/events`.
+
+- **Tools:** every command is a tool, named after its id with `_` for `.` (`project.import_media`
+  is `project_import_media`), with its title, description and `paramsSchema` as the input schema.
+  Read-only commands carry `readOnlyHint`, and commands with a `confirmation` carry
+  `destructiveHint`. A tool's result is the command's `result`, as JSON text and, for clients of
+  protocol version 2025-06-18 or later, as structured content; a command's error is a tool error
+  with its message and code.
+- **Confirmations:** before a command with a `confirmation`, the bridge asks the person through the
+  client (MCP elicitation) and runs the command only when they accept. A client that cannot ask gets
+  a tool error, and the command does not run.
+- **Following the app:** the bridge reads the discovery file anew for every request, so it follows the
+  app when it restarts. While the app is not running it lists no tools, and calls say to start it. It
+  keeps the events socket open and tells the client when the tools change: when the app starts or
+  stops, and when plugins add or remove commands.
+- **Which app:** `--instance` chooses the installed app (the default), `dev` (a build from source) or
+  `e2e`; `--discovery-file` names another `api.json`. Its log goes to stderr.
+
+To connect Claude Code to Mikser Studio Dev, from the repository:
+
+```sh
+claude mcp add mikser-studio -- "$PWD/ai/.venv/Scripts/python" -m mikserstudio_ai.mcp --instance dev
+```
+
+(`ai/.venv/bin/python` on Linux and macOS.) Other clients take the same command and arguments in
+their MCP settings.
+
 ## Embedding (C++)
 
 ```cpp
