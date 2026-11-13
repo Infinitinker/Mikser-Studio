@@ -368,8 +368,12 @@ private:
                         filename, answer.error()));
                     return;
                 }
+                // Closed before the next step: the last download finishes the job, which imports the file.
                 QFile file(target);
-                if (!file.open(QIODevice::WriteOnly) || file.write(*answer) != answer->size()) {
+                const bool saved = file.open(QIODevice::WriteOnly) && file.write(*answer) == answer->size() &&
+                                   file.flush();
+                file.close();
+                if (!saved) {
                     fail(u"The image could not be saved to “%1”: %2. Check that there is free space."_s.arg(
                         QDir::toNativeSeparators(target), file.errorString()));
                     return;

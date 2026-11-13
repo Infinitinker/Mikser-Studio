@@ -75,9 +75,9 @@ public:
     bool holdPrompts = false;
     QStringList missingModels;
     QStringList missingNodes;
-    // A 1x1 PNG, so the app's media probe takes it.
+    // A 16x16 PNG, so the app's media probe takes it.
     QByteArray image = QByteArray::fromBase64(
-        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==");
+        "iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAIAAACQkWg2AAAAFklEQVR42mM4UaFBEmIY1TCqYfhqAAADaGgQ4a3ZQQAAAABJRU5ErkJggg==");
 
 private:
     QHttpServerResponse respond(const RecordedRequest& request);
