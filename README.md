@@ -6,7 +6,7 @@
 
 <p align="center">
   <b>A multimedia studio you share with AI agents.</b><br>
-  Create video, sound and more, with the AI tools on your computer.
+  Create video, sound and more, with the AI tools you choose, local or online.
 </p>
 
 <p align="center">
