@@ -1,7 +1,8 @@
 # Mikser Studio architecture
 
-Mikser Studio is a native C++23 / Qt 6 desktop app with a headless core, a plugin system and AI that runs in
-separate Python processes. Why this stack was chosen is in `stack-recommendation.md`.
+Mikser Studio is a native C++23 / Qt 6 desktop app with a headless core, a plugin system and AI backends
+that connect to the AI tools the user runs. A release ships no Python. Why this stack was chosen is in
+`stack-recommendation.md`.
 
 ## Principles
 
@@ -11,7 +12,7 @@ separate Python processes. Why this stack was chosen is in `stack-recommendation
 - **The core is headless.** `src/core` depends only on Qt Core. The UI is a client of the core; it
   must never change the project except through commands.
 - **Module ≠ process.** Code is split into modules everywhere; a separate process is used only for
-  isolation or heavy resources (the AI service, export rendering).
+  isolation or heavy resources (export rendering, the MCP bridge).
 - **Plugins first.** Adding a panel, a command or an AI backend must not need changes in the core.
   Plugin settings are JSON Schema and the UI generates forms from them.
 - **Interfaces at the seams.** The docking library (`ui::DockHost`), the media engine
