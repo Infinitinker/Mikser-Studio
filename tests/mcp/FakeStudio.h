@@ -2,6 +2,7 @@
 // command, the /v1/events socket and the discovery file.
 #pragma once
 
+#include <QByteArray>
 #include <QHttpServer>
 #include <QJsonArray>
 #include <QJsonObject>
@@ -14,9 +15,6 @@
 
 namespace mikserstudio::tests {
 
-// The fake's session token.
-inline constexpr char kFakeToken[] = "test-token";
-
 // The commands the fake offers at first: edit.undo, which fails with nothing to undo;
 // project.import_media, undoable, with a required path; project.list, read-only; and project.new, with a
 // confirmation.
@@ -24,8 +22,8 @@ QJsonArray fakeCommands();
 
 class FakeStudio {
 public:
-    // Listens on a free port and writes its discovery file to `discoveryPath`.
-    explicit FakeStudio(QString discoveryPath);
+    // Listens on a free port and writes its discovery file, with `token`, to `discoveryPath`.
+    explicit FakeStudio(QString discoveryPath, QByteArray token = "test-token");
     ~FakeStudio();
 
     FakeStudio(const FakeStudio&) = delete;
@@ -41,11 +39,16 @@ public:
     [[nodiscard]] qsizetype openSockets() const { return m_sockets.size(); }
 
     QJsonArray commands = fakeCommands();
+    // The HTTP status GET /v1/commands answers with; other than 200, with an error.
+    int listStatus = 200;
     // Each command run: its id and params.
     QList<QPair<QString, QJsonObject>> runs;
 
 private:
+    [[nodiscard]] bool isAuthorized(const QHttpServerRequest& request) const;
+
     QString m_discoveryPath;
+    QByteArray m_token;
     std::unique_ptr<QHttpServer> m_server;
     QList<QWebSocket*> m_sockets;
 };

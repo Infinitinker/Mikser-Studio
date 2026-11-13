@@ -358,3 +358,96 @@ TEST_CASE("an events socket that never opens is given up, and the app found when
     CHECK(methodOf(client.nextMessage()) == u"notifications/tools/list_changed"_s);
     CHECK(client.tools().contains(u"project_list"_s));
 }
+
+TEST_CASE("the bridge follows the app to a new port and token when it starts again", "[mcp]")
+{
+    Folder folder;
+    Client client(folder.discoveryPath, {.retry = std::chrono::milliseconds(50), .closeTimeout = {}});
+    client.start();
+    client.bridge().start();
+    auto first = std::make_unique<FakeStudio>(folder.discoveryPath, "first-token");
+    CHECK(methodOf(client.nextMessage()) == u"notifications/tools/list_changed"_s);
+    REQUIRE(tests::waitFor([&] { return first->openSockets() == 1; }));
+
+    first.reset();
+    CHECK(methodOf(client.nextMessage()) == u"notifications/tools/list_changed"_s);
+    FakeStudio second(folder.discoveryPath, "second-token");
+    CHECK(methodOf(client.nextMessage()) == u"notifications/tools/list_changed"_s);
+    CHECK(client.call(u"project_list"_s)[u"structuredContent"_s].toObject() ==
+          QJsonObject{{u"ran"_s, u"project.list"_s}});
+    CHECK(second.runs.size() == 1);
+}
+
+TEST_CASE("a discovery file a crashed app left behind means there are no tools", "[mcp]")
+{
+    Folder folder;
+    quint16 port = 0;
+    {
+        FakeStudio crashed(folder.discoveryPath);
+        QFile file(folder.discoveryPath);
+        REQUIRE(file.open(QIODevice::ReadOnly));
+        port = static_cast<quint16>(QJsonDocument::fromJson(file.readAll())[u"port"_s].toInt());
+    }
+    QFile stale(folder.discoveryPath);
+    REQUIRE(stale.open(QIODevice::WriteOnly));
+    stale.write(QJsonDocument(QJsonObject{{u"apiVersion"_s, 1},
+                                          {u"baseUrl"_s, u"http://127.0.0.1:%1"_s.arg(port)},
+                                          {u"eventsUrl"_s, u"ws://127.0.0.1:%1/v1/events"_s.arg(port)},
+                                          {u"token"_s, u"test-token"_s}})
+                    .toJson());
+    stale.close();
+    Client client(folder.discoveryPath);
+    client.start();
+    CHECK(client.tools().isEmpty());
+    CHECK(textOf(client.call(u"project_list"_s)) == mcp::notRunningMessage());
+}
+
+TEST_CASE("a command list the app refuses means there are no tools, and calls say why", "[mcp]")
+{
+    Folder folder;
+    FakeStudio studio(folder.discoveryPath);
+    studio.listStatus = 503;
+    Client client(folder.discoveryPath);
+    client.start();
+    CHECK(client.tools().isEmpty());
+    const QJsonObject result = client.call(u"project_list"_s);
+    CHECK(result[u"isError"_s] == true);
+    CHECK(textOf(result) == u"Mikser Studio did not list its commands (HTTP 503)."_s);
+}
+
+TEST_CASE("requests with the ids 1 and \"1\" each get their own answer", "[mcp]")
+{
+    Folder folder;
+    FakeStudio studio(folder.discoveryPath);
+    Client client(folder.discoveryPath);
+    client.start();
+    client.send({{u"jsonrpc"_s, u"2.0"_s}, {u"id"_s, 1}, {u"method"_s, u"tools/list"_s}});
+    client.send({{u"jsonrpc"_s, u"2.0"_s}, {u"id"_s, u"1"_s}, {u"method"_s, u"tools/list"_s}});
+    const QJsonObject one = client.nextMessage();
+    const QJsonObject other = client.nextMessage();
+    CHECK(QJsonArray{one[u"id"_s], other[u"id"_s]}.contains(QJsonValue(1)));
+    CHECK(QJsonArray{one[u"id"_s], other[u"id"_s]}.contains(QJsonValue(u"1"_s)));
+    CHECK(one[u"result"_s][u"tools"_s].toArray().size() == 5);
+    CHECK(other[u"result"_s][u"tools"_s].toArray().size() == 5);
+}
+
+TEST_CASE("a request still running when the client goes is answered before the bridge ends", "[mcp]")
+{
+    Folder folder;
+    FakeStudio studio(folder.discoveryPath);
+    Client client(folder.discoveryPath);
+    client.start();
+    client.send({{u"jsonrpc"_s, u"2.0"_s},
+                 {u"id"_s, 8},
+                 {u"method"_s, u"tools/call"_s},
+                 {u"params"_s, QJsonObject{{u"name"_s, u"project_list"_s}}}});
+    bool closed = false;
+    QObject::connect(&client.bridge(), &mcp::Bridge::closed, [&closed] { closed = true; });
+    client.bridge().close();
+    CHECK_FALSE(closed);
+
+    const QJsonObject answer = client.nextMessage();
+    CHECK(answer[u"id"_s] == 8);
+    CHECK(answer[u"result"_s][u"structuredContent"_s].toObject() == QJsonObject{{u"ran"_s, u"project.list"_s}});
+    CHECK(closed);
+}
