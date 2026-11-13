@@ -11,7 +11,7 @@ separate Python processes. Why this stack was chosen is in `stack-recommendation
 - **The core is headless.** `src/core` depends only on Qt Core. The UI is a client of the core; it
   must never change the project except through commands.
 - **Module ≠ process.** Code is split into modules everywhere; a separate process is used only for
-  isolation or heavy resources (AI models, export rendering, Blender, LibreOffice).
+  isolation or heavy resources (the AI service, export rendering).
 - **Plugins first.** Adding a panel, a command or an AI backend must not need changes in the core.
   Plugin settings are JSON Schema and the UI generates forms from them.
 - **Interfaces at the seams.** The docking library (`ui::DockHost`), the media engine
@@ -30,7 +30,7 @@ separate Python processes. Why this stack was chosen is in `stack-recommendation
 | `src/ui/` | `MikserStudio::ui` | core, Qt Widgets/Quick, KDDockWidgets | Main window, docking, workspaces, panels (media bin, timeline, AI, palette, properties, log). |
 | `src/app/` | `mikser-studio` | all | Wires the modules together; `mikser-studio --headless` runs without UI. |
 | `plugins/` | plugin libraries | sdk | Bundled example plugins. |
-| `ai/` | Python package `mikserstudio-ai` | — | AI sidecar service, run from its own virtual environment (`ai/.venv`). |
+| `ai/` | Python package `mikserstudio-ai` | — | AI sidecar service, run from its own virtual environment (`ai/.venv`); it connects to the AI tools the user runs and runs no models itself. |
 | `tests/` | `*-tests` | Catch2 | Tests mirroring `src/` and `plugins/`, and the end-to-end tests. |
 
 ## Import directions
@@ -87,11 +87,11 @@ messages.
 | instance | Which Mikser Studio runs: the installed app, Mikser Studio Dev or Mikser Studio E2E, each with its own name, app id and folders (`MIKSERSTUDIO_INSTANCE`). | profile, variant |
 | discovery file | `api.json`, which tells other programs the local API's address and session token. | config file |
 | session token | The secret a client needs for the local API or the AI service, made anew at each start. | key, password |
-| AI service | The Python process in `ai/` that runs AI backends; *sidecar* in the code that manages it (`SidecarManager`). | AI server, worker |
+| AI service | The Python process in `ai/` whose backends connect to the AI tools the user runs; *sidecar* in the code that manages it (`SidecarManager`). | AI server, worker |
 | backend | A part of the AI service that offers operations, such as `builtin` and `ollama`. | provider, engine |
 | operation | What a backend can do, such as `video.upscale` or `text.generate`. | task, op type |
 | job | One run of an operation, with a state: `queued`, `running`, `succeeded`, `failed` or `canceled`. | task, request |
-| provenance | The record of how AI made a media item: the job, backend, operation, parameters, time and tool versions. | metadata, history |
+| provenance | The record of how AI made a media item: the job, backend, operation, model, parameters, time and tool versions. | metadata, history |
 
 ## Threads and processes
 

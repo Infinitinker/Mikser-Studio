@@ -18,9 +18,15 @@ the `/v1` API all use them the same way.
    start / READY line / health / restart with backoff / stop (stdin closed → terminate → kill)
 ```
 
-Why a separate process: models are big, crash-prone and Python-first (ComfyUI, diffusers, Ollama
-clients). A crash or a hung model never takes the editor down; the manager restarts the sidecar and
-fails only the jobs it was running.
+Mikser Studio runs no AI models itself and ships none. The sidecar connects to the AI tools the user
+runs, local and offline first, through their own APIs: each backend speaks to one tool (`ollama` to
+Ollama) or does a job of its own with programs such as FFmpeg (`builtin`). An online service is used
+only when the user sets it up, and the sidecar never downloads models or installs extensions unless the
+user asks.
+
+Why a separate process: the clients of those tools are Python-first, and a tool can be slow, hang or
+fail. A crash or a hung call never takes the editor down; the manager restarts the sidecar and fails
+only the jobs it was running.
 
 ## Running the sidecar
 
