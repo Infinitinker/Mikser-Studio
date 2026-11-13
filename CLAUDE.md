@@ -25,16 +25,15 @@ new and changed code, and don't extend what they replace.
   [docs/interface-texts.md](docs/interface-texts.md).
 - The product is **Mikser Studio**, in prose and the interface; it was once code-named Nexus, a name
   that is no longer used. The repository is `Infinitinker/Mikser-Studio`.
-- Its machine forms: `mikserstudio` for namespaces, plugin and panel ids and the Python package
-  `mikserstudio_ai`; `MikserStudio::` for CMake targets; `MIKSERSTUDIO_` for macros and environment
-  variables; `mikser-studio*` for the programs people run. Projects are `.msproj` files, and plugin
-  manifests `mikserstudio-plugin.json`.
+- Its machine forms: `mikserstudio` for namespaces and plugin and panel ids; `MikserStudio::` for
+  CMake targets; `MIKSERSTUDIO_` for macros and environment variables; `mikser-studio*` for the
+  programs people run. Projects are `.msproj` files, and plugin manifests `mikserstudio-plugin.json`.
 - Files and folders take hyphens, never underscores: lowercase (`interface-texts.md`,
   `mikserstudio-plugin.json`), and uppercase for the documents at the root
   (`THIRD-PARTY-NOTICES.md`). Code files follow their language: C++ files in PascalCase, after the
   class or the job they hold (`KddwDockHost.cpp`, `Logging.h`), with `main.cpp` for a program; QML
   components and CMake modules in PascalCase (`Timeline.qml`, `MikserStudioCompilerOptions.cmake`);
-  C and Python in snake_case (`plugin_api.h`, `mikserstudio_ai`, `build_release.py`). Names a
+  C and Python in snake_case (`plugin_api.h`, `check_includes.py`, `build_release.py`). Names a
   language, tool or GitHub fixes keep their form (`__init__.py`, `CMakeLists.txt`, and
   `.github/ISSUE_TEMPLATE` with its forms).
 - The app id is `io.github.infinitinker.mikserstudio` (`kAppId` in
@@ -176,8 +175,6 @@ mind: every panel can be moved, docked and undocked, and layouts are saved as wo
   Linux, Apple's toolchain on macOS. Build files, CI and docs offer no MSVC or Visual Studio route,
   not even as an alternative. Prebuilt dependencies and tools, such as python.org's Python and its
   wheels, may come from any compiler, with the runtime they need.
-- Python 3.13 for the MCP bridge in `ai/`, in a plain `venv` in `ai/.venv`, with Ruff, mypy (strict),
-  pytest and import-linter.
 - Python 3.13 for the development scripts in `tools/`, which never ship, with their checks (Ruff, mypy
   (strict) and pytest, set up by `tools/pyproject.toml`) in a plain `venv` in `tools/.venv`.
 - clang-format and clang-tidy, set up by `.clang-format` and `.clang-tidy`.
@@ -192,8 +189,6 @@ Before committing, run every check, from Git Bash with `/c/msys64/ucrt64/bin` fi
 - clang-tidy: `cmake --build --preset ci --target autogen`, then
   `git ls-files '*.cpp' | xargs -P 8 -n 1 clang-tidy -p build/ci --quiet`.
 - The include directions: `tools/.venv/Scripts/python tools/check_includes.py`.
-- In `ai/`: `.venv/Scripts/python -m ruff check .`, `.venv/Scripts/python -m ruff format --check .`,
-  `.venv/Scripts/python -m mypy`, `.venv/Scripts/python -m pytest` and `.venv/Scripts/lint-imports`.
 - In `tools/`: `.venv/Scripts/python -m ruff check .`, `.venv/Scripts/python -m ruff format --check .`,
   `.venv/Scripts/python -m mypy` and `.venv/Scripts/python -m pytest`.
 - After changing what a release ships: `python tools/notices.py --check` and `python tools/licenses.py`,

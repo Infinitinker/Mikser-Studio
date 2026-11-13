@@ -53,7 +53,7 @@ Possible later addition: WASM components (wasmtime) as a sandboxed tier for non-
 
 - **App:** GPL-3.0-or-later. KDDockWidgets, QtHttpServer, GPL FFmpeg encoders, the ASIO SDK (now GPLv3) and borrowed Kdenlive/Shotcut code all point there anyway.
 - **SDK:** the C header and manifest schema under MIT/Apache-2.0.
-- **Plugin exception:** you can add one for your own code, but it cannot cover third-party GPL parts like KDDockWidgets. Closed-source plugins should therefore talk to Mikser Studio over /v1 or run as sidecars.
+- **Plugin exception:** you can add one for your own code, but it cannot cover third-party GPL parts like KDDockWidgets. Closed-source plugins should therefore talk to Mikser Studio over /v1 or run as programs of their own.
 - **License gating in CI:** `tools/licenses.py` checks the licenses of the MSYS2 packages a release ships against an allow list, and `tools/notices.py` writes their notices, so no AGPL or GPL-only dependency slips in unnoticed.
 - **FFmpeg build switch:** choose per channel between LGPL FFmpeg with OS/hardware encoders and a GPL build with x264/x265. Codec patents are a separate distribution question.
 - **Model weights:** Mikser Studio ships none; where it lists the models an AI tool offers, it shows each model's license when the tool reports it.
@@ -80,7 +80,7 @@ The biggest unknown is whether a docked, floatable monitor gets native GPU playb
 1. Qt 6.12 + KDDockWidgets shell with three panels: a QRhi QWindow monitor, a QML timeline and an AI panel. Saving and restoring a workspace must work.
 2. Import a clip, then play it through MLT → custom consumer → monitor using hardware decoding (zero-copy on at least one OS, CPU fallback elsewhere), with RtAudio as the master clock.
 3. Float the monitor onto a second display on Windows, macOS, X11 and Wayland, and measure dropped frames at 1080p60 and with 4K proxies.
-4. One command, `ai.upscale_clip`, sent over /v1: an AI backend makes the result, which comes back into the project with its provenance, is put on the timeline, and can be undone.
+4. One command, `ai.run`, sent over /v1: an AI backend makes the result, which comes back into the project with its provenance, is put on the timeline, and can be undone.
 5. A three-OS CI build with installers produced.
 
 Pass criteria: no visible A/V drift, under two frames of latency from scrub to screen, and the floating monitor survives a workspace restore on every OS.

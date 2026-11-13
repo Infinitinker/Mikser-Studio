@@ -67,8 +67,7 @@ include which, and the names the project uses for its concepts.
 4. Tests live in `tests/`, mirroring `src/` (the tests for `src/core` are in `tests/core`) and
    `plugins/` (`tests/plugins/hello`), together with their fakes; nothing test-only goes in `src/`.
    They run without the network; a sound device is never needed, as MLT falls back to its silent
-   output. The MCP bridge's tests are in `ai/tests/`, mirroring `ai/src/mikserstudio_ai/`. The
-   end-to-end tests in `tests/e2e/` and the GPU test in `tests/engine/gpu/` run apart
+   output. The end-to-end tests in `tests/e2e/` and the GPU test in `tests/engine/gpu/` run apart
    ([docs/development.md](docs/development.md)).
 5. Update the docs in the same pull request as the code they describe. Commits follow
    [Conventional Commits](https://www.conventionalcommits.org/), with a scope from CLAUDE.md, such as

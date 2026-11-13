@@ -48,7 +48,6 @@ export PATH=/c/msys64/ucrt64/bin:$PATH
 cmake --preset debug
 cmake --build --preset debug
 ctest --preset debug -j8
-(cd ai && .venv/Scripts/python -m pytest -q)
 ```
 
 Presets: `debug`, `release` (RelWithDebInfo), `ci` (warnings are errors) and `package` (the release
@@ -127,13 +126,12 @@ Run them before committing, from Git Bash with the UCRT64 tools first on `PATH` 
 `Checks` workflow runs the same for every push to `main` and `dev` and every pull request, one job per
 group.
 
-**Tests** (job `Tests`): the build with the `ci` preset, where warnings are errors, its tests, and the
-AI service's tests.
+**Tests** (job `Tests`): the build with the `ci` preset, where warnings are errors, and its tests,
+the MCP bridge's among them.
 
 ```sh
 cmake --preset ci && cmake --build --preset ci
 ctest --preset ci -j8
-(cd ai && .venv/Scripts/python -m pytest -q)
 ```
 
 **C++ checks** (job `C++ checks`): clang-format and clang-tidy, set up by `.clang-format` and
@@ -148,17 +146,12 @@ git ls-files '*.cpp' | xargs -P 8 -n 1 clang-tidy -p build/ci --quiet
 
 `clang-format -i <files>` formats files in place.
 
-**Lint** (job `Lint`): Ruff, for the AI service and the scripts in `tools/`, each with its own
-settings (`ai/pyproject.toml`, `tools/pyproject.toml`); the AI service's import contracts; the C++
-include directions ("Import directions" in [architecture.md](architecture.md)); and the tests of the
-scripts in `tools/` (`tools/tests/`).
+**Lint** (job `Lint`): Ruff, for the scripts in `tools/`, with the settings in
+`tools/pyproject.toml`; the tests of those scripts (`tools/tests/`); and the C++ include directions
+("Import directions" in [architecture.md](architecture.md)).
 
 ```sh
-cd ai
-.venv/Scripts/python -m ruff check .
-.venv/Scripts/python -m ruff format --check .
-.venv/Scripts/lint-imports
-cd ../tools
+cd tools
 .venv/Scripts/python -m ruff check .
 .venv/Scripts/python -m ruff format --check .
 .venv/Scripts/python -m pytest
@@ -166,10 +159,9 @@ cd ..
 tools/.venv/Scripts/python tools/check_includes.py
 ```
 
-**Types** (job `Types`): mypy, strict, for the AI service and `tools/`.
+**Types** (job `Types`): mypy, strict, for `tools/`.
 
 ```sh
-(cd ai && .venv/Scripts/python -m mypy)
 (cd tools && .venv/Scripts/python -m mypy)
 ```
 
@@ -229,12 +221,9 @@ The code is portable (QRhi picks Vulkan/OpenGL or Metal; KDDockWidgets, MLT and 
 cross-platform) but only the Windows build has been run so far. The same packages exist in the
 usual package managers; CI for Linux and macOS comes with their ports.
 
-The AI service's environment and that of the scripts in `tools/` are made the same way, with `bin/`
-in place of `Scripts/`:
+The environment of the scripts in `tools/` is made the same way, with `bin/` in place of `Scripts/`:
 
 ```sh
-python3.13 -m venv ai/.venv
-ai/.venv/bin/python -m pip install -e "./ai[dev]"
 python3.13 -m venv tools/.venv
 tools/.venv/bin/python -m pip install --group tools/pyproject.toml:dev
 ```

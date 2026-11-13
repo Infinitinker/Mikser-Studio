@@ -110,8 +110,8 @@ messages.
   `QT_NO_CAST_FROM_ASCII` is on: wrap literals in `u"..."_s` (`using namespace Qt::StringLiterals`)
   or `QStringLiteral`.
 - Naming: the product is **Mikser Studio** (only in text people read). Code uses `mikserstudio`
-  (namespaces, plugin and panel ids, the Python package `mikserstudio_ai`), `MikserStudio::` for
-  CMake targets and `MIKSERSTUDIO_` for macros and environment variables. Programs people run are
+  (namespaces, plugin and panel ids), `MikserStudio::` for CMake targets and `MIKSERSTUDIO_` for
+  macros and environment variables. Programs people run are
   `mikser-studio*`. Projects are `.msproj` files. The app id is `io.github.infinitinker.mikserstudio`
   (`kAppId` in `mikserstudio/core/Instance.h`); it must never change after a release.
 - Namespaces follow folders: `mikserstudio::core`, `mikserstudio::engine`, `mikserstudio::ui`, ... Public headers live in
