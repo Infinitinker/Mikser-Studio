@@ -16,7 +16,8 @@ namespace mikserstudio::app {
 // Commands that tie modules together and so belong to neither of them:
 //
 //   project.new          {}                -> {}           clears the undo history
-//   project.save         {path}            -> {path}       JSON project file (.mikser)
+//   project.save         {path}            -> {path}       JSON project file (.msproj, added when the
+//                                                         path has no extension); returns the path used
 //   project.open         {path}            -> {path}       clears the undo history
 //
 // project.new and project.open replace the project, so they carry a CommandSpec::confirmation

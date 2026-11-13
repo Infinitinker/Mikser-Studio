@@ -9,6 +9,7 @@
 #include "mikserstudio/engine/ClipPlayer.h"
 
 #include <QFile>
+#include <QFileInfo>
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonParseError>
@@ -35,8 +36,15 @@ QJsonObject pathSchema(const QString& description)
     };
 }
 
-core::CommandResult saveProject(const core::ProjectModel& project, const QString& path)
+// The file a project is saved to: `path`, with the project extension added when it has none.
+QString projectFilePath(const QString& path)
 {
+    return QFileInfo(path).suffix().isEmpty() ? path + u".msproj"_s : path;
+}
+
+core::CommandResult saveProject(const core::ProjectModel& project, const QString& requested)
+{
+    const QString path = projectFilePath(requested);
     QSaveFile file(path);
     if (!file.open(QIODevice::WriteOnly))
         return commandFailure(CommandErrorCode::Failed,
@@ -63,7 +71,7 @@ core::CommandResult openProject(core::ProjectModel& project, core::UndoStack& un
                                    << parseError.offset;
         return commandFailure(
             CommandErrorCode::Failed,
-            u"“%1” is not a Mikser Studio project, or it is damaged. Open a .mikser file that Mikser Studio saved."_s
+            u"“%1” is not a Mikser Studio project, or it is damaged. Open a .msproj file that Mikser Studio saved."_s
                 .arg(path));
     }
     if (const auto loaded = project.loadJson(document.object()); !loaded)
@@ -93,14 +101,15 @@ void registerAppCommands(core::CommandBus& bus, core::ProjectModel& project, eng
                             return core::CommandOutcome{};
                         });
     bus.registerCommand(
-        {u"project.save"_s, u"Save project as…"_s, u"Saves the project to a .mikser file."_s, u"File"_s,
-         pathSchema(u"Where to save the project (.mikser)."_s), u"Ctrl+Shift+S"_s, false},
+        {u"project.save"_s, u"Save project as…"_s, u"Saves the project to a .msproj file."_s, u"File"_s,
+         pathSchema(u"Where to save the project. A path without an extension gets .msproj."_s), u"Ctrl+Shift+S"_s,
+         false},
         [&project](const QJsonObject& params) { return saveProject(project, params.value(u"path"_s).toString()); });
     bus.registerCommand({.id = u"project.open"_s,
                          .title = u"Open project…"_s,
-                         .description = u"Opens a .mikser project file. The undo history is cleared."_s,
+                         .description = u"Opens a .msproj project file. The undo history is cleared."_s,
                          .category = u"File"_s,
-                         .paramsSchema = pathSchema(u"The .mikser project file to open."_s),
+                         .paramsSchema = pathSchema(u"The .msproj project file to open."_s),
                          .shortcut = u"Ctrl+O"_s,
                          .undoable = false,
                          .readOnly = false,

@@ -1,6 +1,6 @@
 // End to end: the built mikser-studio, run headless as the E2E instance and driven from outside, the
 // way a user's tool drives it. It publishes its discovery file, answers the local API with the token
-// from that file, and, asked to close, shuts down cleanly and removes the file.
+// from that file, saves a project, and, asked to close, shuts down cleanly and removes the file.
 #include <catch2/catch_test_macros.hpp>
 
 #include <QByteArray>
@@ -53,14 +53,21 @@ struct Reply {
     QJsonDocument body;
 };
 
-Reply get(const QString& url, const QString& token = {})
+// A GET, or a POST of `body` when there is one.
+Reply send(const QString& url, const QString& token = {}, const QJsonObject& body = {})
 {
     QNetworkAccessManager network;
     QNetworkRequest request{QUrl(url)};
     request.setTransferTimeout(kRequestTimeoutMs);
     if (!token.isEmpty())
         request.setRawHeader("Authorization", "Bearer " + token.toUtf8());
-    QNetworkReply* reply = network.get(request);
+    QNetworkReply* reply = nullptr;
+    if (body.isEmpty()) {
+        reply = network.get(request);
+    } else {
+        request.setHeader(QNetworkRequest::ContentTypeHeader, u"application/json"_s);
+        reply = network.post(request, QJsonDocument(body).toJson(QJsonDocument::Compact));
+    }
     QEventLoop loop;
     QObject::connect(reply, &QNetworkReply::finished, &loop, &QEventLoop::quit);
     loop.exec();
@@ -172,6 +179,9 @@ public:
 #endif
     }
 
+    // A folder of this run's own, removed with it.
+    [[nodiscard]] const QTemporaryDir& folder() const { return m_folder; }
+
     [[nodiscard]] int exitCode() const { return m_process.exitCode(); }
     [[nodiscard]] QProcess::ExitStatus exitStatus() const { return m_process.exitStatus(); }
     QString output() { return QString::fromUtf8(m_process.readAll()); }
@@ -196,18 +206,25 @@ TEST_CASE("The headless studio answers its API and removes its discovery file wh
     const QString token = discovery.value(u"token"_s).toString();
     CHECK(discovery.value(u"apiVersion"_s).toInt() == 1);
 
-    const Reply health = get(baseUrl + u"/v1/health"_s);
+    const Reply health = send(baseUrl + u"/v1/health"_s);
     CHECK(health.status == 200);
     CHECK(health.body.object().value(u"apiVersion"_s).toInt() == 1);
 
-    CHECK(get(baseUrl + u"/v1/commands"_s).status == 401);
+    CHECK(send(baseUrl + u"/v1/commands"_s).status == 401);
 
-    const Reply commands = get(baseUrl + u"/v1/commands"_s, token);
+    const Reply commands = send(baseUrl + u"/v1/commands"_s, token);
     REQUIRE(commands.status == 200);
     const QJsonArray list = commands.body.array();
     CHECK(std::ranges::any_of(list, [](const QJsonValue& command) {
         return command.toObject().value(u"id"_s).toString() == u"edit.undo"_s;
     }));
+
+    // A project saved to a path without an extension gets the project extension.
+    const QString saveTo = studio.folder().filePath(u"first"_s);
+    const Reply saved = send(baseUrl + u"/v1/commands/project.save"_s, token, {{u"path"_s, saveTo}});
+    CHECK(saved.status == 200);
+    CHECK(saved.body.object().value(u"result"_s).toObject().value(u"path"_s).toString() == saveTo + u".msproj"_s);
+    CHECK(QFile::exists(saveTo + u".msproj"_s));
 
     const QString windows = studio.windows();
     const bool stopped = studio.stop();

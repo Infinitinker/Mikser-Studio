@@ -27,7 +27,7 @@ new and changed code, and don't extend what they replace.
   that is no longer used. The repository is `Infinitinker/Mikser-Studio`.
 - Its machine forms: `mikserstudio` for namespaces, plugin and panel ids and the Python package
   `mikserstudio_ai`; `MikserStudio::` for CMake targets; `MIKSERSTUDIO_` for macros and environment
-  variables; `mikser-studio*` for the programs people run. Projects are `.mikser` files, and plugin
+  variables; `mikser-studio*` for the programs people run. Projects are `.msproj` files, and plugin
   manifests `mikserstudio-plugin.json`.
 - Files and folders take hyphens, never underscores: lowercase (`interface-texts.md`,
   `mikserstudio-plugin.json`), and uppercase for the documents at the root

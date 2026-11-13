@@ -71,7 +71,7 @@ messages.
 
 | Term | Meaning | Not |
 |---|---|---|
-| project | What the user works on: the media bin and the timeline, saved as a `.mikser` file. | document, session |
+| project | What the user works on: the media bin and the timeline, saved as a `.msproj` file. | document, session |
 | media item | A file imported into the project, listed in the media bin (`project.import_media`). | asset, source file |
 | media bin | The panel and list of the project's media items. | library, pool |
 | clip | A piece of a media item placed on a track of the timeline. | item, segment |
@@ -116,7 +116,7 @@ messages.
 - Naming: the product is **Mikser Studio** (only in text people read). Code uses `mikserstudio`
   (namespaces, plugin and panel ids, the Python package `mikserstudio_ai`), `MikserStudio::` for
   CMake targets and `MIKSERSTUDIO_` for macros and environment variables. Programs people run are
-  `mikser-studio*`. Projects are `.mikser` files. The app id is `io.github.infinitinker.mikserstudio`
+  `mikser-studio*`. Projects are `.msproj` files. The app id is `io.github.infinitinker.mikserstudio`
   (`kAppId` in `mikserstudio/core/Instance.h`); it must never change after a release.
 - Namespaces follow folders: `mikserstudio::core`, `mikserstudio::engine`, `mikserstudio::ui`, ... Public headers live in
   `<module>/include/mikserstudio/<module>/`, private code in `<module>/src/`.
