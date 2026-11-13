@@ -50,8 +50,9 @@ ctest --preset debug -j8
 
 Presets: `debug`, `release` (RelWithDebInfo), `ci` (warnings are errors) and `package` (the release
 files' build, [releasing.md](releasing.md)). Every module can be
-switched off (`-DMIKSERSTUDIO_WITH_ENGINE=OFF`, `..._API`, `..._SERVICES`, `..._UI`, `..._PLUGINS`) to build
-and test one module on its own; `src/app` is built only when all of them are on.
+switched off (`-DMIKSERSTUDIO_WITH_ENGINE=OFF`, `..._API`, `..._SERVICES`, `..._UI`, `..._PLUGINS`,
+`..._MCP`) to build and test one module on its own; `src/app` is built only when all of them but the MCP
+bridge are on.
 
 ### Run
 
@@ -179,7 +180,8 @@ python tools/licenses.py
 
 `tests/e2e/` starts the built `mikser-studio.exe` headless, as the E2E instance with its settings and
 cache in a temporary folder, finds it through its discovery file, drives it through the local API,
-asks it to close, and checks that it shut down cleanly and removed the file. It also starts the real
+asks it to close, and checks that it shut down cleanly and removed the file. It drives the app through
+the built MCP bridge `mikser-studio-mcp` too, as an agent's client does. It also starts the real
 AI service from `ai/.venv` through the services module and upscales a clip with it; those tests skip
 when `ai/.venv` is not set up, and the upscale also needs `ffmpeg` on `PATH`. The tests carry the
 `e2e` label, which the `debug` and `ci` test presets leave out; the `e2e` preset runs them, on the

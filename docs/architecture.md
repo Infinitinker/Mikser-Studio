@@ -29,6 +29,7 @@ separate Python processes. Why this stack was chosen is in `stack-recommendation
 | `src/services/` | `MikserStudio::services` | core, Qt Network | Sidecar process manager and the AI bridge (talks to `ai/`). |
 | `src/ui/` | `MikserStudio::ui` | core, Qt Widgets/Quick, KDDockWidgets | Main window, docking, workspaces, panels (media bin, timeline, AI, palette, properties, log). |
 | `src/app/` | `mikser-studio` | all | Wires the modules together; `mikser-studio --headless` runs without UI. |
+| `src/mcp/` | `mikser-studio-mcp` | Qt Network/WebSockets | The MCP bridge, a program of its own: offers the commands to agents as MCP tools through the local API. |
 | `plugins/` | plugin libraries | sdk | Bundled example plugins. |
 | `ai/` | Python package `mikserstudio-ai` | — | AI sidecar service, run from its own virtual environment (`ai/.venv`); it connects to the AI tools the user runs and runs no models itself. Also holds the MCP bridge (`mikserstudio_ai.mcp`), a program of its own. |
 | `tests/` | `*-tests` | Catch2 | Tests mirroring `src/` and `plugins/`, and the end-to-end tests. |
@@ -45,6 +46,8 @@ on its own. `tools/check_includes.py` checks the C++ and the import-linter contr
   never includes the engine: the app creates the engine's monitor panels and hands them to the UI,
   and the UI controls playback through `core::Transport`.
 - `src/app/` includes every module, and nothing includes `src/app/`.
+- `src/mcp/`, the MCP bridge, includes only itself and links no other module: it drives the app only
+  through its local API, as any other program can. Nothing includes it.
 - `plugins/` include only the plugin ABI.
 - A module's public headers are included in quotes as `"mikserstudio/<module>/..."`. Its private
   headers are included in quotes by name, and only by the module itself and its tests in
@@ -86,7 +89,7 @@ messages.
 | command palette | The popup that finds and runs commands (Ctrl+K). | quick open |
 | plugin | A shared library with a `mikserstudio-plugin.json` manifest that adds commands, settings and panels. | extension, add-on, module |
 | local API | The versioned `/v1` HTTP and WebSocket API on `127.0.0.1`. | server, remote control |
-| MCP bridge | The program that offers the commands to agents as MCP tools, through the local API (`python -m mikserstudio_ai.mcp`). | MCP server, agent API |
+| MCP bridge | The program that offers the commands to agents as MCP tools, through the local API (`mikser-studio-mcp`). | MCP server, agent API |
 | instance | Which Mikser Studio runs: the installed app, Mikser Studio Dev or Mikser Studio E2E, each with its own name, app id and folders (`MIKSERSTUDIO_INSTANCE`). | profile, variant |
 | discovery file | `api.json`, which tells other programs the local API's address and session token. | config file |
 | session token | The secret a client needs for the local API or the AI service, made anew at each start. | key, password |
