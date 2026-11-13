@@ -136,6 +136,17 @@ TEST_CASE("A job fails with a reason when its tool is not running", "[services][
     CHECK(job.value(u"error").toString().startsWith(u"Ollama is not reachable at http://127.0.0.1:9"_s));
 }
 
+TEST_CASE("An error line in Ollama's answer fails the text job", "[services][ai]")
+{
+    EngineFixture fixture;
+    fixture.ollama.answer = {R"({"model":"llama3:latest","response":"Hel","done":false})",
+                             R"({"error":"model runner has unexpectedly stopped"})"};
+    const QJsonObject job = fixture.waitFinished(fixture.submit(u"text.generate"_s, {{u"prompt"_s, u"Hi"_s}}));
+    CHECK(job.value(u"state").toString() == u"failed"_s);
+    CHECK(job.value(u"error").toString().startsWith(u"Ollama stopped answering with llama3:latest."_s));
+    CHECK(job.value(u"result").toObject().isEmpty());
+}
+
 TEST_CASE("Reasoning before </think> is dropped from the answer", "[services][ai]")
 {
     CHECK(stripReasoning(u"<think>hmm</think>\n Answer "_s) == u"Answer"_s);
@@ -199,6 +210,66 @@ TEST_CASE("image.generate uses the seed it is given", "[services][ai]")
     CHECK(job.value(u"result").toObject().value(u"seed").toInteger() == 1234);
     const QJsonObject workflow = fixture.comfy.prompts().first().second;
     CHECK(workflow.value(u"6").toObject().value(u"inputs").toObject().value(u"seed").toInteger() == 1234);
+}
+
+TEST_CASE("image.generate copies every image the workflow saved", "[services][ai]")
+{
+    EngineFixture fixture;
+    fixture.comfy.imageCount = 2;
+    const QString id = fixture.submit(u"image.generate"_s, {{u"prompt"_s, u"Two foxes"_s}});
+    const QJsonObject job = fixture.waitFinished(id);
+    REQUIRE(job.value(u"state").toString() == u"succeeded"_s);
+    const QJsonArray outputs = job.value(u"result").toObject().value(u"outputs").toArray();
+    REQUIRE(outputs.size() == 2);
+    CHECK(outputs.at(0).toObject().value(u"path").toString() ==
+          fixture.dir.filePath(u"cache/%1/image-1.png"_s.arg(id)));
+    CHECK(outputs.at(1).toObject().value(u"path").toString() ==
+          fixture.dir.filePath(u"cache/%1/image-2.png"_s.arg(id)));
+    CHECK(QFile::exists(outputs.at(1).toObject().value(u"path").toString()));
+}
+
+TEST_CASE("Socket events sent before ComfyUI answers the prompt are followed", "[services][ai]")
+{
+    EngineFixture fixture;
+    fixture.comfy.runEarly = true;
+    const QJsonObject job = fixture.waitFinished(fixture.submit(u"image.generate"_s, {{u"prompt"_s, u"A fox"_s}}));
+    INFO(job.value(u"error").toString().toStdString());
+    CHECK(job.value(u"state").toString() == u"succeeded"_s);
+}
+
+TEST_CASE("A prompt ComfyUI refuses fails the job with ComfyUI's reason", "[services][ai]")
+{
+    EngineFixture fixture;
+    fixture.comfy.refusePrompts = true;
+    const QJsonObject job = fixture.waitFinished(fixture.submit(u"image.generate"_s, {{u"prompt"_s, u"A fox"_s}}));
+    CHECK(job.value(u"state").toString() == u"failed"_s);
+    CHECK(job.value(u"error").toString().contains(
+        u"Prompt outputs failed validation: Value not in list sampler_name: 'euler'"_s));
+}
+
+TEST_CASE("A prompt stopped in ComfyUI fails its job", "[services][ai]")
+{
+    EngineFixture fixture;
+    fixture.comfy.holdPrompts = true;
+    const QString id = fixture.submit(u"image.generate"_s, {{u"prompt"_s, u"A fox"_s}});
+    REQUIRE(waitFor([&] { return fixture.comfy.prompts().size() == 1; }));
+    fixture.comfy.interrupt(u"prompt-1"_s);
+    const QJsonObject job = fixture.waitFinished(id);
+    CHECK(job.value(u"state").toString() == u"failed"_s);
+    CHECK(job.value(u"error").toString() == u"The job was stopped in ComfyUI."_s);
+    CHECK(fixture.comfy.deleted().isEmpty());
+}
+
+TEST_CASE("ComfyUI closing its socket fails the running job", "[services][ai]")
+{
+    EngineFixture fixture;
+    fixture.comfy.holdPrompts = true;
+    const QString id = fixture.submit(u"image.generate"_s, {{u"prompt"_s, u"A fox"_s}});
+    REQUIRE(waitFor([&] { return fixture.comfy.prompts().size() == 1; }));
+    fixture.comfy.closeSockets();
+    const QJsonObject job = fixture.waitFinished(id);
+    CHECK(job.value(u"state").toString() == u"failed"_s);
+    CHECK(job.value(u"error").toString().startsWith(u"ComfyUI closed the connection"_s));
 }
 
 TEST_CASE("A ComfyUI error fails the image job with ComfyUI's message", "[services][ai]")

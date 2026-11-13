@@ -137,6 +137,18 @@ void FakeComfyUi::fail(const QString& promptId, const QString& message)
          QJsonObject{{u"prompt_id"_s, promptId}, {u"node_type"_s, u"KSampler"_s}, {u"exception_message"_s, message}}}});
 }
 
+void FakeComfyUi::interrupt(const QString& promptId)
+{
+    broadcast(QJsonObject{{u"type"_s, u"execution_interrupted"_s},
+                          {u"data"_s, QJsonObject{{u"prompt_id"_s, promptId}, {u"node_type"_s, u"KSampler"_s}}}});
+}
+
+void FakeComfyUi::closeSockets()
+{
+    for (const auto& socket : m_sockets)
+        socket->close();
+}
+
 QHttpServerResponse FakeComfyUi::respond(const RecordedRequest& request)
 {
     const QString& path = request.path;
@@ -157,9 +169,21 @@ QHttpServerResponse FakeComfyUi::respond(const RecordedRequest& request)
         return json(QJsonObject{{node, QJsonObject{{u"name"_s, node}}}});
     }
     if (path == u"/prompt") {
+        if (refusePrompts) {
+            const QJsonObject refusal{
+                {u"error"_s, QJsonObject{{u"message"_s, u"Prompt outputs failed validation"_s}}},
+                {u"node_errors"_s,
+                 QJsonObject{{u"6"_s, QJsonObject{{u"errors"_s, QJsonArray{QJsonObject{
+                                                                    {u"message"_s, u"Value not in list"_s},
+                                                                    {u"details"_s, u"sampler_name: 'euler'"_s}}}}}}}}};
+            return QHttpServerResponse("application/json", QJsonDocument(refusal).toJson(QJsonDocument::Compact),
+                                       QHttpServerResponse::StatusCode::BadRequest);
+        }
         const QString id = u"prompt-%1"_s.arg(m_prompts.size() + 1);
         m_prompts.append({id, bodyOf(request).value(u"prompt"_s).toObject()});
-        if (!holdPrompts)
+        if (runEarly)
+            run(id);
+        else if (!holdPrompts)
             QTimer::singleShot(10, &m_http.server(), [this, id] { run(id); });
         return json(QJsonObject{{u"prompt_id"_s, id}, {u"number"_s, m_prompts.size()}});
     }
@@ -172,11 +196,15 @@ QHttpServerResponse FakeComfyUi::respond(const RecordedRequest& request)
         const auto prompt = std::ranges::find(m_prompts, id, &std::pair<QString, QJsonObject>::first);
         const QString prefix =
             prompt->second.value(u"9").toObject().value(u"inputs").toObject().value(u"filename_prefix").toString();
-        const QJsonObject saved{{u"filename"_s, prefix.section(u'/', -1) + u"_00001_.png"_s},
-                                {u"subfolder"_s, prefix.section(u'/', 0, -2)},
-                                {u"type"_s, u"output"_s}};
-        return json(QJsonObject{
-            {id, QJsonObject{{u"outputs"_s, QJsonObject{{u"9"_s, QJsonObject{{u"images"_s, QJsonArray{saved}}}}}}}}});
+        QJsonArray saved;
+        for (int index = 1; index <= imageCount; ++index) {
+            saved.append(QJsonObject{
+                {u"filename"_s, u"%1_%2_.png"_s.arg(prefix.section(u'/', -1)).arg(index, 5, 10, QLatin1Char('0'))},
+                {u"subfolder"_s, prefix.section(u'/', 0, -2)},
+                {u"type"_s, u"output"_s}});
+        }
+        return json(
+            QJsonObject{{id, QJsonObject{{u"outputs"_s, QJsonObject{{u"9"_s, QJsonObject{{u"images"_s, saved}}}}}}}});
     }
     if (path == u"/view")
         return QHttpServerResponse("image/png", image);

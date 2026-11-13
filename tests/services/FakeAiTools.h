@@ -71,8 +71,18 @@ public:
     void run(const QString& promptId);
     // Sends an execution_error for `promptId`.
     void fail(const QString& promptId, const QString& message);
+    // Sends execution_interrupted for `promptId`, as when someone stops it in ComfyUI.
+    void interrupt(const QString& promptId);
+    // Closes the sockets, as ComfyUI does when it quits.
+    void closeSockets();
 
     bool holdPrompts = false;
+    // Sends a prompt's whole run before answering /prompt.
+    bool runEarly = false;
+    // Answers /prompt with 400 and a node error, as for a workflow ComfyUI cannot run.
+    bool refusePrompts = false;
+    // How many images SaveImage writes per prompt.
+    int imageCount = 1;
     QStringList missingModels;
     QStringList missingNodes;
     // A 16x16 PNG, so the app's media probe takes it.
