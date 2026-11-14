@@ -76,9 +76,9 @@ function text.write(path, contents)
     file:close()
 end
 
---- The lines of a text, split where Python's str.splitlines splits them: at line ends, and at the
---- vertical tab, form feed, file, group and record separators, NEL and the line and paragraph
---- separators. A line end at the end makes no empty last line.
+--- The lines of a text, split at line ends, and at the vertical tab, form feed, file, group and
+--- record separators, NEL and the line and paragraph separators. A line end at the end makes no empty
+--- last line.
 function text.lines(contents)
     local separated = contents
         :gsub("\r\n", "\n")

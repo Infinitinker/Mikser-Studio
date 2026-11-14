@@ -150,8 +150,8 @@ local function add_texts()
     files.copy("THIRD-PARTY-NOTICES.md", STAGE .. "/THIRD-PARTY-NOTICES.txt")
 end
 
---- The zip of the staged files, each under MikserStudio/, in the order Python's zipfile wrote them;
---- CMake's tar writes it, with deflate at level 9.
+--- The zip of the staged files, each under MikserStudio/, sorted as paths are; CMake's tar writes it,
+--- with deflate at level 9.
 local function make_zip(name)
     local path = ("%s/%s-windows-x64.zip"):format(DIST, name)
     local list = STAGE_PARENT .. "/zip-files.txt"

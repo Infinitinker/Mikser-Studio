@@ -32,13 +32,13 @@ that connects to the AI tools the user runs. A release ships no Python. Why this
 | `src/app/` | `mikser-studio` | all | Wires the modules together; `mikser-studio --headless` runs without UI. |
 | `src/mcp/` | `mikser-studio-mcp` | Qt Network/WebSockets | The MCP bridge, a program of its own: offers the commands to agents as MCP tools through the local API. |
 | `plugins/` | plugin libraries | sdk | Bundled example plugins. |
-| `tools/` | development scripts | — | The release build, the third-party notices, the license and include checks and what they read from MSYS2, in Python with its standard library alone; never shipped. Checked with the settings in `tools/pyproject.toml`. |
+| `tools/` | development scripts | — | The release build, the third-party notices, the license and include checks and what they read from MSYS2, in Lua 5.4 with LuaFileSystem and lua-cjson, with their tests in `tools/tests/`; never shipped. Checked with StyLua and selene, with the settings in `tools/stylua.toml` and `tools/selene.toml`. |
 | `tests/` | `*-tests` | Catch2 | Tests mirroring `src/` and `plugins/`, and the end-to-end tests. |
 
 ## Import directions
 
 Code includes and imports only in these directions, so each module can be built, tested and replaced
-on its own. `tools/check_includes.py` checks them, and the `Checks` workflow runs it.
+on its own. `tools/check_includes.lua` checks them, and the `Checks` workflow runs it.
 
 - `sdk/` includes nothing of Mikser Studio: it is the plugin ABI, a plain C header.
 - `src/core/` includes only itself and the plugin ABI.

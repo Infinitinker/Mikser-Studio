@@ -53,8 +53,7 @@ local function parts(path)
     return found
 end
 
---- Whether path a sorts before path b, part by part and, on Windows, without regard to case, as Python
---- sorts paths.
+--- Whether path a sorts before path b, part by part and, on Windows, without regard to case.
 function files.before(a, b)
     local left, right = parts(a), parts(b)
     for index = 1, math.min(#left, #right) do

@@ -67,7 +67,7 @@ local function parts(path)
     return found
 end
 
---- A path as Python's PurePosixPath writes it: without empty and "." parts.
+--- A path without empty and "." parts.
 local function normalize(path)
     local kept = {}
     for _, part in ipairs(parts(path)) do
@@ -93,7 +93,7 @@ local function parent(path)
     return path:match("^(.*)/[^/]*$") or "."
 end
 
---- Whether path a sorts before path b, part by part, as Python sorts paths.
+--- Whether path a sorts before path b, part by part.
 local function before(a, b)
     local left, right = parts(a), parts(b)
     for index = 1, math.min(#left, #right) do

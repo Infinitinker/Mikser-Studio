@@ -6,7 +6,7 @@ now; Linux and macOS get one when their ports land. Setting up from source and t
 
 ## Building a release
 
-`tools/build_release.py` builds three files into `build\dist\`, all uploaded to the release's page on
+`tools/build_release.lua` builds three files into `build\dist\`, all uploaded to the release's page on
 GitHub, under the tag `v<version>`:
 
 - `MikserStudio-<version>-windows-x64-setup.exe`: the installer, made by
@@ -34,44 +34,44 @@ shell, with the UCRT64 tools first on `PATH`:
 export PATH=/c/msys64/ucrt64/bin:$PATH
 cmake --preset package
 cmake --build --preset package
-python tools/build_release.py
+lua5.4 tools/build_release.lua
 ```
 
 The `package` preset is the `release` build with `MIKSERSTUDIO_INSTALLED_APP` on and without the
 tests: its program is the installed Mikser Studio when `MIKSERSTUDIO_INSTANCE` is unset. Every other
 build, `release` included, runs as Mikser Studio Dev, with folders of its own, so a build from source
-never touches an installed copy's files; `build_release.py` refuses a build without the option. Don't
+never touches an installed copy's files; `build_release.lua` refuses a build without the option. Don't
 run `build/package` from source: it would use the installed app's settings and files.
 
 The version is the one in `CMakeLists.txt`'s `project()`, Mikser Studio's only version.
 
 The AI commands run in the app itself, so a release has them; they use the AI tools the user runs
-([ai.md](ai.md)). A release ships no Python: the scripts in `tools/` build and check it, and stay
-behind.
+([ai.md](ai.md)). The scripts in `tools/` build and check a release, and stay behind: a release
+ships no Lua, and no Python.
 
 ## Dependencies and notices
 
-A release takes its libraries from MSYS2's UCRT64 environment. `tools/msys2_packages.py` works out
+A release takes its libraries from MSYS2's UCRT64 environment. `tools/msys2_packages.lua` works out
 which: the libraries the programs and the bundled plugins import (`PROGRAM_LIBRARIES`), the
 MLT modules and Qt plugins a release copies (`MLT_MODULES` and `COPIED`), the libraries those load by
 name (`LOADED_LIBRARIES`), and every library all of these import in turn, read from the files
 themselves; then the MSYS2 packages they come from, with their licenses, from MSYS2's package database.
-`tools/build_release.py` fails unless `THIRD-PARTY-NOTICES.md` covers exactly what it copies: when
+`tools/build_release.lua` fails unless `THIRD-PARTY-NOTICES.md` covers exactly what it copies: when
 the program or a plugin imports a library `PROGRAM_LIBRARIES` does not list, or when the committed
-notices are not what `tools/notices.py` writes from the MSYS2 it builds with. So nothing ships without
+notices are not what `tools/notices.lua` writes from the MSYS2 it builds with. So nothing ships without
 its notice, and the `Build Windows app` workflow checks the notices before it builds.
 
-`tools/notices.py` writes the license texts of those packages into `THIRD-PARTY-NOTICES.md`. After
+`tools/notices.lua` writes the license texts of those packages into `THIRD-PARTY-NOTICES.md`. After
 adding or upgrading a library, or updating MSYS2, write the notices again and commit the file:
 
 ```sh
-python tools/notices.py
+lua5.4 tools/notices.lua
 ```
 
-`python tools/notices.py --check`, which the `Licenses` check runs, fails unless the file is up to
+`lua5.4 tools/notices.lua --check`, which the `Licenses` check runs, fails unless the file is up to
 date. A package that installs no license text gets the standard text of the license MSYS2 names for
 it, unless that text is a template still waiting for the project's own copyright line, as BSD's and
-MIT's are. One with neither is listed in `NO_TEXT` in `tools/notices.py`, with the reason, and shows in the
+MIT's are. One with neither is listed in `NO_TEXT` in `tools/notices.lua`, with the reason, and shows in the
 notices as a gap; its text goes in `tools/licenses/<package>.txt`, from the project's source, after
 which it leaves the list.
 
@@ -85,7 +85,7 @@ GPL-3.0-or-later (with x264, x265 and xvidcore in it), Qt HttpServer under the G
 KDDockWidgets under the GPL-2.0 or the GPL-3.0; MLT is under the LGPL-2.1-or-later. A release is under
 the GPL-3.0 as a whole.
 
-Every license of what a release ships must pass `tools/licenses.py`, which the `Licenses` check runs:
+Every license of what a release ships must pass `tools/licenses.lua`, which the `Licenses` check runs:
 one alternative of each package's license must name only licenses on its allow list (`ALLOWED`), those
 that can be combined with the GPL-3.0-or-later. A package whose metadata names no SPDX license, or
 joins alternatives with AND, needs an entry in `EXCEPTIONS`, with the license as checked by hand.
@@ -99,14 +99,14 @@ packages).
 
 TODO: the sources zip is not built yet. Mikser Studio's own source is small (`git archive`), but the
 packages' sources, FFmpeg's and Qt's among them, run to hundreds of megabytes. Next step:
-`tools/build_release.py` writes the zip from `git archive` and MSYS2's source packages, and the
+`tools/build_release.lua` writes the zip from `git archive` and MSYS2's source packages, and the
 release workflows check and publish it as a fourth file.
 
 ## Building on GitHub
 
 Releases are built on GitHub the same way, on a clean Windows runner, by the `Build Windows app`
 workflow (`.github/workflows/build-windows.yml`): it installs MSYS2's packages and Inno Setup, builds
-the `package` preset and runs `tools/build_release.py`, then checks that exactly the three release
+the `package` preset and runs `tools/build_release.lua`, then checks that exactly the three release
 files arrived, under the version's name, with a whole zip (the `Windows release files` job). It runs
 for every pull request, not for pushes, keeping the files on the run's page, so a change that breaks
 the release shows up before it reaches `main`. To build `dev` without a pull request, run it by hand
