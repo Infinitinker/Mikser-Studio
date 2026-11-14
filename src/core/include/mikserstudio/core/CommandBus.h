@@ -44,6 +44,12 @@ public:
     // Fails (returns false and logs) when the id is already taken or the spec is malformed.
     bool registerCommand(CommandSpec spec, CommandHandler handler);
     void unregisterCommand(const QString& id);
+    // Unregisters every command whose spec names `owner`, such as a plugin that stops.
+    void unregisterOwnedBy(const QString& owner);
+    // Replaces a registered command's spec, keeping its handler, and emits commandChanged. Fails
+    // (returns false and logs) when the command isn't registered, the spec names another owner or
+    // the spec is malformed.
+    bool updateSpec(CommandSpec spec);
 
     [[nodiscard]] bool contains(const QString& id) const;
     [[nodiscard]] const CommandSpec* spec(const QString& id) const;
@@ -72,6 +78,7 @@ public:
 Q_SIGNALS:
     void commandRegistered(const QString& id);
     void commandUnregistered(const QString& id);
+    void commandChanged(const QString& id);
     void executed(const QString& id, const QJsonObject& params, const QJsonObject& result,
                   const mikserstudio::core::CallContext& context);
     void failed(const QString& id, const QJsonObject& params, const mikserstudio::core::CommandError& error,

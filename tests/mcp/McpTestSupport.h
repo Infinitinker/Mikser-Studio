@@ -38,8 +38,8 @@ public:
     explicit Client(const QString& discoveryPath, mcp::Bridge::Options options = {});
 
     void send(const QJsonObject& message);
-    // The next message the bridge sends, or an empty object when none comes within five seconds.
-    QJsonObject nextMessage();
+    // The next message the bridge sends, or an empty object when none comes within `timeout`.
+    QJsonObject nextMessage(std::chrono::milliseconds timeout = std::chrono::seconds(5));
     // Sends a request and returns the bridge's answer to it.
     QJsonObject request(const QString& method, const QJsonObject& params = {});
     // initialize, then notifications/initialized.

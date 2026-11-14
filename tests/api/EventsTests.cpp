@@ -151,6 +151,11 @@ TEST_CASE("The events socket pushes failures and registry changes, also for comm
     REQUIRE(client.waitForEvent(u"command.registered"_s));
     CHECK(client.find(u"command.registered"_s).value(u"id"_s).toString() == u"test.late"_s);
 
+    late.title = u"Later"_s;
+    REQUIRE(fixture.bus.updateSpec(late));
+    REQUIRE(client.waitForEvent(u"command.changed"_s));
+    CHECK(client.find(u"command.changed"_s).value(u"id"_s).toString() == u"test.late"_s);
+
     fixture.bus.unregisterCommand(u"test.late"_s);
     REQUIRE(client.waitForEvent(u"command.unregistered"_s));
     CHECK(client.find(u"command.unregistered"_s).value(u"id"_s).toString() == u"test.late"_s);

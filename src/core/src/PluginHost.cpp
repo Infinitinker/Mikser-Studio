@@ -94,9 +94,8 @@ PluginHost::~PluginHost()
 
 void PluginHost::unregisterCommands()
 {
-    const QStringList commands = std::exchange(m_commands, {});
-    for (const QString& id : commands)
-        m_bus.unregisterCommand(id);
+    m_commands.clear();
+    m_bus.unregisterOwnedBy(m_pluginId);
 }
 
 PluginHost& PluginHost::self(void* host)

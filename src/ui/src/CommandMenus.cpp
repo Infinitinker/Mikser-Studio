@@ -67,6 +67,10 @@ CommandMenus::CommandMenus(core::CommandBus& bus, QMenuBar* menuBar, QWidget* di
         add(spec.id);
     connect(&bus, &core::CommandBus::commandRegistered, this, &CommandMenus::add);
     connect(&bus, &core::CommandBus::commandUnregistered, this, &CommandMenus::remove);
+    connect(&bus, &core::CommandBus::commandChanged, this, [this](const QString& id) {
+        remove(id);
+        add(id);
+    });
     connect(&bus.undoStack(), &core::UndoStack::changed, this, &CommandMenus::updateUndoRedo);
     updateUndoRedo();
 }

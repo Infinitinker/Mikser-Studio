@@ -36,6 +36,8 @@ EventHub::EventHub(core::CommandBus& bus, QObject* parent)
     connect(&bus, &core::CommandBus::commandUnregistered, this, [this](const QString& id) {
         broadcast(QJsonObject{{u"type"_s, u"command.unregistered"_s}, {u"id"_s, id}});
     });
+    connect(&bus, &core::CommandBus::commandChanged, this,
+            [this](const QString& id) { broadcast(QJsonObject{{u"type"_s, u"command.changed"_s}, {u"id"_s, id}}); });
     connect(&bus.undoStack(), &core::UndoStack::changed, this, &EventHub::onUndoChanged);
 }
 

@@ -18,6 +18,9 @@ namespace mikserstudio::mcp {
 
 namespace {
 
+// How long the bridge waits after a change to the commands for more before it tells the client.
+constexpr std::chrono::milliseconds kToolsSettle{50};
+
 const QString kStructuredSince = u"2025-06-18"_s;
 
 const QString kInstructions =
@@ -54,6 +57,12 @@ Bridge::Bridge(QString discoveryPath, Send send, Options options, QObject* paren
     , m_events(std::move(discoveryPath), options.retry, options.handshakeTimeout)
     , m_protocol(protocolVersions().constFirst())
 {
+    m_toolsTimer.setSingleShot(true);
+    m_toolsTimer.setInterval(kToolsSettle);
+    connect(&m_toolsTimer, &QTimer::timeout, this, [this] {
+        if (!m_closed)
+            m_send(QJsonObject{{u"jsonrpc"_s, u"2.0"_s}, {u"method"_s, u"notifications/tools/list_changed"_s}});
+    });
     m_closeTimer.setSingleShot(true);
     connect(&m_closeTimer, &QTimer::timeout, this, [this] {
         for (QObject* context : std::as_const(m_running))
@@ -72,7 +81,7 @@ Bridge::Bridge(QString discoveryPath, Send send, Options options, QObject* paren
     connect(&m_events, &EventFollower::eventReceived, this, [this](const QJsonObject& event) {
         m_recent.add(event, QDateTime::currentDateTimeUtc());
         const QString type = event.value(u"type"_s).toString();
-        if (type == u"command.registered"_s || type == u"command.unregistered"_s)
+        if (type == u"command.registered"_s || type == u"command.unregistered"_s || type == u"command.changed"_s)
             toolsChanged();
     });
 }
@@ -339,7 +348,7 @@ void Bridge::endRequest(const QJsonValue& id)
 void Bridge::toolsChanged()
 {
     if (m_ready)
-        m_send(QJsonObject{{u"jsonrpc"_s, u"2.0"_s}, {u"method"_s, u"notifications/tools/list_changed"_s}});
+        m_toolsTimer.start();
 }
 
 void Bridge::closeWhenIdle()
@@ -348,6 +357,7 @@ void Bridge::closeWhenIdle()
         return;
     m_closed = true;
     m_closeTimer.stop();
+    m_toolsTimer.stop();
     Q_EMIT closed();
 }
 

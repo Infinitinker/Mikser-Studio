@@ -516,6 +516,47 @@ TEST_CASE("CommandBus unregisters commands and emits registration signals", "[co
     CHECK(bus.execute(u"test.set_value"_s, json(R"({"value": 1})")).error().code == CommandErrorCode::UnknownCommand);
 }
 
+TEST_CASE("CommandBus unregisters an owner's commands and updates a spec for its owner", "[commands]")
+{
+    UndoStack stack;
+    CommandBus bus(stack);
+    for (const QString& id : {u"hello.greet"_s, u"hello.wave"_s}) {
+        CommandSpec spec = setSpec();
+        spec.id = id;
+        spec.owner = u"hello"_s;
+        REQUIRE(bus.registerCommand(spec, okHandler()));
+    }
+    int value = 0;
+    REQUIRE(bus.registerCommand(setSpec(), setHandler(value)));
+    QStringList changed;
+    QObject::connect(&bus, &CommandBus::commandChanged, [&](const QString& id) { changed.append(id); });
+
+    CommandSpec renamed = *bus.spec(u"hello.greet"_s);
+    renamed.title = u"Say hello"_s;
+    REQUIRE(bus.updateSpec(renamed));
+    CHECK(bus.spec(u"hello.greet"_s)->title == u"Say hello"_s);
+    CHECK(changed == QStringList{u"hello.greet"_s});
+    CHECK(bus.execute(u"hello.greet"_s, json(R"({"value": 1})")));
+
+    CommandSpec stolen = *bus.spec(u"test.set_value"_s);
+    stolen.owner = u"hello"_s;
+    stolen.title = u"Mine now"_s;
+    CHECK_FALSE(bus.updateSpec(stolen));
+    CommandSpec broken = *bus.spec(u"hello.wave"_s);
+    broken.title.clear();
+    CHECK_FALSE(bus.updateSpec(broken));
+    CommandSpec missing = setSpec();
+    missing.id = u"hello.missing"_s;
+    CHECK_FALSE(bus.updateSpec(missing));
+    CHECK(changed.size() == 1);
+
+    QStringList unregistered;
+    QObject::connect(&bus, &CommandBus::commandUnregistered, [&](const QString& id) { unregistered.append(id); });
+    bus.unregisterOwnedBy(u"hello"_s);
+    CHECK(unregistered == QStringList{u"hello.greet"_s, u"hello.wave"_s});
+    CHECK(bus.contains(u"test.set_value"_s));
+}
+
 TEST_CASE("A handler can unregister its own command while running", "[commands]")
 {
     UndoStack stack;

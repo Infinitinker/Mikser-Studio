@@ -158,7 +158,8 @@ saving to the project's own file never asks. Such a run without the parameter fa
 `409 needs_confirmation`, whose message is the question to ask; the client asks the person and, when
 they agree, runs the command again with the parameter set to `true`.
 
-`owner` is `core` for the app's own commands and the plugin's id for a plugin's. `resultSchema`, when
+`owner` is `core` for the app's own commands and the plugin's id for a plugin's; a command's spec
+changes (`command.changed`) and its commands go away with their owner. `resultSchema`, when
 not empty, is the JSON Schema of a successful run's `result`, such as `{path}` for `project.save`.
 `permission` is what a caller needs to run the command ([architecture.md](architecture.md#permissions)):
 `project.read` for read-only commands, `project.write` for changes to the project, `files` for
@@ -230,6 +231,7 @@ Each text message is one JSON object with a `type`:
 {"type": "command.failed", "id": "edit.undo", "params": {}, "error": {"code": "not_available", "message": "There is nothing to undo."}, "origin": "ui", "origins": ["ui"]}
 {"type": "command.registered", "id": "hello.greet"}
 {"type": "command.unregistered", "id": "hello.greet"}
+{"type": "command.changed", "id": "hello.greet"}
 {"type": "undo.changed", "canUndo": true, "canRedo": false, "undoText": "Import “sample-30s.mp4”", "redoText": ""}
 ```
 
@@ -273,7 +275,8 @@ discovery file, `/v1/commands` and `/v1/events`.
 - **Following the app:** the bridge reads the discovery file anew for every request, so it follows the
   app when it restarts. While the app is not running it lists no tools, and calls say to start it. It
   keeps the events socket open and tells the client when the tools change: when the app starts or
-  stops, and when plugins add or remove commands.
+  stops, and when plugins add, change or remove commands. Changes that come within 50 ms of each
+  other become one `notifications/tools/list_changed`.
 - **Recent events:** the bridge's own read-only tool `recent_events` lists the last 100 events it
   received, newest last, each with a `number`, the `time` it arrived and the `event` as the socket sent
   it, so an agent sees what the person changed. Its result's `latest` is the newest number; pass it as

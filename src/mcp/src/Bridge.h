@@ -103,6 +103,7 @@ private:
     QHash<QString, Question> m_questions;
     QHash<QString, QObject*> m_running;  // Each running request's context, by its id.
     QTimer m_closeTimer;
+    QTimer m_toolsTimer;  // Gathers the command changes that come in a row into one tools/list_changed.
 };
 
 }  // namespace mikserstudio::mcp

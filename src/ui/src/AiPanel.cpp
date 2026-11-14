@@ -117,6 +117,7 @@ AiPanel::AiPanel(core::CommandBus& bus, QWidget* parent)
     connect(m_prompt, &QPlainTextEdit::textChanged, this, &AiPanel::updateControls);
     connect(&bus, &core::CommandBus::commandRegistered, this, &AiPanel::updateAvailability);
     connect(&bus, &core::CommandBus::commandUnregistered, this, &AiPanel::updateAvailability);
+    connect(&bus, &core::CommandBus::commandChanged, this, &AiPanel::updateAvailability);
     m_poll->setObjectName(u"jobPoll"_s);
     m_poll->setInterval(kPollIntervalMs);
     connect(m_poll, &QTimer::timeout, this, &AiPanel::refreshJobs);

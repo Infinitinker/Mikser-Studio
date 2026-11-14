@@ -297,6 +297,26 @@ TEST_CASE("the client hears when the app starts, stops and changes its commands"
     CHECK(methodOf(client.nextMessage()) == u"notifications/tools/list_changed"_s);
 }
 
+TEST_CASE("command changes in a row reach the client as one tools/list_changed", "[mcp]")
+{
+    Folder folder;
+    Client client(folder.discoveryPath, {.retry = std::chrono::milliseconds(50), .closeTimeout = {}});
+    client.start();
+    client.bridge().start();
+    FakeStudio studio(folder.discoveryPath);
+    CHECK(methodOf(client.nextMessage()) == u"notifications/tools/list_changed"_s);
+    REQUIRE(tests::waitFor([&] { return studio.openSockets() == 1; }));
+
+    studio.sendEvent({{u"type"_s, u"command.registered"_s}, {u"id"_s, u"hello.greet"_s}});
+    studio.sendEvent({{u"type"_s, u"command.changed"_s}, {u"id"_s, u"hello.greet"_s}});
+    studio.sendEvent({{u"type"_s, u"command.unregistered"_s}, {u"id"_s, u"hello.greet"_s}});
+    CHECK(methodOf(client.nextMessage()) == u"notifications/tools/list_changed"_s);
+    CHECK(client.nextMessage(std::chrono::milliseconds(300)).isEmpty());
+
+    studio.sendEvent({{u"type"_s, u"command.changed"_s}, {u"id"_s, u"project.list"_s}});
+    CHECK(methodOf(client.nextMessage()) == u"notifications/tools/list_changed"_s);
+}
+
 TEST_CASE("recent_events lists the app's events, and those after a number", "[mcp]")
 {
     Folder folder;

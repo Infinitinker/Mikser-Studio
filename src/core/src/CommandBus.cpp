@@ -180,6 +180,40 @@ void CommandBus::unregisterCommand(const QString& id)
     Q_EMIT commandUnregistered(id);
 }
 
+void CommandBus::unregisterOwnedBy(const QString& owner)
+{
+    QStringList owned;
+    for (const auto& [id, entry] : m_commands) {
+        if (entry.spec.owner == owner)
+            owned.append(id);
+    }
+    for (const QString& id : owned)
+        unregisterCommand(id);
+}
+
+bool CommandBus::updateSpec(CommandSpec spec)
+{
+    const auto it = m_commands.find(spec.id);
+    if (it == m_commands.end()) {
+        qCWarning(lcCommands).noquote() << "Did not update" << spec.id << "because it isn't registered";
+        return false;
+    }
+    if (spec.owner != it->second.spec.owner) {
+        qCWarning(lcCommands).noquote() << "Did not update" << spec.id << "because it belongs to"
+                                        << it->second.spec.owner << ", not" << spec.owner;
+        return false;
+    }
+    auto normalized = normalizeCommandSpec(std::move(spec));
+    if (!normalized) {
+        qCWarning(lcCommands).noquote() << "Did not update a command:" << normalized.error();
+        return false;
+    }
+    it->second.spec = std::move(*normalized);
+    qCDebug(lcCommands).noquote() << "Updated" << it->first;
+    Q_EMIT commandChanged(it->first);
+    return true;
+}
+
 bool CommandBus::contains(const QString& id) const
 {
     return m_commands.contains(id);

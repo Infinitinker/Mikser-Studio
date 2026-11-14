@@ -31,9 +31,9 @@ void Client::send(const QJsonObject& message)
     m_bridge->receive(QJsonDocument(message).toJson(QJsonDocument::Compact));
 }
 
-QJsonObject Client::nextMessage()
+QJsonObject Client::nextMessage(std::chrono::milliseconds timeout)
 {
-    if (!waitFor([this] { return !m_sent.isEmpty(); }, std::chrono::seconds(5)))
+    if (!waitFor([this] { return !m_sent.isEmpty(); }, timeout))
         return {};
     return m_sent.takeFirst();
 }
