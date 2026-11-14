@@ -233,6 +233,8 @@ discovery file, `/v1/commands` and `/v1/events`.
 
 - **Tools:** every command is a tool, named after its id with `_` for `.` (`project.import_media`
   is `project_import_media`), with its title, description and `paramsSchema` as the input schema.
+  The app refuses a command whose tool name would be longer than MCP's 64 characters, would be
+  `recent_events` (the bridge's own tool), or would equal another command's.
   Read-only commands carry `readOnlyHint`, and commands with a `confirmation` or a
   `confirmationParam` carry `destructiveHint`; a `confirmationParam` is left out of the input schema,
   and the description says that the person is asked first. A tool's result is the command's

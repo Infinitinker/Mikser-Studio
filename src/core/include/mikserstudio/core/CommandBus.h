@@ -19,9 +19,11 @@ class UndoStack;
 // (Ctrl+Shift+Z); they return {text} of the reverted/reapplied edit or fail with NotAvailable
 // (also while an undo group is open, see UndoStack::beginGroup).
 //
-// Spec rules: the id matches ^[a-z0-9_]+(\.[a-z0-9_]+)+$, the title is not empty, paramsSchema
-// has "type": "object" (an empty paramsSchema becomes one that accepts only {}) and a command is
-// not both readOnly and undoable.
+// Spec rules: the id matches ^[a-z0-9_]+(\.[a-z0-9_]+)+$ and, with "_" for ".", has at most 64
+// characters, isn't "recent_events" and differs from every registered command's (the names of MCP
+// tools); the title is not empty; paramsSchema has "type": "object" (an empty paramsSchema becomes
+// one that accepts only {}); a readOnly command is neither undoable nor asks first; and a
+// confirmationParam names a boolean property with "default": false.
 //
 // Handlers may execute other commands. To make those one undo step, open a core::UndoGroup in the
 // handler: the nested commands' edits become one compound edit, and an edit the handler itself

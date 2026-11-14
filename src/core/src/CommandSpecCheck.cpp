@@ -2,6 +2,7 @@
 #include "CommandSpecCheck.h"
 
 #include <QJsonArray>
+#include <QJsonObject>
 #include <QRegularExpression>
 
 using namespace Qt::StringLiterals;
@@ -14,7 +15,30 @@ bool isValidDottedId(const QString& id)
     return pattern.match(id).hasMatch();
 }
 
+QString toolNameOf(const QString& commandId)
+{
+    return QString(commandId).replace(u'.', u'_');
+}
+
 namespace {
+
+constexpr qsizetype kMaxToolNameLength = 64;  // MCP's limit for a tool name.
+const QString kReservedToolName = u"recent_events"_s;  // The MCP bridge's own tool.
+
+std::expected<void, QString> checkConfirmationParam(const CommandSpec& spec)
+{
+    if (spec.confirmationParam.isEmpty())
+        return {};
+    const QJsonValue property = spec.paramsSchema.value(u"properties").toObject().value(spec.confirmationParam);
+    if (!property.isObject())
+        return std::unexpected(
+            u"confirmationParam “%1” must be a property of paramsSchema"_s.arg(spec.confirmationParam));
+    const QJsonObject schema = property.toObject();
+    if (schema.value(u"type") != u"boolean"_s || schema.value(u"default") != QJsonValue(false))
+        return std::unexpected(
+            u"confirmationParam “%1” must be a boolean property with \"default\": false"_s.arg(spec.confirmationParam));
+    return {};
+}
 
 std::expected<void, QString> checkParamsSchema(const QJsonObject& schema)
 {
@@ -51,10 +75,24 @@ std::expected<CommandSpec, QString> normalizeCommandSpec(CommandSpec spec)
             u"command id “%1” must be dotted lower_snake_case with at least two parts, e.g. \"timeline.add_clip\""_s
                 .arg(spec.id));
     }
+    const QString tool = toolNameOf(spec.id);
+    if (tool.size() > kMaxToolNameLength) {
+        return std::unexpected(u"command id “%1” is too long: with “_” for “.” it must have at most %2 characters, "
+                               u"the length of an MCP tool name"_s.arg(spec.id)
+                                   .arg(kMaxToolNameLength));
+    }
+    if (tool == kReservedToolName) {
+        return std::unexpected(u"command id “%1” is reserved: the MCP bridge offers a tool of its own named “%2”"_s.arg(
+            spec.id, kReservedToolName));
+    }
     if (spec.title.trimmed().isEmpty())
         return std::unexpected(u"command “%1” needs a title"_s.arg(spec.id));
     if (spec.readOnly && spec.undoable)
         return std::unexpected(u"command “%1” cannot be both read-only and undoable"_s.arg(spec.id));
+    if (spec.readOnly && (!spec.confirmation.isEmpty() || !spec.confirmationParam.isEmpty()))
+        return std::unexpected(
+            u"command “%1” is read-only, so it changes nothing and must not ask first (confirmation or confirmationParam)"_s
+                .arg(spec.id));
     if (spec.paramsSchema.isEmpty()) {
         spec.paramsSchema = QJsonObject{
             {u"type"_s, u"object"_s},
@@ -63,6 +101,8 @@ std::expected<CommandSpec, QString> normalizeCommandSpec(CommandSpec spec)
         };
     }
     if (auto checked = checkParamsSchema(spec.paramsSchema); !checked)
+        return std::unexpected(u"command “%1”: %2"_s.arg(spec.id, checked.error()));
+    if (auto checked = checkConfirmationParam(spec); !checked)
         return std::unexpected(u"command “%1”: %2"_s.arg(spec.id, checked.error()));
     return spec;
 }

@@ -94,6 +94,14 @@ bool CommandBus::registerCommand(CommandSpec spec, CommandHandler handler)
         qCWarning(lcCommands).noquote() << "Rejected command" << id << "because the id is already registered";
         return false;
     }
+    const QString tool = toolNameOf(id);
+    for (const auto& [taken, entry] : m_commands) {
+        if (toolNameOf(taken) == tool) {
+            qCWarning(lcCommands).noquote()
+                << "Rejected command" << id << "because" << taken << "already has its MCP tool name" << tool;
+            return false;
+        }
+    }
     m_commands.emplace(id, Entry{std::move(*normalized), std::move(handler)});
     qCDebug(lcCommands).noquote() << "Registered" << id;
     Q_EMIT commandRegistered(id);

@@ -124,6 +124,52 @@ TEST_CASE("CommandBus rejects malformed specs", "[commands]")
         spec.undoable = false;
         CHECK(bus.registerCommand(spec, okHandler()));
     }
+    SECTION("ids too long for an MCP tool name, the bridge's own tool name, and tool name collisions")
+    {
+        CommandSpec spec = setSpec();
+        spec.id = u"test."_s + QString(59, u'a');  // 64 characters.
+        CHECK(bus.registerCommand(spec, okHandler()));
+        spec.id = u"test."_s + QString(60, u'b');
+        CHECK_FALSE(bus.registerCommand(spec, okHandler()));
+        spec.id = u"recent.events"_s;
+        CHECK_FALSE(bus.registerCommand(spec, okHandler()));
+
+        spec.id = u"demo.make_clip"_s;
+        CHECK(bus.registerCommand(spec, okHandler()));
+        spec.id = u"demo_make.clip"_s;  // Also the tool "demo_make_clip".
+        CHECK_FALSE(bus.registerCommand(spec, okHandler()));
+        CHECK_FALSE(bus.contains(u"demo_make.clip"_s));
+    }
+    SECTION("read-only commands cannot ask first")
+    {
+        CommandSpec spec = setSpec();
+        spec.undoable = false;
+        spec.readOnly = true;
+        spec.confirmation = u"Really?"_s;
+        CHECK_FALSE(bus.registerCommand(spec, okHandler()));
+        spec.confirmation.clear();
+        spec.paramsSchema = json(
+            R"({"type": "object", "properties": {"sure": {"type": "boolean", "default": false}}})");
+        spec.confirmationParam = u"sure"_s;
+        CHECK_FALSE(bus.registerCommand(spec, okHandler()));
+    }
+    SECTION("a confirmation parameter is a declared boolean that defaults to false")
+    {
+        CommandSpec spec = setSpec();
+        spec.confirmationParam = u"overwrite"_s;
+        CHECK_FALSE(bus.registerCommand(spec, okHandler()));  // Not declared.
+        spec.paramsSchema = json(
+            R"({"type": "object", "properties": {"overwrite": {"type": "string", "default": "no"}}})");
+        CHECK_FALSE(bus.registerCommand(spec, okHandler()));
+        spec.paramsSchema = json(
+            R"({"type": "object", "properties": {"overwrite": {"type": "boolean", "default": true}}})");
+        CHECK_FALSE(bus.registerCommand(spec, okHandler()));
+        spec.paramsSchema = json(R"({"type": "object", "properties": {"overwrite": {"type": "boolean"}}})");
+        CHECK_FALSE(bus.registerCommand(spec, okHandler()));
+        spec.paramsSchema = json(
+            R"({"type": "object", "properties": {"overwrite": {"type": "boolean", "default": false}}})");
+        CHECK(bus.registerCommand(spec, okHandler()));
+    }
     SECTION("missing title or handler, duplicate id")
     {
         CommandSpec spec = setSpec();
@@ -166,15 +212,20 @@ TEST_CASE("CommandBus lists specs sorted and converts them to JSON", "[commands]
 
     CommandSpec guarded = setSpec();
     guarded.id = u"test.guarded"_s;
-    guarded.undoable = false;
-    guarded.readOnly = true;
-    guarded.confirmation = u"Really read the value?"_s;
-    guarded.confirmationParam = u"label"_s;
+    guarded.paramsSchema = json(R"({"type": "object", "properties": {"sure": {"type": "boolean", "default": false}}})");
+    guarded.confirmation = u"Really set the value?"_s;
+    guarded.confirmationParam = u"sure"_s;
     REQUIRE(bus.registerCommand(guarded, okHandler()));
     const QJsonObject guardedJson = toJson(*bus.spec(u"test.guarded"_s));
-    CHECK(guardedJson.value(u"readOnly").toBool());
-    CHECK(guardedJson.value(u"confirmation").toString() == u"Really read the value?"_s);
-    CHECK(guardedJson.value(u"confirmationParam").toString() == u"label"_s);
+    CHECK(guardedJson.value(u"confirmation").toString() == u"Really set the value?"_s);
+    CHECK(guardedJson.value(u"confirmationParam").toString() == u"sure"_s);
+
+    CommandSpec reader = setSpec();
+    reader.id = u"test.read_value"_s;
+    reader.undoable = false;
+    reader.readOnly = true;
+    REQUIRE(bus.registerCommand(reader, okHandler()));
+    CHECK(toJson(*bus.spec(u"test.read_value"_s)).value(u"readOnly").toBool());
 }
 
 TEST_CASE("CommandBus fills an empty params schema with one that takes no params", "[commands]")
