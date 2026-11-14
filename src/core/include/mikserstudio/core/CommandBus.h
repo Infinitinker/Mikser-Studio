@@ -8,10 +8,14 @@
 #include <QJsonObject>
 #include <QObject>
 #include <QPointer>
+#include <QTimer>
 
 #include <atomic>
+#include <chrono>
+#include <deque>
 #include <initializer_list>
 #include <map>
+#include <optional>
 #include <utility>
 #include <vector>
 
@@ -94,6 +98,20 @@ public:
 
     static constexpr std::size_t kMaxDepth = 16;
 
+    // Transactions: the write commands one caller (the last of `context`'s origins, such as a Lua
+    // plugin) runs between beginTransaction() and commitTransaction() become one undo step named
+    // `name`. While a transaction is open it holds the project's write lease: a write command
+    // another caller starts waits for it (executeAsync) or answers not_available (execute);
+    // commands that running commands run, and read-only ones, never wait. A transaction open
+    // longer than kTransactionDeadline is rolled back: its edits are undone, in reverse order,
+    // and the waiting commands run. One transaction is open at a time. Needs an event loop.
+    using TransactionId = quint64;
+    static constexpr std::chrono::milliseconds kTransactionDeadline{2000};
+    std::expected<TransactionId, CommandError> beginTransaction(const QString& name, const CallContext& context);
+    void commitTransaction(TransactionId transaction);
+    void rollBackTransaction(TransactionId transaction, const QString& reason);
+    [[nodiscard]] bool inTransaction() const { return m_transaction.has_value(); }
+
     [[nodiscard]] UndoStack& undoStack() const { return m_undoStack; }
 
     // The app's events. The bus publishes its own: "command.executed", "command.failed",
@@ -110,6 +128,7 @@ Q_SIGNALS:
                   const mikserstudio::core::CallContext& context);
     void failed(const QString& id, const QJsonObject& params, const mikserstudio::core::CommandError& error,
                 const mikserstudio::core::CallContext& context);
+    void transactionRolledBack(mikserstudio::core::CommandBus::TransactionId transaction, const QString& reason);
 
 private:
     struct Entry {
@@ -120,6 +139,20 @@ private:
     struct Reply {
         QPointer<QObject> receiver;
         ExecuteDone done;
+    };
+    // An open transaction: who holds the write lease.
+    struct Transaction {
+        TransactionId id = 0;
+        QString holder;  // The last of the opener's origins.
+        QString name;
+    };
+    // A run that waits for the open transaction to end.
+    struct WaitingRun {
+        RunId run = 0;
+        QString id;
+        QJsonObject params;
+        CallContext context;
+        Reply reply;
     };
     // An async run that hasn't answered yet.
     struct PendingRun {
@@ -132,6 +165,10 @@ private:
 
     bool add(CommandSpec spec, CommandHandler handler, AsyncCommandHandler asyncHandler);
     void publishOwnEvents();
+    // Whether a run of `entry` by `context` must wait for the open transaction.
+    [[nodiscard]] bool mustWait(const Entry& entry, const CallContext& context) const;
+    // Closes the open transaction and starts the runs that waited for it.
+    void endTransaction();
     // The params with their defaults, or why the run may not start: the depth, the permission or
     // the params.
     std::expected<QJsonObject, CommandError> admit(const Entry& entry, const QJsonObject& params,
@@ -148,6 +185,10 @@ private:
     std::vector<CallContext> m_running;  // The contexts of the commands running, innermost last.
     std::map<RunId, PendingRun> m_pending;
     std::atomic<RunId> m_nextRun{1};
+    std::optional<Transaction> m_transaction;
+    TransactionId m_nextTransaction = 1;
+    QTimer m_transactionDeadline;
+    std::deque<WaitingRun> m_waiting;
 };
 
 // Converts a spec to the JSON published by the API and used by the command palette.

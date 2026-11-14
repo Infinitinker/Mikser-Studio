@@ -168,18 +168,29 @@ messages.
 
 ## Undo for groups of changes
 
-Today a group of changes is one global depth counter in `core::UndoStack` (`UndoGroup`): edits made
-while a group is open become one undo step. (built)
+A C++ handler groups the commands it runs with `core::UndoGroup`: edits made while a group is open
+become one undo step. It runs within one command, so nothing else can run in the middle of it.
+(built)
 
-A Lua transaction spans hops between threads, so with a counter alone a person's edit could land in
-the middle of it, and undoing the group would revert edits the person's change was built on.
-Transactions therefore take a **write lease** (planned):
+A Lua transaction spans hops between threads, so a person's edit could land in the middle of it,
+and undoing the group would revert edits the person's change was built on. Transactions therefore
+take a **write lease** on the command bus (built: `CommandBus::beginTransaction`,
+`commitTransaction` and `rollBackTransaction`):
 
-- While a transaction is open, write commands from other origins wait, up to a deadline of about 2 s.
-- Awaiting a job inside a transaction is an error.
-- A Lua error or the deadline rolls the transaction back: its edits are undone in reverse order,
-  instead of committing half of it.
-- Each undo step records its origin.
+- One transaction is open at a time, held by the caller that opened it (the last of its origins,
+  such as `plugin:<id>`), which needs `project.write`. Its edits are collected as one undo step,
+  named after the transaction.
+- While it is open, a write command that another caller starts waits for it: a run through
+  `executeAsync` (the API, menus, the palette, panels) is queued and starts when the transaction
+  ends; a synchronous `execute` answers `not_available`. Read-only commands, and commands that a
+  running command runs, never wait.
+- A transaction open longer than 2 s (`kTransactionDeadline`) is rolled back: its edits are undone in
+  reverse order and dropped, instead of committing half of it, and the waiting commands run. The
+  Lua host rolls a transaction back the same way when its function raises an error, and refuses to
+  await a job inside one (planned, with the host).
+- Each undo step records the origins of the command that made it (`UndoStack::undoOrigins`); a
+  group's step keeps its first edit's. `undo.changed` events carry `undoOrigins`.
+- The clean index (the saved point) stays right: a rolled back transaction was never pushed.
 
 ## The Lua API, version 1 (planned)
 

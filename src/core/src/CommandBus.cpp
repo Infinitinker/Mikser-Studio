@@ -106,6 +106,19 @@ CommandBus::CommandBus(UndoStack& undoStack, QObject* parent)
     : QObject(parent)
     , m_undoStack(undoStack)
 {
+    m_transactionDeadline.setSingleShot(true);
+    connect(&m_transactionDeadline, &QTimer::timeout, this, [this] {
+        if (m_transaction && !m_running.empty()) {
+            // A command runs, in a nested event loop: roll back once it has finished.
+            m_transactionDeadline.start(std::chrono::milliseconds(50));
+            return;
+        }
+        if (m_transaction) {
+            rollBackTransaction(m_transaction->id, u"“%1” took longer than %2 seconds, so its changes were undone."_s
+                                                       .arg(m_transaction->name)
+                                                       .arg(kTransactionDeadline.count() / 1000));
+        }
+    });
     publishOwnEvents();
     qRegisterMetaType<CommandError>();
     qRegisterMetaType<CallContext>();
@@ -172,8 +185,73 @@ void CommandBus::publishOwnEvents()
                                        {u"canRedo"_s, m_undoStack.canRedo()},
                                        {u"undoText"_s, m_undoStack.undoText()},
                                        {u"redoText"_s, m_undoStack.redoText()},
+                                       {u"undoOrigins"_s, QJsonArray::fromStringList(m_undoStack.undoOrigins())},
                                    });
     });
+}
+
+std::expected<CommandBus::TransactionId, CommandError> CommandBus::beginTransaction(const QString& name,
+                                                                                    const CallContext& context)
+{
+    const QString& holder = context.origins.constLast();
+    if (!m_running.empty()) {
+        return std::unexpected(CommandError{
+            CommandErrorCode::Failed,
+            u"“%1” can’t start while a command runs; a command groups its changes with core::UndoGroup. Report "
+            u"this problem."_s.arg(name)});
+    }
+    if (m_transaction) {
+        return std::unexpected(CommandError{
+            CommandErrorCode::NotAvailable,
+            u"%1 can’t start “%2”: %3 is changing the project (“%4”). Try again in a moment."_s.arg(
+                describeOrigin(holder), name, describeOrigin(m_transaction->holder), m_transaction->name)});
+    }
+    if (!context.permissions.contains(u"project.write"_s)) {
+        return std::unexpected(
+            CommandError{CommandErrorCode::PermissionDenied,
+                         u"Changing the project needs the “project.write” permission, and %1 doesn’t have it."_s.arg(
+                             describeOrigin(holder))});
+    }
+    const TransactionId id = m_nextTransaction++;
+    m_transaction = Transaction{id, holder, name};
+    m_undoStack.beginGroup(name);
+    m_transactionDeadline.start(kTransactionDeadline);
+    qCDebug(lcCommands).noquote() << "Transaction" << name << "opened by" << holder;
+    return id;
+}
+
+void CommandBus::commitTransaction(TransactionId transaction)
+{
+    if (!m_transaction || m_transaction->id != transaction)
+        return;  // Rolled back already, at its deadline.
+    qCDebug(lcCommands).noquote() << "Transaction" << m_transaction->name << "committed";
+    m_undoStack.endGroup();
+    endTransaction();
+}
+
+void CommandBus::rollBackTransaction(TransactionId transaction, const QString& reason)
+{
+    if (!m_transaction || m_transaction->id != transaction)
+        return;
+    qCWarning(lcCommands).noquote() << "Transaction" << m_transaction->name << "rolled back:" << reason;
+    m_undoStack.rollBackGroup();
+    endTransaction();
+    Q_EMIT transactionRolledBack(transaction, reason);
+}
+
+bool CommandBus::mustWait(const Entry& entry, const CallContext& context) const
+{
+    return m_transaction && !entry.spec.readOnly && m_running.empty() &&
+           context.origins.constLast() != m_transaction->holder;
+}
+
+void CommandBus::endTransaction()
+{
+    m_transaction.reset();
+    m_transactionDeadline.stop();
+    auto waiting = std::exchange(m_waiting, {});
+    for (WaitingRun& run : waiting)
+        start(run.run, run.id, run.params, run.context, std::move(run.reply));
 }
 
 void CommandBus::publish(const QString& topic, const QJsonObject& payload)
@@ -376,6 +454,11 @@ std::expected<QJsonObject, CommandError> CommandBus::execute(const QString& id, 
                      u"“%1” answers later, and this caller can’t wait for it. Run it from a menu, the command palette "
                      u"or the API."_s.arg(id)});
     }
+    if (mustWait(it->second, context)) {
+        return fail({CommandErrorCode::NotAvailable,
+                     u"“%1” can’t run now: %2 is changing the project (“%3”). Try again in a moment."_s.arg(
+                         id, describeOrigin(m_transaction->holder), m_transaction->name)});
+    }
     auto effective = admit(it->second, params, context);
     if (!effective)
         return fail(std::move(effective.error()));
@@ -393,7 +476,7 @@ std::expected<QJsonObject, CommandError> CommandBus::execute(const QString& id, 
     if (outcome->edit) {
         if (!undoable)
             qCWarning(lcCommands).noquote() << id << "returned an undo edit but is not declared undoable";
-        m_undoStack.push(std::move(outcome->edit));
+        m_undoStack.push(std::move(outcome->edit), context.origins);
     }
     qCDebug(lcCommands).noquote() << "Executed" << id;
     Q_EMIT executed(id, *effective, outcome->result, context);
@@ -418,6 +501,11 @@ CommandBus::RunId CommandBus::executeAsync(const QString& id, const QJsonObject&
 void CommandBus::start(RunId run, const QString& id, const QJsonObject& params, const CallContext& context, Reply reply)
 {
     const auto it = m_commands.find(id);
+    if (it != m_commands.end() && mustWait(it->second, context)) {
+        qCDebug(lcCommands).noquote() << id << "waits for the transaction" << m_transaction->name;
+        m_waiting.push_back({run, id, params, context, std::move(reply)});
+        return;
+    }
     if (it == m_commands.end() || !it->second.spec.async) {
         deliver(reply, execute(id, params, context));
         return;
@@ -467,7 +555,7 @@ void CommandBus::finish(RunId run, CommandResult outcome)
     if (outcome->edit) {
         if (!pending.undoable)
             qCWarning(lcCommands).noquote() << pending.id << "returned an undo edit but is not declared undoable";
-        m_undoStack.push(std::move(outcome->edit));
+        m_undoStack.push(std::move(outcome->edit), pending.context.origins);
     }
     qCDebug(lcCommands).noquote() << "Executed" << pending.id;
     Q_EMIT executed(pending.id, pending.params, outcome->result, pending.context);

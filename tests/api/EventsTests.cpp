@@ -107,7 +107,8 @@ TEST_CASE("The events socket pushes command.executed and undo.changed", "[api][e
                                                         {u"canUndo"_s, true},
                                                         {u"canRedo"_s, false},
                                                         {u"undoText"_s, u"Increment Counter"_s},
-                                                        {u"redoText"_s, QString()}});
+                                                        {u"redoText"_s, QString()},
+                                                        {u"undoOrigins"_s, QJsonArray{u"api"_s}}});
 
     client.events.clear();
     REQUIRE(fixture.post(u"/v1/commands/edit.undo"_s, {}).status == 200);

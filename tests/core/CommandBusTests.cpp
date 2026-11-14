@@ -857,3 +857,97 @@ TEST_CASE("Commands that run each other without end stop at the depth limit", "[
     CHECK(runs == CommandBus::kMaxDepth);
     CHECK(bus.runningContext() == nullptr);
 }
+
+TEST_CASE("A transaction's changes are one undo step, and other callers' writes wait for it",
+          "[commands][transactions]")
+{
+    int argc = 0;
+    QCoreApplication app(argc, nullptr);  // The deadline and the waiting runs need an event loop.
+    UndoStack stack;
+    CommandBus bus(stack);
+    int value = 0;
+    REQUIRE(bus.registerCommand(setSpec(), setHandler(value)));
+    CommandSpec reader = setSpec();
+    reader.id = u"test.read_value"_s;
+    reader.undoable = false;
+    reader.readOnly = true;
+    REQUIRE(bus.registerCommand(reader, okHandler()));
+    const CallContext plugin = CallContext::api().through(u"plugin:hello"_s, allPermissions());
+
+    const auto transaction = bus.beginTransaction(u"Set twice"_s, plugin);
+    REQUIRE(transaction);
+    CHECK(bus.inTransaction());
+    REQUIRE(bus.execute(u"test.set_value"_s, QJsonObject{{u"value"_s, 1}}, plugin));
+    REQUIRE(bus.execute(u"test.set_value"_s, QJsonObject{{u"value"_s, 2}}, plugin));
+    CHECK_FALSE(bus.beginTransaction(u"Another"_s, CallContext::ui()));
+
+    // The person's write waits; a read doesn't.
+    const auto refused = bus.execute(u"test.set_value"_s, QJsonObject{{u"value"_s, 9}}, CallContext::ui());
+    REQUIRE_FALSE(refused);
+    CHECK(refused.error().code == CommandErrorCode::NotAvailable);
+    CHECK(refused.error().message.contains(u"the plugin “hello”"_s));
+    CHECK(bus.execute(u"test.read_value"_s, QJsonObject{{u"value"_s, 0}}, CallContext::ui()));
+    QObject receiver;
+    std::optional<int> waited;
+    bus.executeAsync(u"test.set_value"_s, QJsonObject{{u"value"_s, 5}}, CallContext::ui(), &receiver,
+                     [&waited, &value](const auto& result) { waited = result ? value : -1; });
+    CHECK_FALSE(waited.has_value());
+
+    bus.commitTransaction(*transaction);
+    CHECK_FALSE(bus.inTransaction());
+    REQUIRE(waited.has_value());
+    CHECK(*waited == 5);
+    CHECK(stack.undoText() == u"Set Value"_s);
+    REQUIRE(stack.undo());
+    CHECK(value == 2);
+    CHECK(stack.undoText() == u"Set twice"_s);
+    CHECK(stack.undoOrigins() == QStringList{u"api"_s, u"plugin:hello"_s});
+    REQUIRE(stack.undo());
+    CHECK(value == 0);
+}
+
+TEST_CASE("A transaction is rolled back when asked and at its deadline", "[commands][transactions]")
+{
+    int argc = 0;
+    QCoreApplication app(argc, nullptr);
+    UndoStack stack;
+    CommandBus bus(stack);
+    int value = 0;
+    REQUIRE(bus.registerCommand(setSpec(), setHandler(value)));
+    const CallContext plugin = CallContext::api().through(u"plugin:hello"_s, allPermissions());
+    QStringList reasons;
+    QObject::connect(&bus, &CommandBus::transactionRolledBack, &bus,
+                     [&reasons](CommandBus::TransactionId, const QString& reason) { reasons.append(reason); });
+
+    const auto first = bus.beginTransaction(u"Fails halfway"_s, plugin);
+    REQUIRE(first);
+    REQUIRE(bus.execute(u"test.set_value"_s, QJsonObject{{u"value"_s, 4}}, plugin));
+    bus.rollBackTransaction(*first, u"The plugin raised an error."_s);
+    CHECK(value == 0);
+    CHECK_FALSE(stack.canUndo());
+    CHECK(reasons == QStringList{u"The plugin raised an error."_s});
+    bus.commitTransaction(*first);  // Ended already: nothing happens.
+    CHECK_FALSE(stack.canUndo());
+
+    const auto slow = bus.beginTransaction(u"Too slow"_s, plugin);
+    REQUIRE(slow);
+    REQUIRE(bus.execute(u"test.set_value"_s, QJsonObject{{u"value"_s, 7}}, plugin));
+    QObject receiver;
+    bool waitedRan = false;
+    bus.executeAsync(u"test.set_value"_s, QJsonObject{{u"value"_s, 3}}, CallContext::ui(), &receiver,
+                     [&waitedRan](const auto& result) { waitedRan = result.has_value(); });
+    const QDeadlineTimer deadline(CommandBus::kTransactionDeadline + std::chrono::seconds(3));
+    while (bus.inTransaction() && !deadline.hasExpired())
+        QCoreApplication::processEvents(QEventLoop::AllEvents, 20);
+    REQUIRE_FALSE(bus.inTransaction());
+    REQUIRE(reasons.size() == 2);
+    CHECK(reasons.constLast().contains(u"took longer than 2 seconds"_s));
+    CHECK(waitedRan);
+    CHECK(value == 3);
+    CHECK(stack.undoText() == u"Set Value"_s);
+    REQUIRE(stack.undo());
+    CHECK(value == 0);  // The rolled back 7 left no step.
+    CHECK_FALSE(stack.canUndo());
+
+    CHECK_FALSE(bus.beginTransaction(u"Reader"_s, CallContext::ui().through(u"plugin:reader"_s, {u"project.read"_s})));
+}

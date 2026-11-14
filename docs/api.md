@@ -241,7 +241,7 @@ Each text message is one JSON object with a `type`:
 {"type": "command.registered", "id": "hello.greet"}
 {"type": "command.unregistered", "id": "hello.greet"}
 {"type": "command.changed", "id": "hello.greet"}
-{"type": "undo.changed", "canUndo": true, "canRedo": false, "undoText": "Import “sample-30s.mp4”", "redoText": "", "origin": "api", "origins": ["api"]}
+{"type": "undo.changed", "canUndo": true, "canRedo": false, "undoText": "Import “sample-30s.mp4”", "redoText": "", "undoOrigins": ["api"]}
 {"type": "media.added", "mediaId": "media-...", "origin": "api", "origins": ["api"]}
 {"type": "clip.changed", "clipId": "clip-...", "origin": "ui", "origins": ["ui"]}
 {"type": "job.progress", "jobId": "aijob-...", "progress": 0.5, "message": "Step 10 of 20", "origin": "api", "origins": ["api"]}
@@ -253,8 +253,9 @@ Each text message is one JSON object with a `type`:
   person, in the interface), `api` (a client of this API, such as an agent through the MCP bridge) or
   `plugin:<id>`. `origins` is the chain of callers, the one who started the run first: a plugin's
   command run through the API is `["api", "plugin:hello"]`. Commands a command runs keep its origin.
-  Every event a command causes carries its origin; one the app causes by itself, such as a
-  plugin's commands registered at start-up, has none.
+  The project's changes and jobs carry the origin of the command that caused them; `undo.changed`
+  names the origins of the step that undo would revert (`undoOrigins`). An event the app causes by
+  itself, such as a plugin's commands registered at start-up, has none.
 - The project's changes come with the id of what changed: `media.added` and `media.removed`
   (`mediaId`), `clip.added`, `clip.removed` and `clip.changed` (`clipId`), `track.added`,
   `track.removed` and `track.changed` (`trackId`), `project.reset` (a new or opened project) and

@@ -287,3 +287,46 @@ TEST_CASE("UndoStack is not clean while an open group holds edits", "[undo]")
     REQUIRE(stack.undo());
     CHECK(stack.isClean());
 }
+
+TEST_CASE("UndoStack keeps each step's origins, a group's from its first edit", "[undo]")
+{
+    UndoStack stack;
+    int value = 0;
+    value += 1;
+    stack.push(std::make_unique<AddEdit>(value, 1), {u"api"_s});
+    CHECK(stack.undoOrigins() == QStringList{u"api"_s});
+    stack.beginGroup(u"Both"_s);
+    value += 2;
+    stack.push(std::make_unique<AddEdit>(value, 2), {u"api"_s, u"plugin:hello"_s});
+    value += 3;
+    stack.push(std::make_unique<AddEdit>(value, 3), {u"ui"_s});
+    stack.endGroup();
+    CHECK(stack.undoOrigins() == QStringList{u"api"_s, u"plugin:hello"_s});
+    REQUIRE(stack.undo());
+    CHECK(stack.redoOrigins() == QStringList{u"api"_s, u"plugin:hello"_s});
+    CHECK(stack.undoOrigins() == QStringList{u"api"_s});
+}
+
+TEST_CASE("UndoStack rolls a group back by undoing its edits in reverse", "[undo]")
+{
+    UndoStack stack;
+    int value = 0;
+    apply(stack, value, 1);
+    stack.setClean();
+    stack.beginGroup(u"Half done"_s);
+    apply(stack, value, 2);
+    apply(stack, value, 3);
+    CHECK_FALSE(stack.isClean());
+    REQUIRE(stack.rollBackGroup());
+    CHECK(value == 1);
+    CHECK_FALSE(stack.isGrouping());
+    CHECK(stack.isClean());
+    CHECK(stack.undoText() == u"Add 1"_s);
+
+    stack.beginGroup(u"Outer"_s);
+    stack.beginGroup(u"Inner"_s);
+    CHECK_FALSE(stack.rollBackGroup());  // Only the outermost group, alone, rolls back.
+    stack.endGroup();
+    stack.endGroup();
+    CHECK_FALSE(stack.rollBackGroup());
+}

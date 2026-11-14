@@ -4,6 +4,7 @@
 #include "mikserstudio/core/Command.h"
 
 #include <QObject>
+#include <QStringList>
 
 #include <memory>
 #include <optional>
@@ -29,17 +30,24 @@ public:
     explicit UndoStack(QObject* parent = nullptr);
     ~UndoStack() override;
 
-    // Takes an edit that has already been applied.
-    void push(std::unique_ptr<UndoableEdit> edit);
+    // Takes an edit that has already been applied, made by a command with these origins
+    // (CallContext::origins). A group's step keeps the origins of its first edit.
+    void push(std::unique_ptr<UndoableEdit> edit, QStringList origins = {});
 
     void beginGroup(const QString& text);
     void endGroup();
+    // Closes the outermost group without recording it: its edits are undone, in reverse order,
+    // and dropped. Fails (returns false and logs) while an inner group is open or none is.
+    bool rollBackGroup();
     [[nodiscard]] bool isGrouping() const { return m_groupDepth > 0; }
 
     [[nodiscard]] bool canUndo() const;
     [[nodiscard]] bool canRedo() const;
     [[nodiscard]] QString undoText() const;
     [[nodiscard]] QString redoText() const;
+    // The origins of the command that made the step undo() or redo() would revert or apply.
+    [[nodiscard]] QStringList undoOrigins() const;
+    [[nodiscard]] QStringList redoOrigins() const;
 
     bool undo();  // Returns false when there is nothing to undo.
     bool redo();  // Returns false when there is nothing to redo.
@@ -53,13 +61,18 @@ Q_SIGNALS:
     void cleanChanged(bool clean);
 
 private:
+    struct Step {
+        std::unique_ptr<UndoableEdit> edit;
+        QStringList origins;
+    };
+
     void updateClean();
 
-    std::vector<std::unique_ptr<UndoableEdit>> m_edits;
+    std::vector<Step> m_edits;
     std::size_t m_index = 0;  // Number of applied edits; m_edits[m_index..] are redoable.
     int m_groupDepth = 0;
     QString m_groupText;
-    std::vector<std::unique_ptr<UndoableEdit>> m_groupEdits;
+    std::vector<Step> m_groupEdits;
     std::optional<std::size_t> m_cleanIndex = 0;  // m_index at the clean point; empty when unreachable.
     bool m_clean = true;  // isClean() when cleanChanged() was last emitted.
 };
