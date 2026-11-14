@@ -20,8 +20,9 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 include(MikserStudioCompilerOptions)
 
 # Every module can be switched off so it can be built and tested on its own.
-# Dependencies between modules: core <- engine, api, services <- ui <- app; mcp depends on none.
+# Dependencies between modules: core <- engine, api, services, lua <- ui <- app; mcp depends on none.
 option(MIKSERSTUDIO_WITH_ENGINE "Build the playback engine and monitors (MLT)" ON)
+option(MIKSERSTUDIO_WITH_LUA "Build the Lua host, which runs the plugins (Lua 5.4 and sol2)" ON)
 option(MIKSERSTUDIO_WITH_API "Build the local /v1 API server" ON)
 option(MIKSERSTUDIO_WITH_SERVICES "Build the services, the AI engine" ON)
 option(MIKSERSTUDIO_WITH_UI "Build the desktop UI" ON)
@@ -49,6 +50,9 @@ add_subdirectory(src/core)
 
 if(MIKSERSTUDIO_WITH_ENGINE)
     add_subdirectory(src/engine)
+endif()
+if(MIKSERSTUDIO_WITH_LUA)
+    add_subdirectory(src/lua)
 endif()
 if(MIKSERSTUDIO_WITH_API)
     add_subdirectory(src/api)

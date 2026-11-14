@@ -46,6 +46,14 @@ test("a private header is found in the module", function()
     })
 end)
 
+test("a header made from a template is found by its template", function()
+    local tracked = { "src/lua/src/Prelude.h.in" }
+    equal(problems("src/lua/src/LuaWorker.cpp", '#include "Prelude.h"\n', tracked), {})
+    equal(problems("src/app/Studio.cpp", '#include "Prelude.h"\n', tracked), {
+        'src/app/Studio.cpp:1: "Prelude.h" is not one of app\'s own headers',
+    })
+end)
+
 test("the end-to-end tests include only the modules they name", function()
     local tracked = {
         "tests/services/ServicesTestSupport.h",

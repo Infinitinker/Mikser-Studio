@@ -25,7 +25,7 @@ local text = require("text")
 local check = {}
 
 --- The modules, each with its folder: sdk/ and src/<module>/.
-check.MODULES = { "sdk", "core", "engine", "api", "services", "ui", "app", "mcp" }
+check.MODULES = { "sdk", "core", "engine", "api", "services", "lua", "ui", "app", "mcp" }
 --- The modules each module may include from, besides itself. plugins/ holds the bundled plugins, which
 --- see only the plugin ABI. mcp, the MCP bridge, drives the app only through its local API, so it
 --- includes no other module.
@@ -35,8 +35,9 @@ check.ALLOWED = {
     engine = { "core" },
     api = { "core" },
     services = { "core" },
+    lua = { "core" },
     ui = { "core" },
-    app = { "core", "engine", "api", "services", "ui" },
+    app = { "core", "engine", "api", "services", "lua", "ui" },
     mcp = {},
     plugins = { "sdk" },
 }
@@ -208,10 +209,12 @@ function check.check_file(path, contents, tracked)
                     add(number, written, ("goes from %s to %s"):format(module, target))
                 end
             elseif bracket == '"' then
-                -- An include in angle brackets is a system, Qt, MLT or other library header.
+                -- An include in angle brackets is a system, Qt, MLT or other library header. A
+                -- header the build makes from a template (configure_file) is found by its template.
                 local found = false
                 for _, folder in ipairs(own_folders(module, is_test, path)) do
-                    found = found or tracked[join(folder, name)] == true
+                    local header = join(folder, name)
+                    found = found or tracked[header] == true or tracked[header .. ".in"] == true
                 end
                 if not found then
                     add(number, written, ("is not one of %s's own headers"):format(module))

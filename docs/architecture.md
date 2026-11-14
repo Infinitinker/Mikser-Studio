@@ -28,9 +28,9 @@ The Lua side is being built now. Each part below is marked **built** (in the cod
 - **Described UI.** Plugins describe their UI as data: JSON Schema forms, menus, panels with lists
   and buttons. The shell draws it. Only built-in plugins may bring a custom QML panel. (planned)
 - **Interfaces at the seams.** The docking library (`ui::DockHost`), the media engine
-  (`core::Transport`, `core::MediaProbe`) and the plugin runtime sit behind small interfaces, so each
-  can be replaced (e.g. MLT's CPU compositor by our own GPU compositor later). (built; the plugin
-  runtime seam planned)
+  (`core::Transport`, `core::MediaProbe`) and the plugin runtime (`core::PluginRuntime`) sit behind
+  small interfaces, so each can be replaced (e.g. MLT's CPU compositor by our own GPU compositor
+  later). (built; the plugin manager starts plugins through the runtime seam next)
 
 ## Layers
 
@@ -39,7 +39,7 @@ The Lua side is being built now. Each part below is marked **built** (in the cod
 | 1 | Engine | C++ | Decoding and encoding (FFmpeg, MLT), the render graph, GPU drawing (QRhi; OpenColorIO and scopes later), the real-time audio thread, the project and timeline model with undo. | built (OCIO, scopes planned) |
 | 2 | Shell | C++/Qt | The main window and docking, the monitors, the timeline widget: the UI that must stay smooth. | built |
 | 3 | Command bus | C++ | Commands with schemas, events and async jobs. `/v1` and the MCP bridge sit on it. | built (events and jobs in core planned) |
-| 4 | Lua host | C++ | Lua 5.4.9 through sol2 3.5.0. One state per plugin, each on its own worker thread. Permissions, sandbox, hot reload. | planned |
+| 4 | Lua host | C++ | Lua 5.4.9 through sol2 3.5.0. One state per plugin, each on its own worker thread. Permissions, sandbox, hot reload. | built (the app doesn't run it yet) |
 | 5 | App layer | Lua | Most features, shipped as built-in plugins that use only the public API. | planned |
 | 6 | Plugins | Lua | Third-party and user plugins: the same API, sandboxed. | planned |
 | 7 | Effects | GLSL | Text files compiled at run time with Qt ShaderTools. | planned |
@@ -60,7 +60,7 @@ The rules between them:
 | `src/core/` | `MikserStudio::core` | Qt Core | Command bus, undo, JSON Schema validation, project model, transport interface, plugin manager (discovery, manifests, settings). | built |
 | `src/engine/` | `MikserStudio::engine` | core, MLT 7, Qt Gui | MLT runtime, media probe, playback engines (source clip, program timeline), GPU monitor (QRhi). | built |
 | `src/api/` | `MikserStudio::api` | core, Qt HttpServer/WebSockets | Versioned local API on 127.0.0.1: `/v1` HTTP + WebSocket events. | built |
-| `src/lua/` | `MikserStudio::lua` | core, Lua 5.4, sol2 | The Lua host: one sandboxed state per plugin on its own thread, the `ms` API, permissions, hot reload. It implements core's plugin runtime interface. | planned |
+| `src/lua/` | `MikserStudio::lua` | core, Lua 5.4, sol2 | The Lua host: one sandboxed state per plugin on its own thread, the `ms` API (its Lua half in `src/lua/src/prelude.lua`), permissions, hot reload. It implements core's plugin runtime interface. | built |
 | `src/services/` | `MikserStudio::services` | core, Qt Network/WebSockets | The AI engine today: its backends connect to the AI tools the user runs (Ollama, ComfyUI), and its `ai.*` commands run their operations as jobs. Its network parts become C++ job kinds and its policy moves into the `ollama` and `comfyui` plugins. | built, to be replaced |
 | `src/ui/` | `MikserStudio::ui` | core, Qt Widgets/Quick, KDDockWidgets | Main window, docking, workspaces, panels (media bin, timeline, AI, palette, properties, log). | built |
 | `src/app/` | `mikser-studio` | all | Wires the modules together; `mikser-studio --headless` runs without UI. | built |
@@ -80,8 +80,8 @@ on its own. `tools/check_includes.lua` checks them, and the `Checks` workflow ru
 - `src/engine/`, `src/api/`, `src/services/` and `src/ui/` include only themselves and `core`. The UI
   never includes the engine: the app creates the engine's monitor panels and hands them to the UI,
   and the UI controls playback through `core::Transport`.
-- `src/lua/` includes only itself and `core` (planned). Lua code sees only commands, events and
-  project views: it never reaches a C++ object.
+- `src/lua/` includes only itself and `core`. Lua code sees only commands, events and project views:
+  it never reaches a C++ object.
 - `src/app/` includes every module, and nothing includes `src/app/`.
 - `src/mcp/`, the MCP bridge, includes only itself and links no other module: it drives the app only
   through its local API, as any other program can. Nothing includes it.
@@ -164,14 +164,16 @@ messages.
 - **Lua states:** one worker thread per Lua state, none on the UI thread; a state never leaves its
   thread. A call from Lua to the bus is queued to the main thread, and its result comes back queued
   to the state's thread, which resumes the waiting coroutine. Values cross threads only as JSON
-  copies. (planned)
+  copies. Each answer carries the state's generation, so one that arrives after a reload is
+  dropped. Stopping a plugin waits 2 s for its thread, and leaves a thread that doesn't stop, since
+  it can't be killed safely. (built)
 - **Jobs:** long work runs as a job in `core::JobManager`: jobs of one lane run one at a time, in
   order, and lanes run side by side; each has an owner, progress, cancel and a result, and the last
   200 finished ones are kept. The AI engine's jobs are mirrored onto it until its backends move to
   plugins. Code that can't reach C++, such as a Lua plugin, starts a job of a registered kind
   (`core::JobKind`, such as `http.request`) by its name with a JSON input, and owns it; the kind
-  names the permission a caller needs. (built) Work runs off the main thread where it can, and Lua
-  awaits a job without holding its thread. (planned)
+  names the permission a caller needs. Lua awaits a job without holding its thread. (built) Work
+  runs off the main thread where it can. (planned)
 
 ## Undo for groups of changes
 
@@ -199,9 +201,10 @@ take a **write lease** on the command bus (built: `CommandBus::beginTransaction`
   group's step keeps its first edit's. `undo.changed` events carry `undoOrigins`.
 - The clean index (the saved point) stays right: a rolled back transaction was never pushed.
 
-## The Lua API, version 1 (planned)
+## The Lua API, version 1
 
-The contract the Lua host builds. A plugin's code sees one global, `ms`.
+The contract the Lua host keeps (built, but for `ms.ui.confirm`). A plugin's code sees one global,
+`ms`.
 
 - `ms.command{id, title, params, result, permission, handler}` registers a command. `params` and
   `result` are JSON Schemas; `permission` is the permission a caller needs to run it. The handler is
@@ -209,13 +212,15 @@ The contract the Lua host builds. A plugin's code sees one global, `ms`.
 - `ms.run(id, params)` runs a command and yields until the bus answers. It returns the result, or
   raises an error with a `code`: `needs_confirmation`, `permission_denied`, `canceled`,
   `invalid_params` or `failed`.
-- `ms.jobs.start(kind, input)` starts a C++ job and returns a job with `:await()` and `:cancel()`.
+- `ms.jobs.start(kind, input)` starts a C++ job of a registered kind and returns a job with
+  `:await()` and `:cancel()`.
 - `ms.on(topic, fn)` subscribes to events; each callback runs in its own coroutine.
 - `ms.project()` returns an immutable project view with a revision number and queries (by clip id,
   range and media id).
 - `ms.transaction(name, fn)` runs `fn` as one undo step (see "Undo for groups of changes").
 - `ms.settings()` returns the plugin's settings, `ms.log` writes to the log under the plugin's id,
-  and `ms.ui.confirm(question)` asks the person on the main thread and confirms that one call.
+  and `ms.ui.confirm(question)` asks the person on the main thread and confirms that one call
+  (planned).
 - `ms.transaction`, the dispatch of `ms.on` and anything else that calls back into Lua and may yield
   are written in a Lua prelude, not as C++ functions: sol2 has no continuations, and a yield across a
   C call fails.
