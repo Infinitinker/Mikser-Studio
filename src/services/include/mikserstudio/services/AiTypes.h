@@ -18,14 +18,14 @@ enum class AiJobState { Queued, Running, Succeeded, Failed, Canceled };
 [[nodiscard]] bool isFinished(AiJobState state);
 
 struct AiOperation {
-    QString id;  // "text.generate"
+    QString id;  // "image.generate"
     QString title;
     QString description;
     QJsonObject paramsSchema;
 };
 
 struct AiBackendInfo {
-    QString id;  // "ollama", "comfyui"
+    QString id;  // "comfyui"
     QString title;
     QList<AiOperation> operations;
     bool available = false;

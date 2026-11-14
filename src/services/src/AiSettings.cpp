@@ -35,7 +35,6 @@ std::expected<QUrl, QString> toolUrl(const QJsonValue& value, const QString& too
 QJsonObject toJson(const AiSettings& settings)
 {
     return QJsonObject{
-        {u"ollamaUrl"_s, settings.ollamaUrl.toString()},
         {u"comfyuiUrl"_s, settings.comfyuiUrl.toString()},
     };
 }
@@ -43,12 +42,6 @@ QJsonObject toJson(const AiSettings& settings)
 std::expected<AiSettings, QString> aiSettingsFromJson(const QJsonObject& object, const AiSettings& base)
 {
     AiSettings settings = base;
-    if (object.contains(u"ollamaUrl")) {
-        auto url = toolUrl(object.value(u"ollamaUrl"), u"Ollama"_s);
-        if (!url)
-            return std::unexpected(url.error());
-        settings.ollamaUrl = *url;
-    }
     if (object.contains(u"comfyuiUrl")) {
         auto url = toolUrl(object.value(u"comfyuiUrl"), u"ComfyUI"_s);
         if (!url)

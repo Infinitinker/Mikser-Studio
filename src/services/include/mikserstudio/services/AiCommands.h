@@ -19,9 +19,9 @@ class AiEngine;
 //                                                   placement}]}                                      (readOnly)
 //   ai.cancel_job   {jobId}                     -> {jobId, state}
 //   ai.backends     {}                          -> {backends: [{id, title, ops, available, reason}]}
-//   ai.status       {}                          -> {activeJobs, ollamaUrl, comfyuiUrl}               (readOnly)
-//   ai.settings     {}                          -> {ollamaUrl, comfyuiUrl}                           (readOnly)
-//   ai.set_settings {ollamaUrl?, comfyuiUrl?}   -> {ollamaUrl, comfyuiUrl}
+//   ai.status       {}                          -> {activeJobs, comfyuiUrl}                          (readOnly)
+//   ai.settings     {}                          -> {comfyuiUrl}                                      (readOnly)
+//   ai.set_settings {comfyuiUrl?}               -> {comfyuiUrl}
 //
 // When an ai.run job succeeds, its image, video and audio outputs are imported into the project
 // with the job's provenance, as one undo step ("Add AI result"), and the job's placement is

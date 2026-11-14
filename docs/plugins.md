@@ -281,6 +281,29 @@ spec points the plugin's settings at them. A spec has the plugin's network entri
 kinds of the app, such as `http.request`. `spec/` is never staged or installed. The Lua host's own
 tests are in `tests/lua/`.
 
+## How a feature becomes a Lua plugin
+
+A feature of the app moves into a plugin when its policy, the choices that make it useful, can be
+written in Lua and its heavy work done by the app's job kinds. The Ollama backend was the first; its
+plugin is `plugins/builtin/ollama`, and [ai.md](ai.md#the-ollama-plugin) describes it.
+
+1. **Split the policy from the work.** What to send, which model or file to choose, how to read the
+   answer and how to word a failure is policy, and goes to Lua. Network requests, files, media and
+   long computations stay in C++, as job kinds that know nothing of the feature: `http.request`
+   returns the status and the body, and the plugin reads them. A job kind the feature needs and the
+   app lacks is added to the app first, with tests of its own.
+2. **Ask for as little as it needs.** The manifest lists the permissions and the network entries;
+   an address the person sets becomes a setting, and the entries name every address it may take.
+3. **Keep the command's shape.** The plugin's commands take the parameters and return the results
+   the old command did, so the interface and the agents change only the command's id. A command that
+   takes long answers `{jobId}` at once and works in a job of the plugin's own (`ms.jobs.run`),
+   whose result is what the old job's was, provenance included.
+4. **Move the tests with it.** The old C++ tests of the policy become the plugin's specs, run
+   against the same fakes; the tests of the job kinds stay in C++.
+5. **Switch over, then remove.** The interface runs the new command when it is registered, and
+   says so when it isn't; then the old code, its settings and its registration go, and the docs say
+   where the feature lives now.
+
 ## Tooling
 
 - [StyLua](https://github.com/JohnnyMorganz/StyLua) formats plugins with the settings in

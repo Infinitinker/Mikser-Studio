@@ -163,7 +163,7 @@ void AiCommandSet::registerAll()
 {
     add(startsJob(aiSpec(
             u"ai.run"_s, u"Run AI operation"_s,
-            u"Runs an AI operation, such as image.generate or text.generate, in the AI tool of its backend; images, video and audio it makes come into the project."_s,
+            u"Runs an AI operation, such as image.generate, in the AI tool of its backend; images, video and audio it makes come into the project."_s,
             objectSchema(
                 QJsonObject{
                     {u"op"_s, QJsonObject{{u"type"_s, u"string"_s},
@@ -192,19 +192,18 @@ void AiCommandSet::registerAll()
             return ok(QJsonObject{{u"backends"_s, backendsJson(m_engine.backends())}});
         });
     add(readOnly(aiSpec(u"ai.status"_s, u"AI status"_s,
-                        u"Reports the number of active AI jobs and the addresses of the AI tools."_s)),
+                        u"Reports the number of active AI jobs and the address of ComfyUI."_s)),
         [this](const QJsonObject&) {
             QJsonObject status = toJson(m_engine.settings());
             status.insert(u"activeJobs"_s, m_engine.activeJobCount());
             return ok(status);
         });
-    add(readOnly(aiSpec(u"ai.settings"_s, u"AI settings"_s, u"Reports the addresses of the AI tools."_s)),
+    add(readOnly(aiSpec(u"ai.settings"_s, u"AI settings"_s, u"Reports the address of ComfyUI."_s)),
         [this](const QJsonObject&) { return ok(toJson(m_engine.settings())); });
     add(network(aiSpec(u"ai.set_settings"_s, u"Change AI settings"_s,
-                       u"Changes the addresses of the AI tools; new jobs use them at once, running jobs go on."_s,
+                       u"Changes the address of ComfyUI; new jobs use it at once, running jobs go on."_s,
                        objectSchema(
                            QJsonObject{
-                               {u"ollamaUrl"_s, stringParam(u"Address of Ollama, such as http://127.0.0.1:11434."_s)},
                                {u"comfyuiUrl"_s, stringParam(u"Address of ComfyUI, such as http://127.0.0.1:8188."_s)},
                            },
                            {}))),

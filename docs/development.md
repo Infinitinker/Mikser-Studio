@@ -37,8 +37,8 @@ The checks of the scripts in `tools/` are [StyLua](https://github.com/JohnnyMorg
 read Lua 5.4: a plain `cargo install` builds them without it, so build StyLua with
 `--features lua54` and selene with its Lua 5.2 to 5.4 features.
 
-Ollama and ComfyUI are optional: the AI commands use them when they run ([ai.md](ai.md)), and the
-tests use fakes of them.
+Ollama and ComfyUI are optional: the Ollama plugin and the AI commands use them when they run
+([ai.md](ai.md)), and the tests use fakes of them.
 
 ### Build and test
 

@@ -1,6 +1,6 @@
-// The ai.* commands against fake AI tools: ai.run brings images into the project with provenance and undo and
-// returns text in the job, a replaced project is left alone, and the backends, status, jobs, cancel and
-// settings commands work on the engine.
+// The ai.* commands against a fake ComfyUI: ai.run brings images into the project with provenance and
+// undo, a replaced project is left alone, and the backends, status, jobs, cancel and settings commands
+// work on the engine.
 #include "FakeAiTools.h"
 #include "ServicesTestSupport.h"
 #include "mikserstudio/core/CommandBus.h"
@@ -22,7 +22,6 @@ using namespace Qt::StringLiterals;
 using namespace mikserstudio;
 using namespace mikserstudio::services;
 using mikserstudio::tests::FakeComfyUi;
-using mikserstudio::tests::FakeOllama;
 using mikserstudio::tests::FakeProbe;
 using mikserstudio::tests::waitFor;
 
@@ -37,7 +36,6 @@ struct CommandsFixture {
     core::CommandBus bus{undo};
     core::ProjectModel project;
     FakeProbe probe;
-    FakeOllama ollama;
     FakeComfyUi comfy;
     std::unique_ptr<AiEngine> engine;
     std::unique_ptr<core::JobManager> jobs;
@@ -51,8 +49,7 @@ struct CommandsFixture {
         jobs = std::make_unique<core::JobManager>(bus);
         core::registerJobCommands(bus, *jobs);
         mirrorAiJobs(*engine, *jobs);
-        run(u"ai.set_settings"_s,
-            {{u"ollamaUrl"_s, ollama.url().toString()}, {u"comfyuiUrl"_s, comfy.url().toString()}});
+        run(u"ai.set_settings"_s, {{u"comfyuiUrl"_s, comfy.url().toString()}});
     }
 
     QJsonObject run(const QString& id, const QJsonObject& params = {})
@@ -146,17 +143,6 @@ TEST_CASE("ai.run image.generate brings the image into the project with provenan
     CHECK(fixture.project.media().empty());
 }
 
-TEST_CASE("ai.run text.generate returns the answer in the job and adds nothing to the project", "[services][commands]")
-{
-    CommandsFixture fixture;
-    const QJsonObject job = fixture.waitFinished(fixture.runOperation(u"text.generate"_s, u"Say hello"_s));
-    REQUIRE(job.value(u"state").toString() == u"succeeded"_s);
-    CHECK(job.value(u"result").toObject().value(u"text").toString() == u"Hello there."_s);
-    CHECK(job.value(u"placement").toObject().value(u"mediaIds").toArray().isEmpty());
-    CHECK(fixture.project.media().empty());
-    CHECK_FALSE(fixture.undo.canUndo());
-}
-
 TEST_CASE("ai.run refuses an unknown operation or params the operation does not take", "[services][commands]")
 {
     CommandsFixture fixture;
@@ -199,27 +185,30 @@ TEST_CASE("ai.backends lists the backends and checks them in the background", "[
 {
     CommandsFixture fixture;
     const auto backends = [&] { return fixture.run(u"ai.backends"_s).value(u"backends").toArray(); };
-    REQUIRE(backends().size() == 2);
+    REQUIRE(backends().size() == 1);
     REQUIRE(waitFor([&] {
         const QJsonArray list = backends();
         return std::ranges::all_of(
             list, [](const QJsonValue& backend) { return backend.toObject().value(u"available").toBool(); });
     }));
     const QJsonArray list = backends();
-    CHECK(list.at(0).toObject().value(u"id").toString() == u"ollama"_s);
-    CHECK(list.at(1).toObject().value(u"id").toString() == u"comfyui"_s);
-    const QJsonObject op = list.at(1).toObject().value(u"ops").toArray().first().toObject();
+    CHECK(list.at(0).toObject().value(u"id").toString() == u"comfyui"_s);
+    const QJsonObject op = list.at(0).toObject().value(u"ops").toArray().first().toObject();
     CHECK(op.value(u"id").toString() == u"image.generate"_s);
     CHECK(op.value(u"paramsSchema").toObject().value(u"required").toArray() == QJsonArray{u"prompt"_s});
 }
 
-TEST_CASE("ai.set_settings changes the addresses and refuses ones that are not http", "[services][commands]")
+TEST_CASE("ai.set_settings changes the address and refuses one that is not http", "[services][commands]")
 {
     CommandsFixture fixture;
-    const QJsonObject changed = fixture.run(u"ai.set_settings"_s, {{u"ollamaUrl"_s, u"http://127.0.0.1:11500"_s}});
-    CHECK(changed.value(u"ollamaUrl").toString() == u"http://127.0.0.1:11500"_s);
-    CHECK(changed.value(u"comfyuiUrl").toString() == fixture.comfy.url().toString());
+    const QJsonObject changed = fixture.run(u"ai.set_settings"_s, {{u"comfyuiUrl"_s, u"http://127.0.0.1:8189"_s}});
+    CHECK(changed == QJsonObject{{u"comfyuiUrl"_s, u"http://127.0.0.1:8189"_s}});
     CHECK(fixture.run(u"ai.settings"_s) == changed);
+
+    // Ollama's address is the Ollama plugin's setting now.
+    const auto ollama = fixture.bus.execute(u"ai.set_settings"_s, {{u"ollamaUrl"_s, u"http://127.0.0.1:11500"_s}});
+    REQUIRE_FALSE(ollama);
+    CHECK(ollama.error().code == core::CommandErrorCode::InvalidParams);
 
     const auto refused = fixture.bus.execute(u"ai.set_settings"_s, {{u"comfyuiUrl"_s, u"file:///etc"_s}});
     REQUIRE_FALSE(refused);
@@ -237,7 +226,7 @@ TEST_CASE("AI jobs are core jobs: jobs.list lists them and job events report the
                              events.append(event);
                      });
     const auto run = fixture.bus.execute(
-        u"ai.run"_s, {{u"op"_s, u"text.generate"_s}, {u"params"_s, QJsonObject{{u"prompt"_s, u"Say hello"_s}}}},
+        u"ai.run"_s, {{u"op"_s, u"image.generate"_s}, {u"params"_s, QJsonObject{{u"prompt"_s, u"A fox"_s}}}},
         core::CallContext::api());
     REQUIRE(run);
     const QString jobId = run->value(u"jobId"_s).toString();
@@ -248,8 +237,8 @@ TEST_CASE("AI jobs are core jobs: jobs.list lists them and job events report the
     REQUIRE(list.size() == 1);
     const QJsonObject job = list.at(0).toObject();
     CHECK(job.value(u"id"_s) == jobId);
-    CHECK(job.value(u"kind"_s) == u"ai.text.generate"_s);
-    CHECK(job.value(u"lane"_s) == u"ai:ollama"_s);
+    CHECK(job.value(u"kind"_s) == u"ai.image.generate"_s);
+    CHECK(job.value(u"lane"_s) == u"ai:comfyui"_s);
     CHECK(job.value(u"state"_s) == u"succeeded"_s);
     CHECK(job.value(u"result"_s).toObject().value(u"result"_s) == aiJob.value(u"result"_s));
 

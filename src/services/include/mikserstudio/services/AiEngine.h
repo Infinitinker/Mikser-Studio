@@ -33,7 +33,7 @@ struct AiEngineOptions {
 };
 
 // Runs AI operations in the user's AI tools, from C++ inside the app (docs/ai.md): one backend per
-// tool API (ollama, comfyui). Jobs of one backend run one at a time, in order; jobs of different
+// tool API (comfyui). Jobs of one backend run one at a time, in order; jobs of different
 // backends run side by side. Every request has a timeout, so a slow or hung tool never blocks the
 // interface. Main thread only.
 class AiEngine final : public QObject {

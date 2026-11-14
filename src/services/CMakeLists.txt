@@ -26,8 +26,6 @@ add_library(mikserstudio-services STATIC
     src/Logging.h
     src/NetworkAccess.cpp
     src/NetworkAccess.h
-    src/OllamaBackend.cpp
-    src/OllamaBackend.h
 )
 add_library(MikserStudio::services ALIAS mikserstudio-services)
 

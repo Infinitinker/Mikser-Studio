@@ -5,7 +5,6 @@
 #include "AiBackend.h"
 #include "ComfyUiBackend.h"
 #include "Logging.h"
-#include "OllamaBackend.h"
 #include "mikserstudio/core/JsonSchema.h"
 #include "mikserstudio/core/Project.h"
 
@@ -77,7 +76,6 @@ AiEngine::AiEngine(AiEngineOptions options, QObject* parent)
     , m_options(std::move(options))
     , m_settings(loadAiSettings(m_options.settingsFile))
 {
-    addBackend(std::make_unique<OllamaBackend>(m_settings.ollamaUrl));
     addBackend(std::make_unique<ComfyUiBackend>(m_settings.comfyuiUrl));
 }
 
@@ -118,11 +116,9 @@ std::expected<void, QString> AiEngine::setSettings(const AiSettings& settings)
     if (auto saved = saveAiSettings(settings, m_options.settingsFile); !saved)
         return saved;
     const std::pair<QString, QUrl> addresses[] = {
-        {u"ollama"_s, settings.ollamaUrl},
         {u"comfyui"_s, settings.comfyuiUrl},
     };
     const std::pair<QString, QUrl> old[] = {
-        {u"ollama"_s, m_settings.ollamaUrl},
         {u"comfyui"_s, m_settings.comfyuiUrl},
     };
     m_settings = settings;

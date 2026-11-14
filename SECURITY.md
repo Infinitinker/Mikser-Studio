@@ -9,10 +9,10 @@ Please do not open a public issue. Report it privately through GitHub instead: o
 ## What is in scope
 
 - The local API on `127.0.0.1` and its discovery file `api.json`, including what a web page or another program on the same computer can make it do.
-- The AI engine's connections to the AI tools the user runs (Ollama, ComfyUI), and what their answers can make Mikser Studio do.
+- The connections to the AI tools the user runs (Ollama through the Ollama plugin and the app's HTTP job kinds, ComfyUI through the AI engine), and what their answers can make Mikser Studio do.
 - The MCP bridge, which offers the app's commands to agents through the local API.
 - Project files (`.msproj`) and media files: anything a crafted file can make Mikser Studio do.
-- Plugins: how they are found and turned on, the Lua sandbox they run in (each in a state and thread of its own, without files, processes or bytecode, with limits on memory and run time), and the permissions that give them access to the app.
+- Plugins: how they are found and turned on, the Lua sandbox they run in (each in a state and thread of its own, without files, processes or bytecode, with limits on memory and run time), the permissions that give them access to the app, and the network entries that limit where their requests may go.
 
 ## Supported versions
 

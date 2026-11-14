@@ -42,16 +42,6 @@ FakeOllama::FakeOllama()
     m_http.setHandler([this](const RecordedRequest& request) { return respond(request); });
 }
 
-QList<QJsonObject> FakeOllama::generateRequests() const
-{
-    QList<QJsonObject> bodies;
-    for (const RecordedRequest& request : m_http.requests()) {
-        if (request.path == u"/api/generate")
-            bodies.append(bodyOf(request));
-    }
-    return bodies;
-}
-
 QHttpServerResponse FakeOllama::respond(const RecordedRequest& request)
 {
     if (request.path.startsWith(u"/fake/"))

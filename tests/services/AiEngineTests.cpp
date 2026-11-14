@@ -1,10 +1,9 @@
-// The AI engine against fake Ollama and ComfyUI servers: text and image jobs with their provenance, the
-// ComfyUI workflow, availability, one job at a time per backend, canceling, and settings that apply at once.
+// The AI engine against a fake ComfyUI: image jobs with their provenance, the ComfyUI workflow,
+// availability, one job at a time, canceling, and settings that apply at once. Text is the Ollama
+// plugin's, with its specs in plugins/builtin/ollama/spec.
 #include "FakeAiTools.h"
 #include "ServicesTestSupport.h"
 #include "mikserstudio/services/AiEngine.h"
-
-#include "OllamaBackend.h"
 
 #include <QFile>
 #include <QJsonArray>
@@ -17,14 +16,12 @@ using namespace std::chrono_literals;
 using namespace mikserstudio;
 using namespace mikserstudio::services;
 using mikserstudio::tests::FakeComfyUi;
-using mikserstudio::tests::FakeOllama;
 using mikserstudio::tests::waitFor;
 
 namespace {
 
 struct EngineFixture {
     QTemporaryDir dir;
-    FakeOllama ollama;
     FakeComfyUi comfy;
     std::unique_ptr<AiEngine> engine;
 
@@ -34,7 +31,7 @@ struct EngineFixture {
             .cacheDirectory = dir.filePath(u"cache"_s),
             .settingsFile = dir.filePath(u"ai-settings.json"_s),
         });
-        REQUIRE(engine->setSettings(AiSettings{.ollamaUrl = ollama.url(), .comfyuiUrl = comfy.url()}));
+        REQUIRE(engine->setSettings(AiSettings{.comfyuiUrl = comfy.url()}));
     }
 
     QString submit(const QString& op, const QJsonObject& params, const QString& backend = {}) const
@@ -74,84 +71,6 @@ bool usesApiNodes(const QJsonObject& workflow)
 }
 
 }  // namespace
-
-TEST_CASE("text.generate uses the first model that can complete and drops its reasoning", "[services][ai]")
-{
-    EngineFixture fixture;
-    const QString id = fixture.submit(u"text.generate"_s, {{u"prompt"_s, u"Say hello"_s}});
-    const QJsonObject job = fixture.waitFinished(id);
-    INFO(job.value(u"error").toString().toStdString());
-    REQUIRE(job.value(u"state").toString() == u"succeeded"_s);
-    CHECK(job.value(u"backend").toString() == u"ollama"_s);
-    CHECK(job.value(u"title").toString() == u"Generate text"_s);
-
-    const QJsonObject result = job.value(u"result").toObject();
-    CHECK(result.value(u"text").toString() == u"Hello there."_s);
-    CHECK(result.value(u"model").toString() == u"llama3:latest"_s);
-    CHECK(result.value(u"outputs").toArray().isEmpty());
-
-    const QJsonObject provenance = result.value(u"provenance").toObject();
-    CHECK(provenance.value(u"jobId").toString() == id);
-    CHECK(provenance.value(u"backend").toString() == u"ollama"_s);
-    CHECK(provenance.value(u"op").toString() == u"text.generate"_s);
-    CHECK(provenance.value(u"params").toObject().value(u"prompt").toString() == u"Say hello"_s);
-    CHECK_FALSE(provenance.value(u"createdAt").toString().isEmpty());
-    CHECK(provenance.value(u"tools").toObject().value(u"ollama").toString() == u"0.12.3"_s);
-    const QJsonObject model = provenance.value(u"model").toObject();
-    CHECK(model.value(u"name").toString() == u"llama3:latest"_s);
-    CHECK(model.value(u"digest").toString() == u"sha256:llama3:latest"_s);
-    CHECK(model.value(u"family").toString() == u"llama"_s);
-    CHECK(model.value(u"parameterSize").toString() == u"8.0B"_s);
-    CHECK(model.value(u"quantization").toString() == u"Q4_K_M"_s);
-
-    const auto requests = fixture.ollama.generateRequests();
-    REQUIRE(requests.size() == 1);
-    CHECK(requests.first().value(u"model").toString() == u"llama3:latest"_s);
-    CHECK(requests.first().value(u"stream").toBool());
-}
-
-TEST_CASE("text.generate refuses a model that is missing or cannot generate text", "[services][ai]")
-{
-    EngineFixture fixture;
-    const QJsonObject missing = fixture.waitFinished(
-        fixture.submit(u"text.generate"_s, {{u"prompt"_s, u"Hi"_s}, {u"model"_s, u"nope"_s}}));
-    CHECK(missing.value(u"state").toString() == u"failed"_s);
-    CHECK(missing.value(u"error").toString().contains(u"is not installed in Ollama"_s));
-
-    const QJsonObject vision = fixture.waitFinished(
-        fixture.submit(u"text.generate"_s, {{u"prompt"_s, u"Hi"_s}, {u"model"_s, u"vision-only"_s}}));
-    CHECK(vision.value(u"state").toString() == u"failed"_s);
-    CHECK(vision.value(u"error").toString().contains(u"cannot generate text (it offers: vision)"_s));
-    CHECK(fixture.ollama.generateRequests().isEmpty());
-}
-
-TEST_CASE("A job fails with a reason when its tool is not running", "[services][ai]")
-{
-    EngineFixture fixture;
-    AiSettings settings = fixture.engine->settings();
-    settings.ollamaUrl = QUrl(u"http://127.0.0.1:9"_s);
-    REQUIRE(fixture.engine->setSettings(settings));
-    const QJsonObject job = fixture.waitFinished(fixture.submit(u"text.generate"_s, {{u"prompt"_s, u"Hi"_s}}));
-    CHECK(job.value(u"state").toString() == u"failed"_s);
-    CHECK(job.value(u"error").toString().startsWith(u"Ollama is not reachable at http://127.0.0.1:9"_s));
-}
-
-TEST_CASE("An error line in Ollama's answer fails the text job", "[services][ai]")
-{
-    EngineFixture fixture;
-    fixture.ollama.answer = {R"({"model":"llama3:latest","response":"Hel","done":false})",
-                             R"({"error":"model runner has unexpectedly stopped"})"};
-    const QJsonObject job = fixture.waitFinished(fixture.submit(u"text.generate"_s, {{u"prompt"_s, u"Hi"_s}}));
-    CHECK(job.value(u"state").toString() == u"failed"_s);
-    CHECK(job.value(u"error").toString().startsWith(u"Ollama stopped answering with llama3:latest."_s));
-    CHECK(job.value(u"result").toObject().isEmpty());
-}
-
-TEST_CASE("Reasoning before </think> is dropped from the answer", "[services][ai]")
-{
-    CHECK(stripReasoning(u"<think>hmm</think>\n Answer "_s) == u"Answer"_s);
-    CHECK(stripReasoning(u"Just an answer"_s) == u"Just an answer"_s);
-}
 
 TEST_CASE("image.generate runs the Qwen Image workflow in ComfyUI and copies its image", "[services][ai]")
 {
@@ -284,7 +203,7 @@ TEST_CASE("A ComfyUI error fails the image job with ComfyUI's message", "[servic
     CHECK(job.value(u"error").toString() == u"ComfyUI stopped with Out of memory in KSampler."_s);
 }
 
-TEST_CASE("Availability says what ComfyUI lacks and whether the tools run", "[services][ai]")
+TEST_CASE("Availability says what ComfyUI lacks", "[services][ai]")
 {
     EngineFixture fixture;
     fixture.comfy.missingModels = {u"qwen_image_2.1_vae_bf16.safetensors"_s};
@@ -299,7 +218,6 @@ TEST_CASE("Availability says what ComfyUI lacks and whether the tools run", "[se
 
     fixture.engine->refreshAvailability();
     REQUIRE(waitFor([&] { return !find(u"comfyui"_s).reason.contains(u"checking"_s); }));
-    REQUIRE(waitFor([&] { return find(u"ollama"_s).available; }));
     const AiBackendInfo comfy = find(u"comfyui"_s);
     CHECK_FALSE(comfy.available);
     CHECK(comfy.reason.contains(u"qwen_image_2.1_vae_bf16.safetensors"_s));
@@ -314,7 +232,7 @@ TEST_CASE("Availability says what ComfyUI lacks and whether the tools run", "[se
     CHECK(fixture.comfy.prompts().isEmpty());
 }
 
-TEST_CASE("Jobs of one backend run one at a time, other backends side by side", "[services][ai]")
+TEST_CASE("Jobs of one backend run one at a time", "[services][ai]")
 {
     EngineFixture fixture;
     fixture.comfy.holdPrompts = true;
@@ -324,11 +242,6 @@ TEST_CASE("Jobs of one backend run one at a time, other backends side by side", 
     CHECK(fixture.state(first) == u"running"_s);
     CHECK(fixture.state(second) == u"queued"_s);
     CHECK(fixture.engine->activeJobCount() == 2);
-
-    // Ollama is not held up by ComfyUI.
-    const QJsonObject text = fixture.waitFinished(fixture.submit(u"text.generate"_s, {{u"prompt"_s, u"Hi"_s}}));
-    CHECK(text.value(u"state").toString() == u"succeeded"_s);
-    CHECK(fixture.state(first) == u"running"_s);
 
     fixture.comfy.run(u"prompt-1"_s);
     CHECK(fixture.waitFinished(first).value(u"state").toString() == u"succeeded"_s);
@@ -401,7 +314,6 @@ TEST_CASE("A new address applies at once and running jobs go on with the old one
     const AiEngine reopened(AiEngineOptions{.cacheDirectory = fixture.dir.filePath(u"cache"_s),
                                             .settingsFile = fixture.dir.filePath(u"ai-settings.json"_s)});
     CHECK(reopened.settings().comfyuiUrl == other.url());
-    CHECK(reopened.settings().ollamaUrl == fixture.ollama.url());
 }
 
 TEST_CASE("Jobs are refused with params their operation does not take", "[services][ai]")
@@ -415,8 +327,8 @@ TEST_CASE("Jobs are refused with params their operation does not take", "[servic
     REQUIRE_FALSE(tooLarge);
     CHECK(tooLarge.error().message.contains(u"/width"_s));
     CHECK_FALSE(fixture.engine->submit(u"video.upscale"_s, {}, {}, {}));
-    CHECK_FALSE(fixture.engine->submit(u"text.generate"_s, {{u"prompt"_s, u"x"_s}}, u"comfyui"_s, {}));
-    CHECK_FALSE(fixture.engine->submit(u"text.generate"_s, {{u"prompt"_s, u"x"_s}}, u"builtin"_s, {}));
+    CHECK_FALSE(fixture.engine->submit(u"text.generate"_s, {{u"prompt"_s, u"x"_s}}, {}, {}));
+    CHECK_FALSE(fixture.engine->submit(u"image.generate"_s, {{u"prompt"_s, u"x"_s}}, u"builtin"_s, {}));
     CHECK(fixture.engine->jobsJson().isEmpty());
 }
 
@@ -424,7 +336,9 @@ TEST_CASE("AI settings take only http addresses", "[services][ai]")
 {
     CHECK(aiSettingsFromJson({{u"comfyuiUrl"_s, u"http://127.0.0.1:8189/"_s}})->comfyuiUrl ==
           QUrl(u"http://127.0.0.1:8189"_s));
-    CHECK(aiSettingsFromJson({{u"ollamaUrl"_s, u"ftp://host"_s}}).error().contains(u"Ollama"_s));
+    CHECK(aiSettingsFromJson({{u"comfyuiUrl"_s, u"ftp://host"_s}}).error().contains(u"ComfyUI"_s));
+    // An address of Ollama saved before is ignored: it is the Ollama plugin's setting now.
+    CHECK(aiSettingsFromJson({{u"ollamaUrl"_s, u"ftp://host"_s}}).value() == AiSettings{});
     CHECK_FALSE(aiSettingsFromJson({{u"comfyuiUrl"_s, u"not a url"_s}}));
     CHECK(aiSettingsFromJson({}).value() == AiSettings{});
 }

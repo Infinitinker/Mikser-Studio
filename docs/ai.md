@@ -1,24 +1,65 @@
 # AI in Mikser Studio
 
 Mikser Studio runs no AI models itself and ships none. It connects to the AI tools the user runs,
-local and offline first, through their own APIs: one backend per API, such as `ollama` for Ollama and
-`comfyui` for ComfyUI. An online service is used only when the user sets it up. Mikser Studio never
+local and offline first, through their own APIs: one plugin or backend per API, such as the `ollama` plugin
+for Ollama and the `comfyui` backend for ComfyUI. An online service is used only when the user sets it up. Mikser Studio never
 downloads models or installs extensions or nodes unless the user asks.
 
-The app runs AI jobs itself, in C++, in `src/services` (`MikserStudio::services`, which depends on the
-core, Qt Network and Qt WebSockets). `services::AiEngine` holds the backends and the jobs, and
-`services::registerAiCommands` offers them as ordinary commands (`ai.*`, category "AI") on the
-`CommandBus`. Menus, the AI panel, the command palette, macros, plugins, the `/v1` API and the MCP
-bridge all use them the same way. No other process is started.
+Each AI tool is moving into a plugin of its own: the plugin holds the policy (which model, what to
+send, how to word a failure) in Lua, and the app's C++ job kinds do the network work. Ollama has moved:
+the built-in `ollama` plugin ([below](#the-ollama-plugin)) runs on the `http.request` and
+`http.stream_ndjson` job kinds ([plugins.md](plugins.md#job-kinds)). ComfyUI still runs in the AI
+engine, in C++, in `src/services` (`MikserStudio::services`, which depends on the core, Qt Network and
+Qt WebSockets): `services::AiEngine` holds its backend and jobs, and `services::registerAiCommands`
+offers them as ordinary commands (`ai.*`, category "AI") on the `CommandBus`, until it becomes the
+`comfyui` plugin. Menus, the AI panel, the command palette, macros, plugins, the `/v1` API and the MCP
+bridge use the plugins' commands and the `ai.*` commands the same way. No other process is started.
 
 ```
- AI panel / API / MCP bridge        Mikser Studio (C++, main thread)                   AI tools the user runs
- ───────────────────────────  ai.*  ───────────────────────────────────  HTTP, WebSocket  ──────────────────────
-  ai.run  ──────────────────────►  AiEngine: one queue per backend
-  ai.jobs (poll) ◄───────────────   ├─ OllamaBackend   (text.generate)  ─────────────────►  Ollama
-  ai.cancel_job  ────────────────►  ├─ ComfyUiBackend  (image.generate) ─────────────────►  ComfyUI
-                                    └─ on success: project.import_media with the provenance, one undo step
+ AI panel / API / MCP bridge                Mikser Studio                                AI tools the user runs
+ ──────────────────────────────────────  ─────────────────────────────────────────────  ──────────────────────
+  mikserstudio.ollama.generate_text  ──►  the ollama plugin (Lua): a job of its own
+                                            └─ http.request, http.stream_ndjson (C++)  ──────►  Ollama
+  ai.run {op: image.generate}  ────────►  AiEngine: ComfyUiBackend (C++)  ──────────────────►  ComfyUI
+                                            └─ on success: project.import_media, one undo step
+  jobs.list (poll), jobs.cancel  ──────►  core's job manager: every job above
 ```
+
+## The Ollama plugin
+
+`plugins/builtin/ollama` (`mikserstudio.ollama`) has the `network` permission and the network entries
+`127.0.0.1:*`, `localhost:*`, `[::1]:*` and `*:*`: Ollama may run on this computer or another one, on
+any port, and the person sets its address. Its one setting, `url`, is the address, by default
+`http://127.0.0.1:11434`; the Plugins panel changes it, and agents with `plugins.set_settings`. A job
+uses the address that was set when it was asked for, so a new address applies to new jobs and running
+ones go on with the old one.
+
+| Command | Params | Result |
+|---|---|---|
+| `mikserstudio.ollama.generate_text` | `{prompt, model?}` | `{jobId}`; the job's result is `{text, model, provenance}` |
+| `mikserstudio.ollama.models` | — | `{models: [{name, digest, family, parameterSize, quantization}]}`, read-only |
+
+Both are `open_world` (the MCP bridge marks them `openWorldHint`) and need `network`.
+`generate_text` answers at once and works in a job of the plugin's own, in the lane `generate`, so
+one answer is written at a time:
+
+- It asks Ollama for its version and models. Without `model` it uses the first installed model whose
+  capabilities (`/api/show`) include `completion`, so vision-only and embedding models are skipped; a
+  model that doesn't say what it can do is trusted. `model` may leave out `:latest`.
+- It streams `/api/generate`, showing "Thinking with …" or "Writing with … (n tokens)" as the job's
+  progress. The answer is the text after the model's last `</think>`, so a thinking model's reasoning
+  is dropped. An answer that stops inside `<think>`, or one that has only reasoning when Ollama says
+  it ran out of room, fails the job: "The model ran out of room before it answered; allow it more
+  tokens or use a model that doesn't think first."
+- The provenance names the plugin, the operation, the params, Ollama's version, the model's name,
+  digest, family, size and quantization, and the time.
+- Its failures say what to do: start Ollama, download a model with `ollama pull`, choose another
+  model. When Ollama stops answering, its own message goes to the log.
+- Canceling the job cancels its requests, which closes the connection and stops Ollama's answer.
+
+The requests time out after 3 s (`/api/version`, `/api/tags`), 15 s (`/api/show`, which reads the
+model file) and 600 s of silence (`/api/generate`: loading a large model can take minutes). Its specs
+(`spec/`) run against the fake Ollama of `tests/services`.
 
 ## The engine and its jobs
 
@@ -56,9 +97,9 @@ plugins' own (such as the Ollama plugin's text jobs) that are part of no other j
 | `ai.jobs` | — | `{jobs: [job, …]}`, read-only |
 | `ai.cancel_job` | `{jobId}` | `{jobId, state}` |
 | `ai.backends` | — | `{backends: [{id, title, ops: [{id, title, description, paramsSchema}], available, reason}]}` |
-| `ai.status` | — | `{activeJobs, ollamaUrl, comfyuiUrl}`, read-only |
-| `ai.settings` | — | `{ollamaUrl, comfyuiUrl}`, read-only |
-| `ai.set_settings` | `{ollamaUrl?, comfyuiUrl?}` | `{ollamaUrl, comfyuiUrl}` |
+| `ai.status` | — | `{activeJobs, comfyuiUrl}`, read-only |
+| `ai.settings` | — | `{comfyuiUrl}`, read-only |
+| `ai.set_settings` | `{comfyuiUrl?}` | `{comfyuiUrl}` |
 
 `ai.run` runs `op` on the backend named in `backend`, or on the first backend that offers it, an
 available one first. It answers `invalid_params` for an unknown operation or backend, and for params
@@ -79,7 +120,7 @@ backend that is not available: the job fails with the tool's reason. `ai.cancel_
   "error": "",                       // an English message for the user when the job failed
   "createdAt": "2026-11-13T09:12:04Z", "startedAt": "…", "finishedAt": "…",   // "" until then
   "result": {
-    "seed": 81723645012,             // the operation's own fields: "text" and "model" for text.generate
+    "seed": 81723645012,             // the operation's own fields
     "outputs": [{"path": "C:/…/cache/ai/aijob-5c1e…/image-1.png", "kind": "image"}],
     "provenance": {
       "jobId": "aijob-5c1e…", "backend": "comfyui", "op": "image.generate",
@@ -108,7 +149,6 @@ operation, params, time and app version. A seed the backend picked goes into the
 
 | Backend | Operation | What it does |
 |---|---|---|
-| `ollama` | `text.generate {prompt, model?}` | Streams `/api/generate` from the user's Ollama. Without `model` it uses the first installed model whose capabilities include `completion` (vision-only or embedding models are skipped). Result: `{text, model}`; reasoning that a thinking model writes before `</think>` is dropped from `text`. Provenance: Ollama's version and the model's name, digest, family, size and quantization. Canceling closes the connection, which stops Ollama's answer. Unavailable when Ollama is not running or has no models. |
 | `comfyui` | `image.generate {prompt, negative_prompt = "", width = 1024, height = 1024, steps = 25, seed?}` | Runs ComfyUI's Qwen Image 2.1 text-to-image workflow, without its prompt enhancer, in the user's ComfyUI: the diffusion model `qwen_image_2.1_int8_convrot.safetensors` through `QwenImage21Cache`, the text encoder `qwen3vl_8b_int8_convrot.safetensors` with `TextEncodeQwenImage21`, KSampler (euler, simple, cfg 1), the VAE `qwen_image_2.1_vae_bf16.safetensors`, and `SaveImage` into `mikserstudio/<job id>` in ComfyUI's output folder. The image is then copied into the job's folder. Sizes are rounded down to a multiple of 16. Without `seed` it picks one and returns it as `{seed}`. Progress comes from ComfyUI's socket. Provenance: ComfyUI's version, the three models, and the sampler, steps, seed, size and ComfyUI's prompt id. Unavailable when ComfyUI is not running or lacks one of the models or nodes; the reason names them. |
 
 The `comfyui` backend uses only ComfyUI's local nodes, never its API nodes (whose names end in
@@ -119,14 +159,16 @@ finish, and its image stays in ComfyUI's output folder.
 
 ## Settings
 
-`ai-settings.json` in the instance's config folder holds the tools' addresses:
+`ai-settings.json` in the instance's config folder holds ComfyUI's address (Ollama's is the Ollama
+plugin's setting):
 
 ```json
-{"ollamaUrl": "http://127.0.0.1:11434", "comfyuiUrl": "http://127.0.0.1:8188"}
+{"comfyuiUrl": "http://127.0.0.1:8188"}
 ```
 
-These are also the defaults. `ai.set_settings` changes one address or both and saves the file. An
-address must be an `http` or `https` URL with a host; the error names the setting. A new address
+This is also the default. `ai.set_settings` changes it and saves the file; an `ollamaUrl` left in the
+file from before is ignored. An address must be an `http` or `https` URL with a host; the error names
+the setting. A new address
 takes effect at once: new jobs and checks use it, and running jobs go on with the old one. A file that
 is missing or cannot be read gives the defaults, and the log says why.
 
@@ -142,9 +184,6 @@ Every request gives up when no data comes for its timeout:
 
 | Tool | Requests | Timeout |
 |---|---|---|
-| Ollama | `/api/version`, `/api/tags` | 3 s |
-| Ollama | `/api/show` (reads the model file) | 15 s |
-| Ollama | `/api/generate` | 600 s of silence: loading a large model can take minutes |
 | ComfyUI | `/system_stats`, `/models`, `/object_info`, `/history`, `/queue` | 5 s |
 | ComfyUI | `/prompt` (ComfyUI checks the whole workflow) | 30 s |
 | ComfyUI | `/view`, per image | 120 s |
@@ -152,6 +191,10 @@ Every request gives up when no data comes for its timeout:
 | ComfyUI | a queued or running prompt | 10 min with no socket message: the prompt is taken off the queue and the job fails |
 
 ## Adding a backend
+
+A new AI tool comes as a plugin, as Ollama did: its policy in Lua, on the app's job kinds
+([plugins.md](plugins.md#how-a-feature-becomes-a-lua-plugin)). What follows is how the AI engine's
+C++ backends work, for ComfyUI's until it moves too.
 
 A backend is one class in `src/services/src/` that implements `AiBackend` (`AiBackend.h`, private to
 the module):
@@ -178,10 +221,11 @@ never through a proxy. Then:
 
 ## Tests
 
-`tests/services` (Catch2) runs the engine, the backends and the commands against fake Ollama and
-ComfyUI servers in the test process (`tests/services/FakeAiTools.*`), on ephemeral loopback ports. The
-fakes answer the parts of the tools' APIs the backends use and record what they were asked, so the
-tests check the requests too, such as that canceling deletes only the job's own prompt.
+`tests/services` (Catch2) runs the engine, its backend and the commands against a fake ComfyUI in the
+test process (`tests/services/FakeAiTools.*`), on an ephemeral loopback port. The fake answers the
+parts of ComfyUI's API the backend uses and records what it was asked, so the tests check the requests
+too, such as that canceling deletes only the job's own prompt. The Ollama plugin's specs run against
+the fake Ollama of the same file, which a spec sets up over HTTP (`/fake/setup`).
 
 `tests/e2e/AiRunTests.cpp` starts the built app headless, points it at a fake ComfyUI with
 `ai.set_settings`, runs `ai.run image.generate` through the local API, and checks that the image comes

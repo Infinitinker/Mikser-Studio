@@ -1,5 +1,6 @@
-// Fake AI tools for the tests: an Ollama and a ComfyUI that answer the parts of their APIs the backends use,
-// in-process on ephemeral loopback ports, and record what they were asked.
+// Fake AI tools for the tests: an Ollama and a ComfyUI that answer the parts of their APIs the Ollama
+// plugin and the ComfyUI backend use, in-process on ephemeral loopback ports, and record what they
+// were asked.
 #pragma once
 
 #include "ServicesTestSupport.h"
@@ -34,8 +35,6 @@ public:
 
     [[nodiscard]] QUrl url() const { return m_http.url(); }
     [[nodiscard]] const QList<RecordedRequest>& requests() const { return m_http.requests(); }
-    // The bodies of the /api/generate requests.
-    [[nodiscard]] QList<QJsonObject> generateRequests() const;
 
     QList<Model> models{{QStringLiteral("vision-only:latest"), {QStringLiteral("vision")}},
                         {QStringLiteral("llama3:latest"), {QStringLiteral("completion")}}};
