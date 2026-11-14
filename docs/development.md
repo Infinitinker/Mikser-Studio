@@ -12,29 +12,28 @@ Mikser Studio builds on Windows with the MSYS2 **UCRT64** toolchain, the same wa
 pacman -S --needed mingw-w64-ucrt-x86_64-{gcc,gdb,cmake,ninja,ccache,pkgconf} \
   mingw-w64-ucrt-x86_64-{qt6-base,qt6-declarative,qt6-shadertools,qt6-tools,qt6-httpserver,qt6-websockets,qt6-svg} \
   mingw-w64-ucrt-x86_64-{kddockwidgets,mlt,ffmpeg,rtaudio,catch} \
-  mingw-w64-ucrt-x86_64-{libebur128,fftw,libsamplerate,sox,rubberband,rnnoise,lilv}
+  mingw-w64-ucrt-x86_64-{libebur128,fftw,libsamplerate,sox,rubberband,rnnoise,lilv} \
+  mingw-w64-ucrt-x86_64-{lua54,lua54-luafilesystem,lua54-cjson}
 ```
 
-The last line is MLT's optional runtime libraries. Without them MLT silently skips modules: `qt6`
+The fourth line is MLT's optional runtime libraries. Without them MLT silently skips modules: `qt6`
 (the `qtblend` compositor), `plus`, `resample`, `sox`, `rubberband`, `rnnoise` and `ladspa`.
 
-The C++ checks need clang-format and clang-tidy, and the license tools MSYS2's Python:
+The last line is Lua 5.4 with LuaFileSystem (`lfs`) and lua-cjson. The scripts in `tools/` (the
+release build, the notices, the license and include checks, and what they read from MSYS2) are Lua,
+run with `lua5.4` from the repository's root, and never ship; their tests in `tools/tests/` run with
+the C++ tests, so configuring with the tests on needs `lua5.4` too.
+
+The C++ checks need clang-format and clang-tidy:
 
 ```sh
-pacman -S --needed mingw-w64-ucrt-x86_64-{clang,clang-tools-extra,python}
+pacman -S --needed mingw-w64-ucrt-x86_64-{clang,clang-tools-extra}
 ```
 
-A release ships no Python. The scripts in `tools/` (the release build, the notices, the license and
-include checks) run with Python's standard library alone, and never ship. Their checks, Ruff, mypy and
-pytest, need [Python 3.13](https://www.python.org/downloads/) and a virtual environment of their own in
-`tools/.venv`, made with `venv` and `pip` once (and again after the development tools
-`tools/pyproject.toml` lists change), from Git Bash or PowerShell; an MSYS2 shell doesn't see the
-Windows `py` launcher. `--group` needs pip 25.1 or newer.
-
-```sh
-py -3.13 -m venv tools/.venv
-tools/.venv/Scripts/python -m pip install --group tools/pyproject.toml:dev
-```
+The checks of the scripts in `tools/` are [StyLua](https://github.com/JohnnyMorganz/StyLua) and
+[selene](https://github.com/Kampfkarren/selene), two single programs to put on `PATH`. Both must
+read Lua 5.4: a plain `cargo install` builds them without it, so build StyLua with
+`--features lua54` and selene with its Lua 5.2 to 5.4 features.
 
 Ollama and ComfyUI are optional: the AI commands use them when they run ([ai.md](ai.md)), and the
 tests use fakes of them.
@@ -149,23 +148,25 @@ git ls-files '*.cpp' | xargs -P 8 -n 1 clang-tidy -p build/ci --quiet
 
 `clang-format -i <files>` formats files in place.
 
-**Lint** (job `Lint`): Ruff, for the scripts in `tools/`, with the settings in
-`tools/pyproject.toml`; the tests of those scripts (`tools/tests/`); and the C++ include directions
-("Import directions" in [architecture.md](architecture.md)).
+The tests of the scripts in `tools/` are plain Lua scripts, `tools/tests/test_<script>.lua`, which
+CTest runs with the C++ tests, labeled `tools` (`ctest --preset ci -L tools` runs them alone). Each
+also runs on its own: `lua5.4 tools/tests/test_licenses.lua`.
+
+**Lint** (job `Lint`): the C++ include directions ("Import directions" in
+[architecture.md](architecture.md)).
+
+```sh
+lua5.4 tools/check_includes.lua
+```
+
+**Lua** (no job yet): StyLua and selene, for the scripts in `tools/`, with the settings in
+`tools/stylua.toml` and `tools/selene.toml` (and Lua 5.4's standard library for selene in
+`tools/lua54.yml`), both failing on any finding. `stylua .` formats the files in place.
 
 ```sh
 cd tools
-.venv/Scripts/python -m ruff check .
-.venv/Scripts/python -m ruff format --check .
-.venv/Scripts/python -m pytest
-cd ..
-tools/.venv/Scripts/python tools/check_includes.py
-```
-
-**Types** (job `Types`): mypy, strict, for `tools/`.
-
-```sh
-(cd tools && .venv/Scripts/python -m mypy)
+stylua --check .
+selene .
 ```
 
 **Licenses** (job `Licenses`): `THIRD-PARTY-NOTICES.md` is up to date, and every license a release
@@ -173,8 +174,8 @@ ships can be combined with Mikser Studio's GPL-3.0-or-later ([releasing.md](rele
 Both read MSYS2's package database.
 
 ```sh
-python tools/notices.py --check
-python tools/licenses.py
+lua5.4 tools/notices.lua --check
+lua5.4 tools/licenses.lua
 ```
 
 ## End-to-end tests
@@ -224,15 +225,11 @@ The code is portable (QRhi picks Vulkan/OpenGL or Metal; KDDockWidgets, MLT and 
 cross-platform) but only the Windows build has been run so far. The same packages exist in the
 usual package managers; CI for Linux and macOS comes with their ports.
 
-The environment of the scripts in `tools/` is made the same way, with `bin/` in place of `Scripts/`:
-
-```sh
-python3.13 -m venv tools/.venv
-tools/.venv/bin/python -m pip install --group tools/pyproject.toml:dev
-```
+The scripts in `tools/` need Lua 5.4 there too, with LuaFileSystem; the include check and
+`tools/build_release.lua --version` need Lua alone (on Ubuntu, the `lua5.4` package).
 
 ## Branches
 
 `main` is stable and the default branch; work happens on `dev`, and changes reach `main` only through
-pull requests from `dev`, merged with a merge commit. The `Checks` jobs (`Lint`, `Types`, `Tests`,
-`Licenses`, `C++ checks`) have short, fixed names so the main branch's ruleset can require them.
+pull requests from `dev`, merged with a merge commit. The `Checks` jobs (`Lint`, `Tests`, `Licenses`,
+`C++ checks`) have short, fixed names so the main branch's ruleset can require them.

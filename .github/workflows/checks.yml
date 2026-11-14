@@ -18,47 +18,21 @@ permissions:
   contents: read
 
 jobs:
-  # Ruff's results, the tests of the scripts in tools/ and the C++ include directions are the same on
-  # every system, so they run once, on the fastest runner.
+  # The C++ include directions are the same on every system, so they are checked once, on the fastest
+  # runner, with Lua alone. The tests of the scripts in tools/ run with the C++ tests (Tests).
   lint:
     name: Lint
     runs-on: ubuntu-26.04
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v7
-      - uses: ./.github/actions/python
-      - name: Install the checks of tools/
-        run: python -m pip install --group tools/pyproject.toml:dev
-      # The scripts in tools/, with the settings in tools/pyproject.toml.
-      - name: Lint tools/
-        working-directory: tools
-        run: python -m ruff check .
-      - name: Format tools/
-        working-directory: tools
-        run: python -m ruff format --check .
-      - name: Tests of tools/
-        working-directory: tools
-        run: python -m pytest
+      - uses: ./.github/actions/lua
       - name: Include directions
-        run: python tools/check_includes.py
+        run: lua5.4 tools/check_includes.lua
 
-  # mypy checks only the code paths of the system it runs on, so the types of the scripts in tools/ are
-  # checked on Windows, the system they build the release on.
-  types:
-    name: Types
-    runs-on: windows-latest
-    timeout-minutes: 15
-    steps:
-      - uses: actions/checkout@v7
-      - uses: ./.github/actions/python
-      - name: Install the checks of tools/
-        run: python -m pip install --group tools/pyproject.toml:dev
-      - name: Types of tools/
-        working-directory: tools
-        run: python -m mypy
-
-  # The C++ build with the ci preset, where warnings are errors, and its tests, the MCP bridge's among
-  # them. The whole AI path, through the app against a fake AI tool, is tested in e2e.yml.
+  # The C++ build with the ci preset, where warnings are errors, and its tests, the MCP bridge's and
+  # those of the scripts in tools/ among them. The whole AI path, through the app against a fake AI
+  # tool, is tested in e2e.yml.
   tests:
     name: Tests
     runs-on: windows-latest
@@ -84,9 +58,9 @@ jobs:
           MIKSERSTUDIO_AUDIO_OUTPUT: silent
         run: ctest --preset timing
 
-  # What a release ships from MSYS2, read from MSYS2's package database (tools/msys2_packages.py), with
-  # MSYS2's own Python: THIRD-PARTY-NOTICES.md must be up to date, and every license must be one that
-  # can be combined with Mikser Studio's GPL-3.0-or-later (docs/releasing.md, "Licenses").
+  # What a release ships from MSYS2, read from MSYS2's package database (tools/msys2_packages.lua), with
+  # MSYS2's Lua: THIRD-PARTY-NOTICES.md must be up to date, and every license must be one that can be
+  # combined with Mikser Studio's GPL-3.0-or-later (docs/releasing.md, "Licenses").
   licenses:
     name: Licenses
     runs-on: windows-latest
@@ -94,14 +68,12 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - uses: ./.github/actions/msys2
-        with:
-          packages: python:p
       - name: Notices
         shell: msys2 {0}
-        run: python tools/notices.py --check
+        run: lua5.4 tools/notices.lua --check
       - name: Licenses
         shell: msys2 {0}
-        run: python tools/licenses.py
+        run: lua5.4 tools/licenses.lua
 
   # The C++ code: clang-format and clang-tidy (.clang-format and .clang-tidy at the root). Each step
   # fails on any finding. clang-tidy reads the compile commands of the ci preset: configuring is

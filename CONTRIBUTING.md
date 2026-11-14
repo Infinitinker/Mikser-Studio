@@ -57,13 +57,13 @@ include which, and the names the project uses for its concepts.
 1. Work on a branch from `dev`, and open the pull request to `dev`. `main` gets the changes from `dev`
    through a pull request.
 2. Run the checks before pushing, as "Checks" in [docs/development.md](docs/development.md) lists
-   them: the build and its tests, clang-format, clang-tidy and `tools/check_includes.py` for the C++
-   code; Ruff, mypy and pytest for the scripts in `tools/`. The `Checks` workflow runs them for every
-   pull request, and the `E2E tests` workflow the end-to-end tests.
+   them: the build and its tests, clang-format, clang-tidy and `tools/check_includes.lua` for the C++
+   code; StyLua and selene for the scripts in `tools/`. The `Checks` workflow runs all but StyLua and
+   selene for every pull request, and the `E2E tests` workflow the end-to-end tests.
 3. Modules include only what [docs/architecture.md](docs/architecture.md#import-directions) allows:
    plugins see only the SDK, and the app's modules only the core. A new dependency is justified and its
    license checked before it is added; after adding or upgrading a library a release ships,
-   `tools/notices.py` writes `THIRD-PARTY-NOTICES.md` again ([docs/releasing.md](docs/releasing.md)).
+   `tools/notices.lua` writes `THIRD-PARTY-NOTICES.md` again ([docs/releasing.md](docs/releasing.md)).
 4. Tests live in `tests/`, mirroring `src/` (the tests for `src/core` are in `tests/core`) and
    `plugins/` (`tests/plugins/hello`), together with their fakes; nothing test-only goes in `src/`.
    They run without the network; a sound device is never needed, as MLT falls back to its silent

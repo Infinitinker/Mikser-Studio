@@ -6,8 +6,8 @@ the libraries they need. Their licenses require these notices to come with every
 source is at its project's address below, and MSYS2's build of it at
 https://github.com/msys2/MINGW-packages.
 
-This file is written by `python tools/notices.py` from the packages a release is built with; do not edit
-it by hand. A release ships it as THIRD-PARTY-NOTICES.txt.
+This file is written by `lua5.4 tools/notices.lua` from the packages a release is built with; do not
+edit it by hand. A release ships it as THIRD-PARTY-NOTICES.txt.
 
 ## aom (BSD-2-Clause)
 

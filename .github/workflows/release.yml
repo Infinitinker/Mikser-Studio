@@ -30,10 +30,11 @@ jobs:
       - uses: actions/checkout@v7
         with:
           fetch-depth: 0 # The history of main, to check that the tag is on it.
+      - uses: ./.github/actions/lua
       - name: Read the version
         id: version
         run: |
-          version=$(python3 tools/build_release.py --version)
+          version=$(lua5.4 tools/build_release.lua --version)
           if [ -z "$version" ]; then
             echo "::error::CMakeLists.txt's project() has no VERSION."
             exit 1

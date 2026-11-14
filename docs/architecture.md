@@ -68,13 +68,13 @@ The rules between them:
 | `plugins/` | Lua plugins | the Lua API | Built-in plugins in `plugins/builtin/<name>/`, the example in `plugins/examples/hello/`. | planned (today: the native `plugins/hello/`) |
 | `effects/` | GLSL effects | — | One folder per effect: `effect.frag` and `effect.json`. | planned |
 | `sdk/` | `MikserStudio::sdk` | — | The C ABI of native plugins (`plugin_api.h`, MIT). Native plugins go away when the Lua host is in, and `sdk/` with them. | built, to be removed |
-| `tools/` | development scripts | — | The release build, the third-party notices, the license and include checks and what they read from MSYS2, in Python with its standard library alone; never shipped. They are to be rewritten in Lua 5.4. | built (Lua planned) |
+| `tools/` | development scripts | — | The release build, the third-party notices, the license and include checks and what they read from MSYS2, in Lua 5.4 with LuaFileSystem and lua-cjson, with their tests in `tools/tests/`; never shipped. Checked with StyLua and selene, with the settings in `tools/stylua.toml` and `tools/selene.toml`. | built |
 | `tests/` | `*-tests` | Catch2 | Tests mirroring `src/` and `plugins/`, and the end-to-end tests. | built |
 
 ## Import directions
 
 Code includes and imports only in these directions, so each module can be built, tested and replaced
-on its own. `tools/check_includes.py` checks them, and the `Checks` workflow runs it.
+on its own. `tools/check_includes.lua` checks them, and the `Checks` workflow runs it.
 
 - `src/core/` includes only itself (and, until native plugins go, the plugin ABI).
 - `src/engine/`, `src/api/`, `src/services/` and `src/ui/` include only themselves and `core`. The UI

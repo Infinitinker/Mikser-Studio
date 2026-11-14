@@ -4,7 +4,7 @@
 BasedOnStyle: WebKit
 
 # Indents of 4 spaces, with access modifiers (public:, private:) at the class's own level and namespaces
-# not indented; lines of up to 120 characters, like the Python code. Long string literals are never
+# not indented; lines of up to 120 characters, like the scripts in tools/. Long string literals are never
 # split: an interface text reads better whole.
 IndentWidth: 4
 ContinuationIndentWidth: 4

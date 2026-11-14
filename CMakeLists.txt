@@ -71,4 +71,5 @@ endif()
 
 if(MIKSERSTUDIO_BUILD_TESTS)
     add_subdirectory(tests)
+    add_subdirectory(tools/tests)
 endif()
