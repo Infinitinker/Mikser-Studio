@@ -1,6 +1,7 @@
 # Core tests.
 
 add_executable(mikserstudio-core-tests
+    AppInfoTests.cpp
     CommandBusTests.cpp
     EventBusTests.cpp
     FakePluginRuntime.h

@@ -61,6 +61,46 @@ The requests time out after 3 s (`/api/version`, `/api/tags`), 15 s (`/api/show`
 model file) and 600 s of silence (`/api/generate`: loading a large model can take minutes). Its specs
 (`spec/`) run against the fake Ollama of `tests/services`.
 
+## The ComfyUI plugin
+
+`plugins/builtin/comfyui` (`mikserstudio.comfyui`) has the permissions `network`, `files` (to import
+what ComfyUI made), `project.read` and `project.write`, and the same network entries as the Ollama
+plugin. Its one setting, `url`, is ComfyUI's address, by default `http://127.0.0.1:8188`; as for
+Ollama, a job uses the address that was set when it was asked for.
+
+| Command | Params | Result |
+|---|---|---|
+| `mikserstudio.comfyui.generate_image` | `{prompt, negative_prompt = "", width = 1024, height = 1024, steps = 25, seed?}` | `{jobId}`; the job's result is `{mediaIds, seed, outputs, provenance}` |
+| `mikserstudio.comfyui.check` | — | `{available, version?, reason?}`, read-only |
+
+Both are `open_world` and need `network`. `generate_image` answers at once and works in a job of the
+plugin's own, in the lane `generate`:
+
+- It asks ComfyUI for its version (`/system_stats`), its models (`/models/<folder>`) and its nodes
+  (`/object_info/<node>`), all at once, and names what is missing: "ComfyUI lacks …". `check` asks
+  the same.
+- The workflow is ComfyUI's own Qwen Image 2.1 text-to-image template without its prompt enhancer,
+  as a Lua table (`workflow.lua`) that the plugin fills in: the prompts, the size rounded down to a
+  multiple of 16, the steps and the seed (a new one when none is given). It uses only ComfyUI's local
+  nodes, never its API nodes. It runs in a `comfyui.run_prompt` job ([plugins.md](plugins.md#job-kinds)),
+  which shows the steps and the stage as the job's progress.
+- ComfyUI saves into `mikserstudio/<instance>/<job id>` in its output folder, where `<instance>` is
+  `app.info`'s name (Mikser Studio, Mikser Studio Dev or Mikser Studio E2E), so each instance's
+  images stay apart. The job copies them into the app's cache before importing them.
+- When the job has finished, the plugin imports each image with `project.import_media` and the
+  provenance, inside one `ms.transaction` ("Add AI result"): one undo step, and a change the person
+  makes meanwhile waits until it's done. The images are named after the start of the prompt. If the
+  project was replaced (`project.session` changed) since the command, nothing is imported and the job
+  says so.
+- The provenance names the plugin, the operation, the params with the seed, the app's name and
+  version, ComfyUI's version, the models, the method (workflow, sampler, scheduler, cfg, steps, seed
+  and size) and the time, with what the job saw itself: the prompt's id and ComfyUI's address.
+- Canceling the job takes its prompt off ComfyUI's queue if it hasn't started; a prompt that runs
+  goes on in ComfyUI, since the plugin never interrupts ComfyUI or frees its memory.
+
+Its specs run against the fake ComfyUI of `tests/services`. Until the AI engine goes, `ai.run`
+still runs the same workflow from C++.
+
 ## The engine and its jobs
 
 `ai.run` checks the parameters against the operation's JSON Schema, applies its defaults and queues a

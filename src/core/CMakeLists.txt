@@ -1,5 +1,6 @@
 # MikserStudio::core, see docs/architecture.md.
 add_library(mikserstudio-core STATIC
+    include/mikserstudio/core/AppInfo.h
     include/mikserstudio/core/Command.h
     include/mikserstudio/core/CommandBus.h
     include/mikserstudio/core/EventBus.h
@@ -16,6 +17,7 @@ add_library(mikserstudio-core STATIC
     include/mikserstudio/core/Transport.h
     include/mikserstudio/core/UndoStack.h
     include/mikserstudio/core/UserFolders.h
+    src/AppInfo.cpp
     src/CommandBus.cpp
     src/CommandSpecCheck.cpp
     src/CommandSpecCheck.h

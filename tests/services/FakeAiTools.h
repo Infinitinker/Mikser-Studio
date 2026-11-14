@@ -53,7 +53,10 @@ private:
 };
 
 // /system_stats, /models/<folder>, /object_info/<node>, /prompt, /queue, /history/<id>, /view and the
-// /ws socket. A queued prompt runs at once unless `holdPrompts` is set; run() then finishes it.
+// /ws socket. A queued prompt runs at once unless `holdPrompts` is set; run() then finishes it. For
+// specs, which reach it only over HTTP: POST /fake/setup {missingModels?, missingNodes?,
+// refusePrompts?, holdPrompts?, imageCount?} sets those, GET /fake/prompts answers {prompts: [{id,
+// workflow}], deleted: [id]}, and POST /fake/run {promptId} runs a held prompt.
 class FakeComfyUi {
 public:
     FakeComfyUi();
@@ -94,6 +97,7 @@ public:
 
 private:
     QHttpServerResponse respond(const RecordedRequest& request);
+    QHttpServerResponse control(const RecordedRequest& request);
     void acceptSockets();
     void broadcast(const QJsonObject& event);
 

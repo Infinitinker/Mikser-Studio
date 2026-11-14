@@ -42,6 +42,14 @@ globals:
   coroutine.close:
     args:
       - type: any
+  math.type:
+    must_use: true
+    args:
+      - type: any
+  math.tointeger:
+    must_use: true
+    args:
+      - type: any
   utf8.offset:
     must_use: true
     args:

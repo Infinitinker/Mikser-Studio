@@ -176,9 +176,43 @@ void FakeComfyUi::closeSockets()
         socket->close();
 }
 
+QHttpServerResponse FakeComfyUi::control(const RecordedRequest& request)
+{
+    const QJsonObject body = bodyOf(request);
+    const auto names = [&body](const QString& key) {
+        QStringList list;
+        for (const QJsonValue name : body.value(key).toArray())
+            list.append(name.toString());
+        return list;
+    };
+    if (request.path == u"/fake/setup") {
+        if (body.contains(u"missingModels"))
+            missingModels = names(u"missingModels"_s);
+        if (body.contains(u"missingNodes"))
+            missingNodes = names(u"missingNodes"_s);
+        refusePrompts = body.value(u"refusePrompts").toBool(refusePrompts);
+        holdPrompts = body.value(u"holdPrompts").toBool(holdPrompts);
+        imageCount = body.value(u"imageCount").toInt(imageCount);
+        return json(QJsonObject{});
+    }
+    if (request.path == u"/fake/prompts") {
+        QJsonArray list;
+        for (const auto& [id, workflow] : m_prompts)
+            list.append(QJsonObject{{u"id"_s, id}, {u"workflow"_s, workflow}});
+        return json(QJsonObject{{u"prompts"_s, list}, {u"deleted"_s, QJsonArray::fromStringList(deleted())}});
+    }
+    if (request.path == u"/fake/run") {
+        run(body.value(u"promptId").toString());
+        return json(QJsonObject{});
+    }
+    return notFound();
+}
+
 QHttpServerResponse FakeComfyUi::respond(const RecordedRequest& request)
 {
     const QString& path = request.path;
+    if (path.startsWith(u"/fake/"))
+        return control(request);
     if (path == u"/system_stats")
         return json(QJsonObject{{u"system"_s, QJsonObject{{u"comfyui_version"_s, u"0.9.1"_s}}}});
     if (path.startsWith(u"/models/")) {

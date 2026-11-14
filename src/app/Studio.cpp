@@ -7,6 +7,7 @@
 #include "Logging.h"
 #include "UnavailableProbe.h"
 
+#include "mikserstudio/core/AppInfo.h"
 #include "mikserstudio/core/PluginCommands.h"
 #include "mikserstudio/core/ProjectCommands.h"
 #include "mikserstudio/core/ProjectSnapshot.h"
@@ -62,6 +63,7 @@ Studio::Studio(const AppPaths& paths, StudioOptions options)
     if (m_source)
         core::registerTransportCommands(m_bus, *m_source, u"source"_s, u"Source monitor"_s);
     registerAppCommands(m_bus, m_project, m_source.get());
+    core::registerAppInfoCommand(m_bus);
     if (m_source) {
         // The source monitor shows a media item of the project; a new or opened project replaces it.
         QObject::connect(&m_project, &core::ProjectModel::projectReset, m_source.get(), &engine::ClipPlayer::close);

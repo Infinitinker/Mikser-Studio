@@ -1,19 +1,23 @@
 // The plugins' specs: each Lua file in the spec/ folder of a built-in plugin or of the example runs,
 // with every permission and its plugin's network entries, once the Lua host has started its plugin.
 // A spec passes when it runs to its end, and fails with the error it raises (docs/plugins.md,
-// "Tests"). The HTTP job kinds run, and a fake Ollama and ComfyUI listen on this computer: a spec
-// finds their addresses in its settings, {fakes: {ollama, comfyui}}.
+// "Tests"). The project commands, app.info and the network job kinds run (the media probe needs no
+// engine), and a fake Ollama and ComfyUI listen on this computer: a spec finds their addresses in its
+// settings, {fakes: {ollama, comfyui}}.
 #include "FakeAiTools.h"
 #include "ServicesTestSupport.h"
 
+#include "mikserstudio/core/AppInfo.h"
 #include "mikserstudio/core/CommandBus.h"
 #include "mikserstudio/core/JobManager.h"
 #include "mikserstudio/core/PluginCommands.h"
 #include "mikserstudio/core/PluginManager.h"
 #include "mikserstudio/core/Project.h"
+#include "mikserstudio/core/ProjectCommands.h"
 #include "mikserstudio/core/ProjectSnapshot.h"
 #include "mikserstudio/core/UndoStack.h"
 #include "mikserstudio/lua/LuaRuntime.h"
+#include "mikserstudio/services/ComfyUiJobs.h"
 #include "mikserstudio/services/HttpJobs.h"
 
 #include <catch2/catch_test_macros.hpp>
@@ -64,16 +68,22 @@ struct Environment {
         manager.setRuntime(&runtime);
         registerPluginCommands(bus, manager);
         registerJobCommands(bus, jobs);
+        registerProjectCommands(bus, project, probe);
+        registerAppInfoCommand(bus);
     }
 
     QTemporaryDir settings;
+    QTemporaryDir cache;
     UndoStack undo;
     CommandBus bus{undo};
     JobManager jobs{bus};
     mikserstudio::services::HttpJobs http{jobs, {.apiPort = [] { return std::optional<quint16>(); }}};
+    mikserstudio::services::ComfyUiJobs comfyUiJobs{
+        jobs, {.apiPort = [] { return std::optional<quint16>(); }, .outputDirectory = cache.filePath(u"jobs"_s)}};
     mikserstudio::tests::FakeOllama ollama;
     mikserstudio::tests::FakeComfyUi comfyui;
     ProjectModel project;
+    mikserstudio::tests::FakeProbe probe;
     mikserstudio::lua::LuaRuntime runtime{
         {.bus = &bus, .jobs = &jobs, .snapshot = [this] { return project.snapshot(); }, .hotReload = false}};
     PluginManager manager{bus, settings.path()};
