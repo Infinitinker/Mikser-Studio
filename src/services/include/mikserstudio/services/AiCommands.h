@@ -3,6 +3,7 @@
 
 namespace mikserstudio::core {
 class CommandBus;
+class JobManager;
 class ProjectModel;
 }  // namespace mikserstudio::core
 
@@ -30,5 +31,10 @@ class AiEngine;
 // The commands belong to `engine` (they go away with it, and unregister themselves from the bus).
 // `bus` and `project` may be destroyed first. Call once.
 void registerAiCommands(core::CommandBus& bus, core::ProjectModel& project, AiEngine& engine);
+
+// Mirrors the engine's jobs in `jobs`, with the same ids: kind "ai.<op>", lane "ai:<backend>", and
+// the result {result, placement}. jobs.cancel cancels the engine's job. `jobs` must be destroyed
+// before `engine`.
+void mirrorAiJobs(AiEngine& engine, core::JobManager& jobs);
 
 }  // namespace mikserstudio::services

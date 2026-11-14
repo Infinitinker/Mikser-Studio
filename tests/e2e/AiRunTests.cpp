@@ -1,6 +1,6 @@
 // End to end: ai.run through the built mikser-studio, run headless as the E2E instance and driven through its
 // local API, against a fake ComfyUI in the test process. The image comes into the project with its
-// provenance, without a real AI tool.
+// provenance, without a real AI tool, and /v1/events reports the job.
 #include "FakeAiTools.h"
 #include "ServicesTestSupport.h"
 
@@ -15,6 +15,7 @@
 #include <QProcess>
 #include <QProcessEnvironment>
 #include <QTemporaryDir>
+#include <QWebSocket>
 
 #include <algorithm>
 
@@ -79,6 +80,15 @@ TEST_CASE("ai.run makes an image in a fake ComfyUI and brings it into the projec
     REQUIRE(started);
     REQUIRE(studio.state() == QProcess::Running);
 
+    QWebSocket events;
+    QList<QJsonObject> received;
+    QObject::connect(&events, &QWebSocket::textMessageReceived, [&received](const QString& message) {
+        received.append(QJsonDocument::fromJson(message.toUtf8()).object());
+    });
+    events.open(
+        QUrl(discovery.value(u"eventsUrl"_s).toString() + u"?token="_s + discovery.value(u"token"_s).toString()));
+    REQUIRE(waitFor([&events] { return events.state() == QAbstractSocket::ConnectedState; }, 10s));
+
     const QJsonObject settings = runCommand(discovery, u"ai.set_settings"_s,
                                             {{u"comfyuiUrl"_s, comfy.url().toString()}});
     REQUIRE(settings.value(u"comfyuiUrl"_s).toString() == comfy.url().toString());
@@ -108,6 +118,22 @@ TEST_CASE("ai.run makes an image in a fake ComfyUI and brings it into the projec
     REQUIRE(finished);
     REQUIRE(job.value(u"state"_s).toString() == u"succeeded"_s);
     REQUIRE(comfy.prompts().size() == 1);
+
+    // The job's events, from the core job manager.
+    const auto eventsOfJob = [&received, &jobId] {
+        QStringList types;
+        for (const QJsonObject& event : received) {
+            if (event.value(u"jobId"_s).toString() == jobId)
+                types.append(event.value(u"type"_s).toString());
+        }
+        return types;
+    };
+    REQUIRE(waitFor([&] { return eventsOfJob().contains(u"job.finished"_s); }, 10s));
+    const QStringList types = eventsOfJob();
+    INFO(types.join(u", "_s).toStdString());
+    CHECK(types.constFirst() == u"job.created"_s);
+    CHECK(types.contains(u"job.progress"_s));
+    CHECK(types.constLast() == u"job.finished"_s);
 
     const QString mediaId = job.value(u"placement"_s).toObject().value(u"mediaIds"_s).toArray().first().toString();
     const QJsonArray media = runCommand(discovery, u"project.list"_s).value(u"media"_s).toArray();

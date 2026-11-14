@@ -4,6 +4,7 @@
 
 #include "mikserstudio/api/ApiServer.h"
 #include "mikserstudio/core/CommandBus.h"
+#include "mikserstudio/core/JobManager.h"
 #include "mikserstudio/core/PluginManager.h"
 #include "mikserstudio/core/Project.h"
 #include "mikserstudio/core/UndoStack.h"
@@ -64,6 +65,7 @@ private:
     std::unique_ptr<engine::TimelinePlayer> m_program;
 
     services::AiEngine m_ai;
+    core::JobManager m_jobs{m_bus};  // After m_ai: it mirrors the AI engine's jobs.
 
     QString m_discoveryFile;
     core::PluginManager m_plugins;

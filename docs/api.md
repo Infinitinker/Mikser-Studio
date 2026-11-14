@@ -244,6 +244,7 @@ Each text message is one JSON object with a `type`:
 {"type": "undo.changed", "canUndo": true, "canRedo": false, "undoText": "Import “sample-30s.mp4”", "redoText": "", "origin": "api", "origins": ["api"]}
 {"type": "media.added", "mediaId": "media-...", "origin": "api", "origins": ["api"]}
 {"type": "clip.changed", "clipId": "clip-...", "origin": "ui", "origins": ["ui"]}
+{"type": "job.progress", "jobId": "aijob-...", "progress": 0.5, "message": "Step 10 of 20", "origin": "api", "origins": ["api"]}
 {"type": "transport.state", "transport": "program", "position": 120, "duration": 900, "state": "playing", "frameRate": {"num": 30, "den": 1}}
 ```
 
@@ -258,6 +259,10 @@ Each text message is one JSON object with a `type`:
   (`mediaId`), `clip.added`, `clip.removed` and `clip.changed` (`clipId`), `track.added`,
   `track.removed` and `track.changed` (`trackId`), `project.reset` (a new or opened project) and
   `project.file_changed` (`path`). Read the details with `project.list`.
+- Jobs report `job.created` (`jobId`, `kind`, `title`, `owner`, `lane`), `job.progress`
+  (`progress` from 0 to 1, `message`; at most 10 a second per job) and `job.finished` (`state`:
+  `succeeded`, `failed` or `canceled`, `error`, `result`). `jobs.list` lists them, the AI engine's
+  included, with the same ids as `ai.run` gives; `jobs.cancel {jobId}` cancels one.
 - `transport.state` reports a monitor's playback (`transport` is `program` or `source`, with the
   status the transport commands return), when it changes and at most 10 times a second per monitor:
   the first change at once and the last one of a burst within 100 ms.

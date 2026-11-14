@@ -60,6 +60,8 @@ Studio::Studio(const AppPaths& paths, StudioOptions options)
     }
 
     services::registerAiCommands(m_bus, m_project, m_ai);
+    core::registerJobCommands(m_bus, m_jobs);
+    services::mirrorAiJobs(m_ai, m_jobs);
 
     m_plugins.addSearchPath(paths.pluginsDir);
     m_plugins.discover();

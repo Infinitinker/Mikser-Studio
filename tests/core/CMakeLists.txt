@@ -30,6 +30,7 @@ add_executable(mikserstudio-core-tests
     CommandBusTests.cpp
     EventBusTests.cpp
     InstanceTests.cpp
+    JobManagerTests.cpp
     JsonSchemaTests.cpp
     PluginManagerTests.cpp
     PluginManifestTests.cpp

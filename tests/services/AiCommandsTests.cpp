@@ -4,6 +4,8 @@
 #include "FakeAiTools.h"
 #include "ServicesTestSupport.h"
 #include "mikserstudio/core/CommandBus.h"
+#include "mikserstudio/core/EventBus.h"
+#include "mikserstudio/core/JobManager.h"
 #include "mikserstudio/core/Project.h"
 #include "mikserstudio/core/ProjectCommands.h"
 #include "mikserstudio/core/UndoStack.h"
@@ -38,6 +40,7 @@ struct CommandsFixture {
     FakeOllama ollama;
     FakeComfyUi comfy;
     std::unique_ptr<AiEngine> engine;
+    std::unique_ptr<core::JobManager> jobs;
 
     CommandsFixture()
     {
@@ -45,6 +48,9 @@ struct CommandsFixture {
         engine = std::make_unique<AiEngine>(AiEngineOptions{.cacheDirectory = dir.filePath(u"cache"_s),
                                                             .settingsFile = dir.filePath(u"ai-settings.json"_s)});
         registerAiCommands(bus, project, *engine);
+        jobs = std::make_unique<core::JobManager>(bus);
+        core::registerJobCommands(bus, *jobs);
+        mirrorAiJobs(*engine, *jobs);
         run(u"ai.set_settings"_s,
             {{u"ollamaUrl"_s, ollama.url().toString()}, {u"comfyuiUrl"_s, comfy.url().toString()}});
     }
@@ -105,6 +111,7 @@ TEST_CASE("The AI commands are registered in the AI category", "[services][comma
 TEST_CASE("The commands go away with the engine", "[services][commands]")
 {
     CommandsFixture fixture;
+    fixture.jobs.reset();
     fixture.engine.reset();
     for (const QString& id : kAiCommands)
         CHECK_FALSE(fixture.bus.contains(id));
@@ -218,4 +225,50 @@ TEST_CASE("ai.set_settings changes the addresses and refuses ones that are not h
     REQUIRE_FALSE(refused);
     CHECK(refused.error().code == core::CommandErrorCode::InvalidParams);
     CHECK(fixture.run(u"ai.settings"_s) == changed);
+}
+
+TEST_CASE("AI jobs are core jobs: jobs.list lists them and job events report them", "[services][commands][jobs]")
+{
+    CommandsFixture fixture;
+    QList<core::Event> events;
+    QObject::connect(&fixture.bus.events(), &core::EventBus::published, &fixture.bus,
+                     [&events](const core::Event& event) {
+                         if (event.topic.startsWith(u"job."_s))
+                             events.append(event);
+                     });
+    const auto run = fixture.bus.execute(
+        u"ai.run"_s, {{u"op"_s, u"text.generate"_s}, {u"params"_s, QJsonObject{{u"prompt"_s, u"Say hello"_s}}}},
+        core::CallContext::api());
+    REQUIRE(run);
+    const QString jobId = run->value(u"jobId"_s).toString();
+    const QJsonObject aiJob = fixture.waitFinished(jobId);
+    REQUIRE(aiJob.value(u"state"_s).toString() == u"succeeded"_s);
+
+    const QJsonArray list = fixture.run(u"jobs.list"_s).value(u"jobs"_s).toArray();
+    REQUIRE(list.size() == 1);
+    const QJsonObject job = list.at(0).toObject();
+    CHECK(job.value(u"id"_s) == jobId);
+    CHECK(job.value(u"kind"_s) == u"ai.text.generate"_s);
+    CHECK(job.value(u"lane"_s) == u"ai:ollama"_s);
+    CHECK(job.value(u"state"_s) == u"succeeded"_s);
+    CHECK(job.value(u"result"_s).toObject().value(u"result"_s) == aiJob.value(u"result"_s));
+
+    REQUIRE(events.size() >= 2);
+    CHECK(events.constFirst().topic == u"job.created"_s);
+    CHECK(events.constFirst().origins == QStringList{u"api"_s});
+    CHECK(events.constLast().topic == u"job.finished"_s);
+    CHECK(events.constLast().payload.value(u"state"_s) == u"succeeded"_s);
+}
+
+TEST_CASE("jobs.cancel cancels an AI job in the engine", "[services][commands][jobs]")
+{
+    CommandsFixture fixture;
+    fixture.comfy.holdPrompts = true;
+    const QString jobId = fixture.runOperation(u"image.generate"_s, u"A slow fox"_s);
+    REQUIRE(waitFor([&] { return fixture.comfy.prompts().size() == 1; }));
+    const auto canceled = fixture.bus.execute(u"jobs.cancel"_s, QJsonObject{{u"jobId"_s, jobId}});
+    REQUIRE(canceled);
+    CHECK(canceled->value(u"state"_s) == u"canceled"_s);
+    CHECK(fixture.job(jobId).value(u"state"_s).toString() == u"canceled"_s);
+    CHECK(fixture.run(u"ai.status"_s).value(u"activeJobs").toInt() == 0);
 }

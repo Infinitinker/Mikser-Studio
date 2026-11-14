@@ -160,8 +160,11 @@ messages.
   thread. A call from Lua to the bus is queued to the main thread, and its result comes back queued
   to the state's thread, which resumes the waiting coroutine. Values cross threads only as JSON
   copies. (planned)
-- **Jobs:** long work runs in core's job manager, off the main thread where it can; Lua awaits a
-  job without holding its thread. (planned)
+- **Jobs:** long work runs as a job in `core::JobManager`: jobs of one lane run one at a time, in
+  order, and lanes run side by side; each has an owner, progress, cancel and a result, and the last
+  200 finished ones are kept. The AI engine's jobs are mirrored onto it until its backends move to
+  plugins. (built) Work runs off the main thread where it can, and Lua awaits a job without holding
+  its thread. (planned)
 
 ## Undo for groups of changes
 

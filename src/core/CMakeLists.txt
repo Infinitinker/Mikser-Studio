@@ -4,6 +4,7 @@ add_library(mikserstudio-core STATIC
     include/mikserstudio/core/CommandBus.h
     include/mikserstudio/core/EventBus.h
     include/mikserstudio/core/Instance.h
+    include/mikserstudio/core/JobManager.h
     include/mikserstudio/core/JsonSchema.h
     include/mikserstudio/core/PluginManager.h
     include/mikserstudio/core/Project.h
@@ -16,6 +17,7 @@ add_library(mikserstudio-core STATIC
     src/CommandSpecCheck.h
     src/EventBus.cpp
     src/Instance.cpp
+    src/JobManager.cpp
     src/JsonSchema.cpp
     src/Logging.cpp
     src/Logging.h

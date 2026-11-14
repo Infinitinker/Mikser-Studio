@@ -9,6 +9,7 @@ add_library(mikserstudio-services STATIC
     src/AiBackend.h
     src/AiCommands.cpp
     src/AiEngine.cpp
+    src/AiJobMirror.cpp
     src/AiResultImport.cpp
     src/AiResultImport.h
     src/AiSettings.cpp
