@@ -2,6 +2,7 @@
 // local API, against a fake ComfyUI in the test process. The image comes into the project with its
 // provenance, without a real AI tool, and /v1/events reports the job.
 #include "FakeAiTools.h"
+#include "HttpTestSupport.h"
 #include "ServicesTestSupport.h"
 
 #include <QDir>
@@ -9,9 +10,6 @@
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
-#include <QNetworkAccessManager>
-#include <QNetworkReply>
-#include <QNetworkRequest>
 #include <QProcess>
 #include <QProcessEnvironment>
 #include <QTemporaryDir>
@@ -22,31 +20,23 @@
 using namespace Qt::StringLiterals;
 using namespace std::chrono_literals;
 using mikserstudio::tests::FakeComfyUi;
+using mikserstudio::tests::HttpReply;
+using mikserstudio::tests::postCommand;
 using mikserstudio::tests::waitFor;
 
 namespace {
 
-constexpr int kRequestTimeoutMs = 10'000;
-
 // The result of a command run through the local API; empty when it failed (the reason goes to INFO).
+// The fake ComfyUI answers from this thread's event loop while the request waits.
 QJsonObject runCommand(const QJsonObject& discovery, const QString& id, const QJsonObject& params = {})
 {
-    QNetworkAccessManager network;
-    QNetworkRequest request{QUrl(discovery.value(u"baseUrl"_s).toString() + u"/v1/commands/"_s + id)};
-    request.setTransferTimeout(kRequestTimeoutMs);
-    request.setRawHeader("Authorization", "Bearer " + discovery.value(u"token"_s).toString().toUtf8());
-    request.setHeader(QNetworkRequest::ContentTypeHeader, u"application/json"_s);
-    QNetworkReply* reply = network.post(request, QJsonDocument(params).toJson(QJsonDocument::Compact));
-    // The fake ComfyUI answers from this thread's event loop while the request waits.
-    waitFor([reply] { return reply->isFinished(); }, std::chrono::milliseconds(kRequestTimeoutMs + 1000));
-    const QByteArray body = reply->readAll();
-    const int status = reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
-    reply->deleteLater();
-    if (status != 200) {
-        UNSCOPED_INFO(id.toStdString() << " answered " << status << ": " << body.toStdString());
+    const HttpReply reply = postCommand(discovery.value(u"baseUrl"_s).toString(),
+                                        discovery.value(u"token"_s).toString(), id, params);
+    if (reply.status != 200) {
+        UNSCOPED_INFO(id.toStdString() << " answered " << reply.status << ": " << reply.body.toStdString());
         return {};
     }
-    return QJsonDocument::fromJson(body).object().value(u"result"_s).toObject();
+    return reply.object().value(u"result"_s).toObject();
 }
 
 }  // namespace

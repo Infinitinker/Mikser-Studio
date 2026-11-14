@@ -89,7 +89,7 @@ on its own. `tools/check_includes.lua` checks them, and the `Checks` workflow ru
   headers are included in quotes by name, and only by the module itself and its tests in
   `tests/<module>/`.
 - `tests/e2e/` includes only the core: the end-to-end tests run the app and the MCP bridge as
-  processes, and use the services tests' fake AI tools. Every C++ file is in a folder the check
+  processes, and use the services tests' fake AI tools and the API tests' HTTP helpers. Every C++ file is in a folder the check
   knows, so a new folder has to be added to it before its includes pass.
 - Until they are removed: `sdk/` includes nothing of Mikser Studio, native plugins in `plugins/`
   include only the plugin ABI, in angle brackets (`<mikserstudio/plugin_api.h>`), and

@@ -47,6 +47,11 @@ check.TEST_FOLDERS = {
     e2e = { "core", "services" },
     plugins = { "core" },
 }
+--- Other tests' folders whose own headers a TEST_FOLDERS folder may include, without the modules
+--- they test: the end-to-end tests send their requests with the API tests' HTTP helpers.
+check.TEST_HELPERS = {
+    e2e = { "api" },
+}
 check.SOURCES = { [".cpp"] = true, [".h"] = true, [".hpp"] = true }
 check.UNKNOWN_FOLDER = "is in a folder check_includes.lua does not know: add it to MODULES or TEST_FOLDERS"
 
@@ -150,6 +155,9 @@ local function own_folders(module, is_test, path)
     if is_test and check.TEST_FOLDERS[module] then
         local folders = { parent(path) }
         local named = { table.unpack(check.TEST_FOLDERS[module]) }
+        for _, helper in ipairs(check.TEST_HELPERS[module] or {}) do
+            named[#named + 1] = helper
+        end
         table.sort(named)
         for _, name in ipairs(named) do
             folders[#folders + 1] = "tests/" .. name

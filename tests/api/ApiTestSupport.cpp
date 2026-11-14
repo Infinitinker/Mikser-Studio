@@ -5,18 +5,12 @@
 #include <QCoreApplication>
 #include <QDeadlineTimer>
 #include <QEventLoop>
-#include <QNetworkAccessManager>
-#include <QNetworkReply>
-#include <QNetworkRequest>
-#include <QTimer>
 
 using namespace Qt::StringLiterals;
 
 namespace mikserstudio::tests {
 
 namespace {
-
-constexpr auto kRequestTimeout = std::chrono::seconds(10);
 
 QJsonObject parse(const char* text)
 {
@@ -63,39 +57,6 @@ bool waitFor(const std::function<bool()>& done, std::chrono::milliseconds timeou
         QCoreApplication::processEvents(QEventLoop::AllEvents, 20);
     }
     return true;
-}
-
-QString HttpReply::errorCode() const
-{
-    return object().value(u"error"_s).toObject().value(u"code"_s).toString();
-}
-
-HttpReply sendRequest(const QByteArray& method, const QUrl& url, const QByteArray& body,
-                      const std::optional<QByteArray>& authorization)
-{
-    QNetworkAccessManager manager;
-    QNetworkRequest request(url);
-    request.setTransferTimeout(kRequestTimeout);
-    if (!body.isEmpty())
-        request.setHeader(QNetworkRequest::ContentTypeHeader, u"application/json"_s);
-    if (authorization)
-        request.setRawHeader("Authorization", *authorization);
-
-    QNetworkReply* reply = manager.sendCustomRequest(request, method, body);
-    QEventLoop loop;
-    QObject::connect(reply, &QNetworkReply::finished, &loop, &QEventLoop::quit);
-    QTimer::singleShot(kRequestTimeout + std::chrono::seconds(1), &loop, &QEventLoop::quit);
-    if (!reply->isFinished())
-        loop.exec();
-
-    HttpReply result;
-    result.status = reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
-    result.body = reply->readAll();
-    result.headers = reply->headers();
-    if (reply->error() != QNetworkReply::NoError)
-        result.networkError = reply->errorString();
-    delete reply;
-    return result;
 }
 
 void registerTestCommands(core::CommandBus& bus, int& counter)

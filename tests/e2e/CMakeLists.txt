@@ -5,6 +5,7 @@
 find_package(Qt6 6.8 REQUIRED COMPONENTS HttpServer Network WebSockets)
 
 add_executable(mikserstudio-e2e-tests
+    ${PROJECT_SOURCE_DIR}/tests/api/HttpTestSupport.cpp
     ${PROJECT_SOURCE_DIR}/tests/services/FakeAiTools.cpp
     ${PROJECT_SOURCE_DIR}/tests/services/ServicesTestSupport.cpp
     AiRunTests.cpp
@@ -13,8 +14,10 @@ add_executable(mikserstudio-e2e-tests
 )
 target_link_libraries(mikserstudio-e2e-tests PRIVATE MikserStudio::core Qt6::HttpServer Qt6::Network Qt6::WebSockets
                                                       Catch2::Catch2)
-# The fake AI tools and the waiting helpers come from the services tests.
-target_include_directories(mikserstudio-e2e-tests PRIVATE "${PROJECT_SOURCE_DIR}/tests/services")
+# The fake AI tools and the waiting helpers come from the services tests, the HTTP requests from the
+# API tests.
+target_include_directories(mikserstudio-e2e-tests PRIVATE "${PROJECT_SOURCE_DIR}/tests/services"
+                                                          "${PROJECT_SOURCE_DIR}/tests/api")
 target_compile_definitions(mikserstudio-e2e-tests PRIVATE MIKSERSTUDIO_APP="$<TARGET_FILE:mikser-studio>")
 add_dependencies(mikserstudio-e2e-tests mikser-studio)
 if(MIKSERSTUDIO_WITH_MCP)

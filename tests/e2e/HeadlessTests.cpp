@@ -1,19 +1,17 @@
 // End to end: the built mikser-studio, run headless as the E2E instance and driven from outside, the
 // way a user's tool drives it. It publishes its discovery file, answers the local API with the token
 // from that file, saves a project, and, asked to close, shuts down cleanly and removes the file.
+#include "HttpTestSupport.h"
+
 #include <catch2/catch_test_macros.hpp>
 
 #include <QByteArray>
 #include <QDir>
 #include <QElapsedTimer>
-#include <QEventLoop>
 #include <QFile>
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
-#include <QNetworkAccessManager>
-#include <QNetworkReply>
-#include <QNetworkRequest>
 #include <QProcess>
 #include <QProcessEnvironment>
 #include <QStandardPaths>
@@ -27,12 +25,15 @@
 #endif
 
 using namespace Qt::StringLiterals;
+using mikserstudio::tests::bearer;
+using mikserstudio::tests::HttpReply;
+using mikserstudio::tests::postCommand;
+using mikserstudio::tests::sendRequest;
 
 namespace {
 
 constexpr int kStartTimeoutMs = 60'000;
 constexpr int kStopTimeoutMs = 30'000;
-constexpr int kRequestTimeoutMs = 10'000;
 
 // Where the E2E instance writes its discovery file: main.cpp names the tests like that instance.
 QString discoveryFilePath()
@@ -46,35 +47,6 @@ QJsonObject readDiscoveryFile()
     if (!file.open(QIODevice::ReadOnly))
         return {};
     return QJsonDocument::fromJson(file.readAll()).object();
-}
-
-struct Reply {
-    int status = 0;
-    QJsonDocument body;
-};
-
-// A GET, or a POST of `body` when there is one.
-Reply send(const QString& url, const QString& token = {}, const QJsonObject& body = {})
-{
-    QNetworkAccessManager network;
-    QNetworkRequest request{QUrl(url)};
-    request.setTransferTimeout(kRequestTimeoutMs);
-    if (!token.isEmpty())
-        request.setRawHeader("Authorization", "Bearer " + token.toUtf8());
-    QNetworkReply* reply = nullptr;
-    if (body.isEmpty()) {
-        reply = network.get(request);
-    } else {
-        request.setHeader(QNetworkRequest::ContentTypeHeader, u"application/json"_s);
-        reply = network.post(request, QJsonDocument(body).toJson(QJsonDocument::Compact));
-    }
-    QEventLoop loop;
-    QObject::connect(reply, &QNetworkReply::finished, &loop, &QEventLoop::quit);
-    loop.exec();
-    Reply result{.status = reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt(),
-                 .body = QJsonDocument::fromJson(reply->readAll())};
-    reply->deleteLater();
-    return result;
 }
 
 #ifdef Q_OS_WIN
@@ -206,38 +178,38 @@ TEST_CASE("The headless studio answers its API and removes its discovery file wh
     const QString token = discovery.value(u"token"_s).toString();
     CHECK(discovery.value(u"apiVersion"_s).toInt() == 1);
 
-    const Reply health = send(baseUrl + u"/v1/health"_s);
+    const HttpReply health = sendRequest("GET", QUrl(baseUrl + u"/v1/health"_s));
     CHECK(health.status == 200);
-    CHECK(health.body.object().value(u"apiVersion"_s).toInt() == 1);
+    CHECK(health.object().value(u"apiVersion"_s).toInt() == 1);
 
-    CHECK(send(baseUrl + u"/v1/commands"_s).status == 401);
+    CHECK(sendRequest("GET", QUrl(baseUrl + u"/v1/commands"_s)).status == 401);
 
-    const Reply commands = send(baseUrl + u"/v1/commands"_s, token);
+    const HttpReply commands = sendRequest("GET", QUrl(baseUrl + u"/v1/commands"_s), {}, bearer(token));
     REQUIRE(commands.status == 200);
-    const QJsonArray list = commands.body.array();
+    const QJsonArray list = commands.array();
     CHECK(std::ranges::any_of(list, [](const QJsonValue& command) {
         return command.toObject().value(u"id"_s).toString() == u"edit.undo"_s;
     }));
 
     // A project saved to a path without an extension gets the project extension.
     const QString saveTo = studio.folder().filePath(u"first"_s);
-    const Reply saved = send(baseUrl + u"/v1/commands/project.save"_s, token, {{u"path"_s, saveTo}});
+    const HttpReply saved = postCommand(baseUrl, token, u"project.save"_s, {{u"path"_s, saveTo}});
     CHECK(saved.status == 200);
-    CHECK(saved.body.object().value(u"result"_s).toObject().value(u"path"_s).toString() == saveTo + u".msproj"_s);
+    CHECK(saved.object().value(u"result"_s).toObject().value(u"path"_s).toString() == saveTo + u".msproj"_s);
     CHECK(QFile::exists(saveTo + u".msproj"_s));
 
     // The project's own file is saved again without asking, also without a path.
-    CHECK(send(baseUrl + u"/v1/commands/project.save"_s, token, {{u"path"_s, saveTo}}).status == 200);
-    CHECK(send(baseUrl + u"/v1/commands/project.save"_s, token, {{u"overwrite"_s, false}}).status == 200);
+    CHECK(postCommand(baseUrl, token, u"project.save"_s, {{u"path"_s, saveTo}}).status == 200);
+    CHECK(postCommand(baseUrl, token, u"project.save"_s).status == 200);
 
     // Saving over another file needs the person's agreement, given with overwrite.
     const QString other = studio.folder().filePath(u"second"_s);
-    REQUIRE(send(baseUrl + u"/v1/commands/project.save_as"_s, token, {{u"path"_s, other}}).status == 200);
-    const Reply asked = send(baseUrl + u"/v1/commands/project.save"_s, token, {{u"path"_s, saveTo}});
+    REQUIRE(postCommand(baseUrl, token, u"project.save_as"_s, {{u"path"_s, other}}).status == 200);
+    const HttpReply asked = postCommand(baseUrl, token, u"project.save"_s, {{u"path"_s, saveTo}});
     CHECK(asked.status == 409);
-    CHECK(asked.body.object().value(u"error"_s).toObject().value(u"code"_s).toString() == u"needs_confirmation"_s);
-    const Reply replaced = send(baseUrl + u"/v1/commands/project.save"_s, token,
-                                {{u"path"_s, saveTo}, {u"overwrite"_s, true}});
+    CHECK(asked.errorCode() == u"needs_confirmation"_s);
+    const HttpReply replaced = postCommand(baseUrl, token, u"project.save"_s,
+                                           {{u"path"_s, saveTo}, {u"overwrite"_s, true}});
     CHECK(replaced.status == 200);
 
     const QString windows = studio.windows();

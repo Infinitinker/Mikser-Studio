@@ -2,6 +2,7 @@
 // requests with or without the session token.
 #pragma once
 
+#include "HttpTestSupport.h"
 #include "mikserstudio/api/ApiServer.h"
 #include "mikserstudio/core/CommandBus.h"
 #include "mikserstudio/core/UndoStack.h"
@@ -10,7 +11,6 @@
 #include <catch2/catch_tostring.hpp>
 
 #include <QByteArray>
-#include <QHttpHeaders>
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
@@ -38,22 +38,6 @@ namespace mikserstudio::tests {
 
 // Runs the event loop until `done` returns true or the timeout passes; returns `done()`.
 bool waitFor(const std::function<bool()>& done, std::chrono::milliseconds timeout = std::chrono::seconds(10));
-
-struct HttpReply {
-    int status = 0;  // 0 when no HTTP response arrived.
-    QByteArray body;
-    QHttpHeaders headers;
-    QString networkError;
-
-    [[nodiscard]] QJsonObject object() const { return QJsonDocument::fromJson(body).object(); }
-    [[nodiscard]] QJsonArray array() const { return QJsonDocument::fromJson(body).array(); }
-    [[nodiscard]] QString errorCode() const;
-};
-
-// Sends one request with a fresh QNetworkAccessManager and waits for the reply.
-// `authorization` is the full header value; nullopt sends no header.
-HttpReply sendRequest(const QByteArray& method, const QUrl& url, const QByteArray& body = {},
-                      const std::optional<QByteArray>& authorization = std::nullopt);
 
 // A CommandBus with test commands and a started ApiServer whose discovery file is in a temp dir.
 //   test.echo {text}           -> {text}

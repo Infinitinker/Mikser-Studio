@@ -47,8 +47,16 @@ test("a private header is found in the module", function()
 end)
 
 test("the end-to-end tests include only the modules they name", function()
-    local tracked = { "tests/services/ServicesTestSupport.h", "tests/ui/TestCommands.h" }
+    local tracked = {
+        "tests/services/ServicesTestSupport.h",
+        "tests/ui/TestCommands.h",
+        "tests/api/HttpTestSupport.h",
+    }
     local path = "tests/e2e/AiRunTests.cpp"
+    equal(problems(path, '#include "HttpTestSupport.h"\n', tracked), {})
+    equal(problems(path, '#include "mikserstudio/api/ApiServer.h"\n'), {
+        path .. ':1: "mikserstudio/api/ApiServer.h" goes from e2e to api',
+    })
     equal(problems(path, "#include <QProcess>\n"), {})
     equal(problems(path, '#include "mikserstudio/services/AiEngine.h"\n'), {})
     equal(problems(path, '#include "ServicesTestSupport.h"\n', tracked), {})
