@@ -119,6 +119,14 @@ Record PluginManager::Impl::readRecord(const QString& directory, PluginSource so
         return record;
     }
     record.state.manifest = std::move(*manifest);
+    // A panel's QML runs JavaScript, with network access, on the interface's thread: only the plugins
+    // Mikser Studio ships and those a developer points it to may bring one.
+    if (source == PluginSource::User && !record.state.manifest.panels.isEmpty()) {
+        qCWarning(lcPlugins).noquote() << "The panels of plugin" << record.state.manifest.id
+                                       << "are not loaded: only built-in plugins and plugins in development may "
+                                          "have QML panels";
+        record.state.manifest.panels.clear();
+    }
     record.state.status = isOff(record.state.manifest.id, source) ? PluginStatus::Disabled : PluginStatus::Discovered;
     record.state.granted = grantedFor(record.state.manifest, source);
     record.manifestValid = true;

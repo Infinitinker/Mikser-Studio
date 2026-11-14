@@ -26,7 +26,8 @@ The Lua side is being built now. Each part below is marked **built** (in the cod
 - **Module ≠ process.** Code is split into modules everywhere; a separate process is used only for
   isolation or heavy resources (export rendering, the MCP bridge). (built)
 - **Described UI.** Plugins describe their UI as data: JSON Schema forms, menus, panels with lists
-  and buttons. The shell draws it. Only built-in plugins may bring a custom QML panel. (planned)
+  and buttons. The shell draws it. (planned) Only built-in plugins and plugins in development may
+  bring a custom QML panel: the panels of the person's own plugins are not loaded. (built)
 - **Interfaces at the seams.** The docking library (`ui::DockHost`), the media engine
   (`core::Transport`, `core::MediaProbe`) and the plugin runtime (`core::PluginRuntime`) sit behind
   small interfaces, so each can be replaced (e.g. MLT's CPU compositor by our own GPU compositor
@@ -51,7 +52,7 @@ The rules between them:
 - Heavy work is a C++ job that Lua starts and awaits.
 - Lua never runs on, or blocks, the UI thread.
 - UI from Lua is described: JSON Schema forms, menus, panels. QML only for custom panels of built-in
-  plugins (and the example plugin).
+  plugins and plugins in development, such as the example.
 
 ## Modules
 

@@ -65,7 +65,8 @@ inline constexpr auto kPluginManifestFileName = "mikserstudio-plugin.json";
 enum class PluginSource {
     BuiltIn,  // Shipped with the app: on, with the permissions its manifest asks for.
     User,  // The person's own: off until they enable it, which grants its permissions but plugins.manage.
-    Development,  // A folder MIKSERSTUDIO_PLUGIN_PATH names: on, as the person's own otherwise.
+    Development,  // A folder MIKSERSTUDIO_PLUGIN_PATH names: on, as the person's own otherwise,
+                  // but with its panels.
 };
 
 enum class PluginStatus { Discovered, Starting, Active, Failed, Disabled };

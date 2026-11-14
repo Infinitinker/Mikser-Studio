@@ -419,3 +419,21 @@ TEST_CASE("Rediscovery keeps running plugins running", "[plugins]")
     CHECK(env.runtime.last(kFixtureId)->running);
     CHECK(changes == 3);
 }
+
+TEST_CASE("Only built-in plugins and plugins in development bring QML panels", "[plugins]")
+{
+    Environment env;
+    QJsonObject manifest = fixtureManifest(u"mikserstudio.tests.paneled"_s);
+    manifest.insert(u"panels"_s,
+                    json(R"({"list": [{"id": "view", "title": "View", "qml": "view.qml"}]})").value(u"list"_s));
+    for (const QString& root : {u"plugins"_s, u"user"_s, u"development"_s}) {
+        manifest.insert(u"id"_s, u"mikserstudio.tests."_s + root);
+        env.install(u"paneled"_s, manifest, root);
+        QFile qml(env.pluginsDir(root) + u"/paneled/view.qml"_s);
+        REQUIRE(qml.open(QIODevice::WriteOnly));
+    }
+    Manager m(env);
+    CHECK(m.manager.plugin(u"mikserstudio.tests.plugins"_s)->manifest.panels.size() == 1);
+    CHECK(m.manager.plugin(u"mikserstudio.tests.development"_s)->manifest.panels.size() == 1);
+    CHECK(m.manager.plugin(u"mikserstudio.tests.user"_s)->manifest.panels.isEmpty());
+}
