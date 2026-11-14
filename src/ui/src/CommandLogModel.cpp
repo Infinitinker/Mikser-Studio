@@ -1,7 +1,8 @@
+// The command log's rows: recording runs and failures from the command bus, folding repeats, trimming old
+// rows.
 #include "CommandLogModel.h"
 
 #include "CommandText.h"
-#include "QuietCommands.h"
 
 #include "mikserstudio/core/CommandBus.h"
 #include "mikserstudio/ui/Theme.h"

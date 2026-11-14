@@ -1,0 +1,131 @@
+# What clang-tidy checks in the C++ code. Each check left out says why: most fight Qt's idioms (parents
+# own their children, pointers tested as they are, event filters overridden protected) or the code's
+# style. Every finding is an error. tests/.clang-tidy adds what the tests leave out.
+Checks: >
+  -*,
+  bugprone-*,
+  clang-analyzer-*,
+  concurrency-*,
+  cppcoreguidelines-*,
+  misc-*,
+  modernize-*,
+  performance-*,
+  portability-*,
+  readability-*,
+
+  -bugprone-easily-swappable-parameters,
+  -bugprone-signed-bitwise,
+
+  -cppcoreguidelines-avoid-c-arrays,
+  -cppcoreguidelines-avoid-const-or-ref-data-members,
+  -cppcoreguidelines-avoid-magic-numbers,
+  -cppcoreguidelines-avoid-non-const-global-variables,
+  -cppcoreguidelines-non-private-member-variables-in-classes,
+  -cppcoreguidelines-owning-memory,
+  -cppcoreguidelines-prefer-member-initializer,
+  -cppcoreguidelines-pro-bounds-array-to-pointer-decay,
+  -cppcoreguidelines-pro-bounds-avoid-unchecked-container-access,
+  -cppcoreguidelines-pro-bounds-constant-array-index,
+  -cppcoreguidelines-pro-bounds-pointer-arithmetic,
+  -cppcoreguidelines-pro-type-reinterpret-cast,
+  -cppcoreguidelines-pro-type-static-cast-downcast,
+  -cppcoreguidelines-pro-type-vararg,
+  -cppcoreguidelines-special-member-functions,
+  -cppcoreguidelines-use-enum-class,
+
+  -misc-const-correctness,
+  -misc-include-cleaner,
+  -misc-no-recursion,
+  -misc-non-private-member-variables-in-classes,
+  -misc-override-with-different-visibility,
+
+  -modernize-avoid-c-arrays,
+  -modernize-return-braced-init-list,
+  -modernize-use-designated-initializers,
+  -modernize-use-nodiscard,
+  -modernize-use-std-print,
+  -modernize-use-trailing-return-type,
+
+  -performance-enum-size,
+  -performance-no-int-to-ptr,
+
+  -portability-avoid-pragma-once,
+
+  -readability-avoid-nested-conditional-operator,
+  -readability-braces-around-statements,
+  -readability-convert-member-functions-to-static,
+  -readability-function-cognitive-complexity,
+  -readability-identifier-length,
+  -readability-implicit-bool-conversion,
+  -readability-magic-numbers,
+  -readability-math-missing-parentheses,
+  -readability-named-parameter,
+  -readability-trailing-comma,
+  -readability-uppercase-literal-suffix
+
+# Why each check above is left out:
+#
+# bugprone-easily-swappable-parameters: positions, frames and sizes are passed side by side, named.
+# bugprone-signed-bitwise: Qt's and Windows' flags are signed constants combined with |.
+# cppcoreguidelines-avoid-c-arrays, modernize-avoid-c-arrays: the plugin ABI is C, and a few fixed
+#   tables are handed to C functions with their size.
+# cppcoreguidelines-avoid-const-or-ref-data-members: panels and commands hold references to the
+#   command bus and the project they live with; they are never copied or reassigned.
+# cppcoreguidelines-avoid-magic-numbers, readability-magic-numbers: sizes, frame rates and timeouts
+#   read better where they are used, with a name where one helps.
+# cppcoreguidelines-avoid-non-const-global-variables: logging categories and the signal handlers'
+#   state are globals by nature, each in an anonymous namespace of its own file.
+# cppcoreguidelines-non-private-member-variables-in-classes,
+#   misc-non-private-member-variables-in-classes: plain structs are data, and test fixtures share
+#   their members with the test cases.
+# cppcoreguidelines-owning-memory: Qt objects are owned by their parent (new QLabel(this)), which the
+#   check does not know.
+# cppcoreguidelines-prefer-member-initializer: Qt widgets are created in the constructor's body, in
+#   the order they are laid out, which is their stacking and focus order.
+# cppcoreguidelines-pro-bounds-*: the plugin ABI and MLT hand over pointers and sizes; indexes into Qt
+#   containers are checked where they are computed.
+# cppcoreguidelines-pro-type-reinterpret-cast, performance-no-int-to-ptr: the plugin ABI's function
+#   pointers and Windows handles.
+# cppcoreguidelines-pro-type-static-cast-downcast: Qt events are cast to their type after checking
+#   QEvent::type(), as Qt documents.
+# cppcoreguidelines-pro-type-vararg: the C library's and MLT's formatted output.
+# cppcoreguidelines-special-member-functions: QObjects are never copied or moved (Q_DISABLE_COPY in
+#   QObject), and interfaces declare only their virtual destructor.
+# cppcoreguidelines-use-enum-class: model columns and roles are plain enums, used as Qt's ints.
+# misc-const-correctness: local variables are not marked const unless it says something.
+# misc-include-cleaner: Qt's and MLT's umbrella headers declare what their parts define, which the
+#   check takes for missing includes.
+# misc-no-recursion: JSON and JSON Schema are recursive, and so is the code that walks them.
+# misc-override-with-different-visibility: event filters and event handlers are overridden as
+#   protected, as Qt's own classes do.
+# modernize-return-braced-init-list: it misses explicit constructors, where {} does not compile.
+# modernize-use-designated-initializers: small structs are filled in positionally where the order is
+#   plain, and with names where it is not.
+# modernize-use-nodiscard: [[nodiscard]] marks results that must be checked (std::expected); adding it
+#   to every getter says nothing.
+# modernize-use-std-print: the few writes to stderr happen before Qt's logging is up, with the C
+#   library's functions.
+# modernize-use-trailing-return-type: return types go in front.
+# performance-enum-size: the enums are few and small; their size saves nothing.
+# portability-avoid-pragma-once: #pragma once is the code's include guard, and every compiler it is
+#   built with supports it.
+# readability-avoid-nested-conditional-operator: a short chain of ?: reads as a table of cases.
+# readability-braces-around-statements: an if or a loop with a single statement has no braces.
+# readability-convert-member-functions-to-static: slots and overrides stay members, whatever they use.
+# readability-function-cognitive-complexity: functions are split where that reads better, not by score.
+# readability-identifier-length: x, y, i and the like are clear where they are used.
+# readability-implicit-bool-conversion: pointers and Qt's flags are tested as they are.
+# readability-math-missing-parentheses: the usual precedence of * over + needs no parentheses.
+# readability-named-parameter: a parameter a function does not use, such as in an override, is left
+#   unnamed.
+# readability-trailing-comma: clang-format packs braced lists, which a trailing comma would split into
+#   one item per line.
+# readability-uppercase-literal-suffix: literals are written 0.5f and 10u.
+WarningsAsErrors: '*'
+
+# Only the project's own headers: not those of Qt, MLT, KDDockWidgets or the system.
+HeaderFilterRegex: '.*[/\\](src|tests)[/\\].*'
+
+CheckOptions:
+  # A result discarded with (void) is discarded on purpose.
+  bugprone-unused-return-value.AllowCastToVoid: true

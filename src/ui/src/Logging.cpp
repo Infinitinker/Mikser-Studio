@@ -1,3 +1,4 @@
+// The definitions of the UI module's logging categories.
 #include "Logging.h"
 
 namespace mikserstudio::ui {

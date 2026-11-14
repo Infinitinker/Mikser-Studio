@@ -1,3 +1,4 @@
+// Opens a media item as an MLT producer, refusing everything but local files and color resources.
 #pragma once
 
 #include <QString>
@@ -12,12 +13,12 @@ class Profile;
 
 namespace mikserstudio::engine {
 
-// True for the MLT colour resources Mikser Studio accepts ("color:#ff0000", "color:red"; see
+// True for the MLT color resources Mikser Studio accepts ("color:#ff0000", "color:red"; see
 // core::isAllowedMediaPath). It is the only MLT service string taken from project or user data.
-[[nodiscard]] bool isColourResource(const QString& path);
+[[nodiscard]] bool isColorResource(const QString& path);
 
-// Opens an absolute local media file or a colour resource with MLT's loader (which adds the
-// normalising filters). Anything else is refused before MLT sees it: URLs, network shares, other
+// Opens an absolute local media file or a color resource with MLT's loader (which adds the
+// normalizing filters). Anything else is refused before MLT sees it: URLs, network shares, other
 // MLT service strings ("xml-string:...", "avformat:...") and MLT/Kdenlive documents, which make
 // MLT open further resources of their own. Fails with a user-facing message when the file is
 // missing, not allowed or unreadable.

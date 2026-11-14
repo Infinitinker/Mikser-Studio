@@ -1,3 +1,4 @@
+// Timecode text for a frame number, shown by the monitors' transport bars.
 #pragma once
 
 #include "mikserstudio/core/Project.h"

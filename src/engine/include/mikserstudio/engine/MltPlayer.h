@@ -1,3 +1,5 @@
+// The playback engine under both monitors: one MLT producer played through one MLT consumer, with the audio device
+// as the master clock. ClipPlayer and TimelinePlayer build on it.
 #pragma once
 
 #include "mikserstudio/core/Transport.h"
@@ -72,8 +74,7 @@ protected:
     // consumer (a running one is switched over without stopping) and plays at `speed`
     // (0 = paused, showing that frame). `duration` is what Transport reports; it may be shorter
     // than the producer (e.g. an empty timeline).
-    void load(std::unique_ptr<Mlt::Producer> producer, core::FramePos duration, core::FramePos position,
-              double speed);
+    void load(std::unique_ptr<Mlt::Producer> producer, core::FramePos duration, core::FramePos position, double speed);
     void unload();  // Stops playback; state becomes Stopped.
 
     // The frame on screen. While playing this is the newest shown frame, which can be ahead of

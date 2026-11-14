@@ -1,3 +1,4 @@
+// Restricting a file, such as the discovery file with its session token, to the current user.
 #pragma once
 
 #include <QString>

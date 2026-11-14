@@ -1,3 +1,4 @@
+// Composing the screenshot: grabbing the main window and painting each floating panel on it with a shadow.
 #include "Screenshot.h"
 
 #include <QPainter>

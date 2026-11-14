@@ -1,3 +1,4 @@
+// Shows the outcome of the last command, or its error, in a status bar label.
 #pragma once
 
 #include <QObject>
@@ -11,7 +12,7 @@ class CommandBus;
 namespace mikserstudio::ui {
 
 // Shows the result of the last command (or its error, in the danger color) in a status bar
-// label. Quiet commands (read-only ones and UI bookkeeping, see QuietCommands.h) are not shown.
+// label. Quiet commands (read-only ones and UI bookkeeping, see isQuietCommand) are not shown.
 // Other code can post a message of its own with showMessage().
 class CommandStatus final : public QObject {
     Q_OBJECT

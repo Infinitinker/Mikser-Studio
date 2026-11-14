@@ -1,3 +1,5 @@
+// The form generated from a JSON Schema: an editor per property type, defaults and initial values, validation
+// problems shown under their fields, and valueChanged on edits.
 #include "mikserstudio/ui/SchemaForm.h"
 
 #include <catch2/catch_test_macros.hpp>
@@ -8,6 +10,7 @@
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QLineEdit>
+#include <QRegularExpression>
 #include <QSignalSpy>
 #include <QSpinBox>
 
@@ -15,6 +18,17 @@ using namespace Qt::StringLiterals;
 using mikserstudio::ui::SchemaForm;
 
 namespace {
+
+// The editor of the property at a JSON Pointer ("/name", "/options/scale"): its object name.
+QWidget* editor(const SchemaForm& form, const QString& pointer)
+{
+    return form.findChild<QWidget*>(pointer);
+}
+
+bool hasFields(const SchemaForm& form)
+{
+    return !form.findChildren<QWidget*>(QRegularExpression(u"^/"_s)).isEmpty();
+}
 
 QJsonObject parseObject(const char* json)
 {
@@ -48,27 +62,27 @@ QString compact(const QJsonObject& object)
 TEST_CASE("SchemaForm creates an editor per property type", "[schema-form]")
 {
     SchemaForm form(clipSchema());
-    REQUIRE(form.hasFields());
+    REQUIRE(hasFields(form));
 
-    auto* name = qobject_cast<QLineEdit*>(form.editor(u"/name"_s));
+    auto* name = qobject_cast<QLineEdit*>(editor(form, u"/name"_s));
     REQUIRE(name);
     CHECK(name->toolTip().contains(u"Shown on the timeline."_s));
 
-    auto* count = qobject_cast<QSpinBox*>(form.editor(u"/count"_s));
+    auto* count = qobject_cast<QSpinBox*>(editor(form, u"/count"_s));
     REQUIRE(count);
     CHECK(count->minimum() == 1);
     CHECK(count->maximum() == 10);
     CHECK(count->value() == 2);
 
-    auto* mode = qobject_cast<QComboBox*>(form.editor(u"/mode"_s));
+    auto* mode = qobject_cast<QComboBox*>(editor(form, u"/mode"_s));
     REQUIRE(mode);
     CHECK(mode->currentText() == u"fast"_s);
 
-    CHECK(qobject_cast<QDoubleSpinBox*>(form.editor(u"/gain"_s)));
-    CHECK(qobject_cast<QCheckBox*>(form.editor(u"/loud"_s)));
-    CHECK(qobject_cast<QLineEdit*>(form.editor(u"/tags"_s)));  // JSON fallback.
-    CHECK(qobject_cast<QSpinBox*>(form.editor(u"/options/scale"_s)));
-    CHECK(form.editor(u"/missing"_s) == nullptr);
+    CHECK(qobject_cast<QDoubleSpinBox*>(editor(form, u"/gain"_s)));
+    CHECK(qobject_cast<QCheckBox*>(editor(form, u"/loud"_s)));
+    CHECK(qobject_cast<QLineEdit*>(editor(form, u"/tags"_s)));  // JSON fallback.
+    CHECK(qobject_cast<QSpinBox*>(editor(form, u"/options/scale"_s)));
+    CHECK(editor(form, u"/missing"_s) == nullptr);
 }
 
 TEST_CASE("SchemaForm starts from the schema defaults and leaves unset optional fields out", "[schema-form]")
@@ -117,13 +131,13 @@ TEST_CASE("SchemaForm validates and shows each problem under its field", "[schem
     CHECK_FALSE(form.errorText(u"/name"_s).isEmpty());
     CHECK(form.errorText(u"/count"_s).isEmpty());
 
-    qobject_cast<QLineEdit*>(form.editor(u"/name"_s))->setText(u"Intro"_s);
+    qobject_cast<QLineEdit*>(editor(form, u"/name"_s))->setText(u"Intro"_s);
     CHECK(form.validate().isEmpty());
     CHECK(form.errorText(u"/name"_s).isEmpty());
 
     SECTION("malformed JSON in a fallback editor is reported before schema validation")
     {
-        qobject_cast<QLineEdit*>(form.editor(u"/tags"_s))->setText(u"[1,"_s);
+        qobject_cast<QLineEdit*>(editor(form, u"/tags"_s))->setText(u"[1,"_s);
         problems = form.validate();
         REQUIRE(problems.size() == 1);
         CHECK(problems.first().startsWith(u"/tags: "_s));
@@ -132,7 +146,7 @@ TEST_CASE("SchemaForm validates and shows each problem under its field", "[schem
 
     SECTION("schema problems inside a JSON value keep their pointer")
     {
-        qobject_cast<QLineEdit*>(form.editor(u"/tags"_s))->setText(u"[\"a\", 2]"_s);
+        qobject_cast<QLineEdit*>(editor(form, u"/tags"_s))->setText(u"[\"a\", 2]"_s);
         problems = form.validate();
         REQUIRE(problems.size() == 1);
         CHECK(problems.first().startsWith(u"/tags/1: "_s));
@@ -141,7 +155,7 @@ TEST_CASE("SchemaForm validates and shows each problem under its field", "[schem
 
     SECTION("clearErrors hides the messages")
     {
-        qobject_cast<QLineEdit*>(form.editor(u"/name"_s))->clear();
+        qobject_cast<QLineEdit*>(editor(form, u"/name"_s))->clear();
         REQUIRE_FALSE(form.validate().isEmpty());
         form.clearErrors();
         CHECK(form.errorText(u"/name"_s).isEmpty());
@@ -152,12 +166,12 @@ TEST_CASE("SchemaForm emits valueChanged on edits and handles schemas without fi
 {
     SchemaForm form(clipSchema());
     QSignalSpy changed(&form, &SchemaForm::valueChanged);
-    qobject_cast<QCheckBox*>(form.editor(u"/loud"_s))->setChecked(true);
+    qobject_cast<QCheckBox*>(editor(form, u"/loud"_s))->setChecked(true);
     CHECK(changed.count() == 1);
     CHECK(form.value().value(u"loud"_s) == true);
 
     form.setSchema(parseObject(R"({"type": "object", "properties": {}})"));
-    CHECK_FALSE(form.hasFields());
+    CHECK_FALSE(hasFields(form));
     CHECK(form.value().isEmpty());
     CHECK(form.validate().isEmpty());
 }

@@ -1,3 +1,5 @@
+// The desktop front end: the main window (the ui module's shell) with the engine's monitor panels, and the
+// start-up options that import, play or take a screenshot.
 #pragma once
 
 #include <QString>
@@ -15,8 +17,8 @@ class Studio;
 
 struct DesktopOptions {
     QStringList importFiles;  // Imported and appended to track V1 after start.
-    bool play = false;        // Start program playback once the window is up.
-    QString screenshotPath;   // Save a screenshot of the main window, then quit.
+    bool play = false;  // Start program playback once the window is up.
+    QString screenshotPath;  // Save a screenshot of the main window, then quit.
     int screenshotDelayMs = 4000;
 };
 

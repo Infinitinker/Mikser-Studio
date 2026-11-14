@@ -1,3 +1,4 @@
+// The source monitor's playback engine: opening a media item and its frame rate and size.
 #include "mikserstudio/engine/ClipPlayer.h"
 
 #include "Logging.h"

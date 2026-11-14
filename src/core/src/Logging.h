@@ -1,3 +1,4 @@
+// The logging categories of the core module.
 #pragma once
 
 #include <QLoggingCategory>
@@ -9,5 +10,6 @@ Q_DECLARE_LOGGING_CATEGORY(lcUndo)
 Q_DECLARE_LOGGING_CATEGORY(lcProject)
 Q_DECLARE_LOGGING_CATEGORY(lcTransport)
 Q_DECLARE_LOGGING_CATEGORY(lcPlugins)
+Q_DECLARE_LOGGING_CATEGORY(lcJobs)
 
 }  // namespace mikserstudio::core

@@ -1,3 +1,4 @@
+// The Properties panel: shows the current clip and edits its position, in and out through commands.
 #pragma once
 
 #include "mikserstudio/core/Project.h"
@@ -28,14 +29,8 @@ public:
     PropertiesPanel(core::CommandBus& bus, const core::ProjectModel& project, const ClipSelection& selection,
                     QWidget* parent = nullptr);
 
-    [[nodiscard]] QSpinBox* positionEditor() const { return m_position; }
-    [[nodiscard]] QSpinBox* inEditor() const { return m_in; }
-    [[nodiscard]] QSpinBox* outEditor() const { return m_out; }
-    [[nodiscard]] QString shownClipId() const { return m_clipId; }
-    [[nodiscard]] QString errorText() const;
-
     void commitPosition();
-    void commitIn();   // After the In field was edited.
+    void commitIn();  // After the In field was edited.
     void commitOut();  // After the Out field was edited.
 
 private:

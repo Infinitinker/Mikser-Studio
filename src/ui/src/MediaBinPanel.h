@@ -1,3 +1,5 @@
+// The media bin panel: the media items with import by button or file drop, remove, and drag or double-click onto
+// the timeline.
 #pragma once
 
 #include <QWidget>
@@ -42,6 +44,9 @@ protected:
 
 private:
     void updateEmptyState();
+    // The name column gets the room first: the kind column, which the swatch beside each name also
+    // shows, hides while it would leave too little room for a typical clip name.
+    void updateColumns();
 
     core::CommandBus& m_bus;
     const core::ProjectModel& m_project;

@@ -22,7 +22,17 @@
       "name": "release",
       "displayName": "Release",
       "inherits": "base",
-      "cacheVariables": { "CMAKE_BUILD_TYPE": "RelWithDebInfo" }
+      "cacheVariables": { "CMAKE_BUILD_TYPE": "RelWithDebInfo", "MIKSERSTUDIO_INSTALLED_APP": "OFF" }
+    },
+    {
+      "name": "package",
+      "displayName": "Package (the installed app, for tools/build_release.lua)",
+      "inherits": "base",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "RelWithDebInfo",
+        "MIKSERSTUDIO_INSTALLED_APP": "ON",
+        "MIKSERSTUDIO_BUILD_TESTS": "OFF"
+      }
     },
     {
       "name": "ci",
@@ -37,10 +47,43 @@
   "buildPresets": [
     { "name": "debug", "configurePreset": "debug" },
     { "name": "release", "configurePreset": "release" },
+    { "name": "package", "configurePreset": "package" },
     { "name": "ci", "configurePreset": "ci" }
   ],
   "testPresets": [
-    { "name": "debug", "configurePreset": "debug", "output": { "outputOnFailure": true } },
-    { "name": "ci", "configurePreset": "ci", "output": { "outputOnFailure": true } }
+    {
+      "name": "debug",
+      "configurePreset": "debug",
+      "output": { "outputOnFailure": true },
+      "filter": { "exclude": { "label": "e2e|gpu|timing" } }
+    },
+    {
+      "name": "ci",
+      "configurePreset": "ci",
+      "output": { "outputOnFailure": true },
+      "filter": { "exclude": { "label": "e2e|gpu|timing" } }
+    },
+    {
+      "name": "timing",
+      "displayName": "Timing tests",
+      "configurePreset": "ci",
+      "output": { "outputOnFailure": true },
+      "filter": { "include": { "label": "timing" } },
+      "execution": { "repeat": { "mode": "until-pass", "count": 3 } }
+    },
+    {
+      "name": "e2e",
+      "displayName": "End-to-end tests",
+      "configurePreset": "debug",
+      "output": { "outputOnFailure": true },
+      "filter": { "include": { "label": "e2e" } }
+    },
+    {
+      "name": "gpu",
+      "displayName": "GPU test",
+      "configurePreset": "debug",
+      "output": { "outputOnFailure": true },
+      "filter": { "include": { "label": "gpu" } }
+    }
   ]
 }

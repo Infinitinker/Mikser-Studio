@@ -1,3 +1,4 @@
+// The Workspace menu: switch, save and reset workspaces.
 #pragma once
 
 #include <QObject>
@@ -9,16 +10,15 @@ class QWidget;
 namespace mikserstudio::ui {
 
 class CommandStatus;
-class KddwDockHost;
+class DockHost;
 
 // The Workspace menu: switch between workspaces (the current one is checked), "Save Workspace
-// As…" and "Reset Workspace". Problems are shown in the status bar.
+// As…" and "Reset workspace". Problems are shown in the status bar.
 class WorkspaceMenu final : public QObject {
     Q_OBJECT
 
 public:
-    WorkspaceMenu(KddwDockHost& host, QMenu* menu, CommandStatus& status, QWidget* dialogParent,
-                  QObject* parent = nullptr);
+    WorkspaceMenu(DockHost& host, QMenu* menu, CommandStatus& status, QWidget* dialogParent, QObject* parent = nullptr);
 
     void switchTo(const QString& name);
     void saveAs(const QString& name);  // Overwrites a saved workspace of that name.
@@ -29,7 +29,7 @@ public:
 private:
     void askAndSave();
 
-    KddwDockHost& m_host;
+    DockHost& m_host;
     QMenu* m_menu;
     CommandStatus& m_status;
     QWidget* m_dialogParent;

@@ -1,9 +1,12 @@
+// The local API: the versioned /v1 HTTP routes and the /v1/events WebSocket on 127.0.0.1, which run the same
+// commands as the menus and plugins and publish the discovery file.
 #pragma once
 
 #include <QObject>
 #include <QString>
 
 #include <expected>
+#include <functional>
 #include <memory>
 
 namespace mikserstudio::core {
@@ -22,9 +25,11 @@ inline constexpr int kApiVersion = 1;
 inline constexpr qsizetype kMaxRequestBodyBytes = qsizetype{1024} * 1024;
 
 struct ApiServerOptions {
-    quint16 port = 0;       // 0 picks a free (ephemeral) port.
-    QString token;          // Empty: a random token is generated. Otherwise 16+ visible ASCII chars.
-    QString discoveryFile;  // Empty: QStandardPaths::AppLocalDataLocation + "/api.json".
+    quint16 port = 0;  // 0 picks a free (ephemeral) port.
+    QString token;  // Empty: a random token is generated. Otherwise 16+ visible ASCII chars.
+    QString discoveryFile;  // Where to write api.json: the app passes core::UserFolders::discoveryFile. Required.
+    // Whether the plugins have started, which GET /v1/health answers (pluginsReady); none: true.
+    std::function<bool()> pluginsReady;
 };
 
 // The local, versioned API: /v1 HTTP routes plus the /v1/events WebSocket on the same port.
@@ -54,9 +59,8 @@ public:
     [[nodiscard]] quint16 port() const;  // 0 while stopped.
     [[nodiscard]] QString token() const;
     [[nodiscard]] QString discoveryFilePath() const;
-    [[nodiscard]] QString baseUrl() const;    // "http://127.0.0.1:<port>", empty while stopped.
+    [[nodiscard]] QString baseUrl() const;  // "http://127.0.0.1:<port>", empty while stopped.
     [[nodiscard]] QString eventsUrl() const;  // "ws://127.0.0.1:<port>/v1/events", empty while stopped.
-    [[nodiscard]] int eventClientCount() const;
 
 private:
     void acceptWebSockets();
@@ -65,6 +69,7 @@ private:
     QString m_token;
     QString m_discoveryFile;
     quint16 m_requestedPort = 0;
+    std::function<bool()> m_pluginsReady;
     quint16 m_port = 0;
     std::unique_ptr<Router> m_router;
     std::unique_ptr<EventHub> m_events;

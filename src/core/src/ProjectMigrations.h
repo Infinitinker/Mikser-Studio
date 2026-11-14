@@ -1,3 +1,4 @@
+// Upgrading older project files to the current format, one version at a time.
 #pragma once
 
 #include <QJsonObject>

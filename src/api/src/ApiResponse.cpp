@@ -1,3 +1,4 @@
+// Building the local API's JSON and error responses.
 #include "ApiResponse.h"
 
 using namespace Qt::StringLiterals;

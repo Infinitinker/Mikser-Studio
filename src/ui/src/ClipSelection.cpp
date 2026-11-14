@@ -1,3 +1,5 @@
+// The selection of timeline clips shared by the panels: selecting, toggling and dropping clips removed from
+// the project.
 #include "mikserstudio/ui/ClipSelection.h"
 
 #include "mikserstudio/core/Project.h"

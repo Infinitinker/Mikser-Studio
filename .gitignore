@@ -1,10 +1,26 @@
+# Build output: the CMake presets build into build/<preset>, and the release and end-to-end
+# runs write there too
 /build/
+dist/
+
+# C++ tools: clangd's index and the compile commands an editor may copy to the root
 /.cache/
 compile_commands.json
+
+# Editors and their personal settings
+.vscode/
+.idea/
+.vs/
 *.user
-__pycache__/
-.venv/
-*.egg-info/
-.pytest_cache/
-.ruff_cache/
-.mypy_cache/
+CMakeUserPresets.json
+
+# Claude Code's personal files; the rest of .claude/ is shared
+.claude/settings.local.json
+.claude/launch.json
+
+# Logs
+*.log
+
+# Never committed: secrets, and crash dumps, which can hold the app's memory
+.env
+*.dmp

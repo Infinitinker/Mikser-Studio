@@ -1,3 +1,4 @@
+// Making, checking and comparing the local API's session token, and reading it from a request.
 #include "Auth.h"
 
 #include <QHttpServerRequest>
@@ -37,17 +38,16 @@ QString generateToken()
 {
     std::array<quint32, 8> words{};
     QRandomGenerator::system()->fillRange(words.data(), words.size());
-    const auto bytes = QByteArray(reinterpret_cast<const char*>(words.data()),
-                                  static_cast<qsizetype>(sizeof(words)));
+    const auto bytes = QByteArray(reinterpret_cast<const char*>(words.data()), static_cast<qsizetype>(sizeof(words)));
     return QString::fromLatin1(bytes.toBase64(QByteArray::Base64UrlEncoding | QByteArray::OmitTrailingEquals));
 }
 
 std::expected<void, QString> checkToken(const QString& token)
 {
     if (token.size() < kMinTokenLength || token.size() > kMaxTokenLength) {
-        return std::unexpected(u"The API token must be %1 to %2 characters long. Leave it empty to generate one."_s
-                                   .arg(kMinTokenLength)
-                                   .arg(kMaxTokenLength));
+        return std::unexpected(
+            u"The API token must be %1 to %2 characters long. Leave it empty to generate one."_s.arg(kMinTokenLength)
+                .arg(kMaxTokenLength));
     }
     for (const QChar c : token) {
         if (c.unicode() < 0x21 || c.unicode() > 0x7e)

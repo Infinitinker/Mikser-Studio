@@ -1,3 +1,4 @@
+// The media bin's rows, kept in sync with the project, and the drag data of a media item.
 #include "MediaBinModel.h"
 
 #include "Timecode.h"

@@ -1,8 +1,12 @@
+// The local API's /v1 HTTP routes: health without a token, the bearer token for the rest, listing and
+// running commands, the status codes of command errors, and the request size limit.
 #include "ApiTestSupport.h"
 
 #include "mikserstudio/api/ApiServer.h"
 
 #include <QHostAddress>
+#include <QNetworkAccessManager>
+#include <QNetworkReply>
 #include <QTcpSocket>
 
 using namespace Qt::StringLiterals;
@@ -21,6 +25,9 @@ TEST_CASE("GET /v1/health answers without a token", "[api][http]")
     CHECK(body.value(u"name"_s).toString() == u"Mikser Studio"_s);
     CHECK_FALSE(body.value(u"version"_s).toString().isEmpty());
     CHECK(body.value(u"apiVersion"_s).toInt() == mikserstudio::api::kApiVersion);
+    CHECK(body.value(u"pluginsReady"_s).toBool());
+    fixture.pluginsReady = false;
+    CHECK_FALSE(sendRequest("GET", fixture.url(u"/v1/health"_s)).object().value(u"pluginsReady"_s).toBool(true));
 
     const auto post = sendRequest("POST", fixture.url(u"/v1/health"_s), "{}");
     CHECK(post.status == 405);
@@ -73,10 +80,10 @@ TEST_CASE("GET /v1/commands lists every spec and GET /v1/commands/<id> returns o
     const auto list = fixture.get(u"/v1/commands"_s);
     REQUIRE(list.status == 200);
     QStringList ids;
-    for (const QJsonValue& spec : list.array())
+    for (const QJsonValue spec : list.array())
         ids.append(spec.toObject().value(u"id"_s).toString());
     CHECK(ids == QStringList{u"edit.redo"_s, u"edit.undo"_s, u"test.busy"_s, u"test.echo"_s, u"test.fail"_s,
-                             u"test.increment"_s, u"test.noop"_s});
+                             u"test.increment"_s, u"test.noop"_s, u"test.refuse"_s});
 
     const auto one = fixture.get(u"/v1/commands/test.increment"_s);
     REQUIRE(one.status == 200);
@@ -158,6 +165,20 @@ TEST_CASE("Command errors map to HTTP status codes", "[api][http]")
         CHECK(reply.errorCode() == u"not_available"_s);
         CHECK(fixture.post(u"/v1/commands/edit.undo"_s, {}).status == 409);
     }
+    SECTION("needs confirmation and canceled: 409; permission denied: 403")
+    {
+        const auto ask = fixture.post(u"/v1/commands/test.refuse"_s, R"({"code": "needs_confirmation"})");
+        CHECK(ask.status == 409);
+        CHECK(ask.errorCode() == u"needs_confirmation"_s);
+        CHECK(ask.object().value(u"error"_s).toObject().value(u"message"_s).toString() ==
+              u"The test command refused with needs_confirmation."_s);
+        const auto canceled = fixture.post(u"/v1/commands/test.refuse"_s, R"({"code": "canceled"})");
+        CHECK(canceled.status == 409);
+        CHECK(canceled.errorCode() == u"canceled"_s);
+        const auto denied = fixture.post(u"/v1/commands/test.refuse"_s, R"({"code": "permission_denied"})");
+        CHECK(denied.status == 403);
+        CHECK(denied.errorCode() == u"permission_denied"_s);
+    }
     SECTION("failed: 500 with the handler's message")
     {
         const auto reply = fixture.post(u"/v1/commands/test.fail"_s, {});
@@ -166,6 +187,36 @@ TEST_CASE("Command errors map to HTTP status codes", "[api][http]")
         CHECK(reply.object().value(u"error"_s).toObject().value(u"message"_s).toString() ==
               u"The test command failed on purpose."_s);
     }
+}
+
+TEST_CASE("A command that answers later is answered when it finishes, and other requests go on meanwhile",
+          "[api][http][async]")
+{
+    ApiFixture fixture;
+    mikserstudio::core::CommandDone held;
+    mikserstudio::core::CommandSpec later;
+    later.id = u"test.later"_s;
+    later.title = u"Later"_s;
+    REQUIRE(fixture.bus.registerAsyncCommand(
+        later, [&held](const QJsonObject&, const mikserstudio::core::CallContext&,
+                       mikserstudio::core::CommandDone done) { held = std::move(done); }));
+
+    QNetworkAccessManager manager;
+    QNetworkRequest request(fixture.url(u"/v1/commands/test.later"_s));
+    request.setRawHeader("Authorization", fixture.bearer());
+    request.setHeader(QNetworkRequest::ContentTypeHeader, u"application/json"_s);
+    std::unique_ptr<QNetworkReply> pending(manager.post(request, QByteArray("{}")));
+    REQUIRE(mikserstudio::tests::waitFor([&] { return static_cast<bool>(held); }));
+
+    const auto echo = fixture.post(u"/v1/commands/test.echo"_s, R"({"text": "meanwhile"})");
+    CHECK(echo.status == 200);
+    CHECK_FALSE(pending->isFinished());
+
+    held(mikserstudio::core::CommandOutcome{QJsonObject{{u"answered"_s, true}}, nullptr});
+    REQUIRE(mikserstudio::tests::waitFor([&] { return pending->isFinished(); }));
+    CHECK(pending->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt() == 200);
+    CHECK(QJsonDocument::fromJson(pending->readAll()).object() ==
+          QJsonObject{{u"result"_s, QJsonObject{{u"answered"_s, true}}}});
 }
 
 TEST_CASE("Unknown routes and wrong methods are rejected", "[api][http]")
@@ -213,10 +264,10 @@ TEST_CASE("Request bodies over 1 MiB are rejected", "[api][http]")
         QTcpSocket socket;
         socket.connectToHost(QHostAddress::LocalHost, fixture.server->port());
         REQUIRE(socket.waitForConnected(5000));
-        socket.write("POST /v1/commands/test.increment HTTP/1.1\r\nHost: 127.0.0.1\r\nAuthorization: " +
-                     fixture.bearer() + "\r\nContent-Length: " +
-                     QByteArray::number(64 * mikserstudio::api::kMaxRequestBodyBytes) +
-                     "\r\nExpect: 100-continue\r\n\r\n");
+        socket.write(
+            "POST /v1/commands/test.increment HTTP/1.1\r\nHost: 127.0.0.1\r\nAuthorization: " + fixture.bearer() +
+            "\r\nContent-Length: " + QByteArray::number(64 * mikserstudio::api::kMaxRequestBodyBytes) +
+            "\r\nExpect: 100-continue\r\n\r\n");
         REQUIRE(mikserstudio::tests::waitFor([&] { return socket.canReadLine(); }));
         CHECK(socket.readLine().startsWith("HTTP/1.1 413"));
     }

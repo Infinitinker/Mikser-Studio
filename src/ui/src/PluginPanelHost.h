@@ -1,3 +1,4 @@
+// Hosts one plugin's QML panel in a Quick widget that sees only the plugin panel bridge.
 #pragma once
 
 #include <QWidget>
@@ -24,15 +25,11 @@ public:
     PluginPanelHost(core::CommandBus& bus, const core::PluginManager& plugins, const QString& pluginId,
                     const QString& pluginDirectory, const core::PanelContribution& panel, QWidget* parent = nullptr);
 
-    [[nodiscard]] QQuickWidget* quickWidget() const { return m_quick; }
-    [[nodiscard]] PluginPanelBridge* bridge() const { return m_bridge; }
-    [[nodiscard]] QString errorText() const;
-
 private:
     void showError(const QString& message);
 
-    PluginPanelBridge* m_bridge;
     QQuickWidget* m_quick;
+    PluginPanelBridge* m_bridge;  // Made after m_quick: it uses the widget's QML engine.
     QLabel* m_error;
 };
 

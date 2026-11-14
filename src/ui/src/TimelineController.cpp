@@ -1,7 +1,7 @@
+// The timeline controller: geometry and snapping, and the move, add, remove and seek commands.
 #include "TimelineController.h"
 
 #include "CommandInvoker.h"
-#include "QuietCommands.h"
 #include "Timecode.h"
 #include "TimelineModel.h"
 #include "TimelineRules.h"
@@ -26,7 +26,7 @@ namespace {
 
 const auto kSeekCommand = u"program.seek"_s;
 constexpr double kMinRulerSpacing = 90.0;  // Pixels between labelled ruler ticks.
-constexpr qint64 kTailSeconds = 10;         // Room to scroll past the last clip.
+constexpr qint64 kTailSeconds = 10;  // Room to scroll past the last clip.
 
 }  // namespace
 
@@ -191,8 +191,6 @@ void TimelineController::seek(qint64 frame)
 {
     if (!canSeek())
         return;
-    // Scrubbing sends many seeks; they are not worth a log line each.
-    const QuietCommandScope quiet;
     executeReported(m_bus, kSeekCommand, QJsonObject{{u"frame"_s, std::max<qint64>(0, frame)}});
 }
 
@@ -215,7 +213,7 @@ void TimelineController::removeSelected()
     if (clipIds.isEmpty())
         return;
     const core::UndoGroup group(m_bus.undoStack(),
-                                clipIds.size() == 1 ? u"Remove Clip"_s : u"Remove %1 Clips"_s.arg(clipIds.size()));
+                                clipIds.size() == 1 ? u"Remove clip"_s : u"Remove %1 clips"_s.arg(clipIds.size()));
     for (const QString& clipId : clipIds) {
         if (!run(u"timeline.remove_clip"_s, QJsonObject{{u"clipId"_s, clipId}}))
             break;
@@ -290,15 +288,16 @@ bool TimelineController::moveClip(const QString& clipId, const QString& trackId,
         return false;
     if (clip->trackId == trackId && clip->position == position)
         return true;
-    return run(u"timeline.move_clip"_s,
-               QJsonObject{{u"clipId"_s, clipId}, {u"trackId"_s, trackId}, {u"position"_s, std::max<qint64>(0, position)}});
+    return run(
+        u"timeline.move_clip"_s,
+        QJsonObject{{u"clipId"_s, clipId}, {u"trackId"_s, trackId}, {u"position"_s, std::max<qint64>(0, position)}});
 }
 
 bool TimelineController::addClip(const QString& mediaId, const QString& trackId, qint64 position)
 {
-    const auto result = runForResult(u"timeline.add_clip"_s, QJsonObject{{u"mediaId"_s, mediaId},
-                                                                         {u"trackId"_s, trackId},
-                                                                         {u"position"_s, std::max<qint64>(0, position)}});
+    const auto result = runForResult(
+        u"timeline.add_clip"_s,
+        QJsonObject{{u"mediaId"_s, mediaId}, {u"trackId"_s, trackId}, {u"position"_s, std::max<qint64>(0, position)}});
     if (!result)
         return false;
     m_selection.select(result->value(u"clipId").toString());
@@ -433,7 +432,8 @@ void TimelineController::setPixelsPerFrame(double value)
 double TimelineController::maxScrollX() const
 {
     const qint64 fps = std::max<qint64>(1, std::llround(frameRate()));
-    const double content = static_cast<double>(std::max(duration(), m_playhead) + kTailSeconds * fps) * m_pixelsPerFrame;
+    const double content = static_cast<double>(std::max(duration(), m_playhead) + kTailSeconds * fps) *
+                           m_pixelsPerFrame;
     return std::max(0.0, content - m_viewportWidth);
 }
 

@@ -1,3 +1,4 @@
+// The built-in workspaces (Editing, Color, AI) as steps that place panels.
 #pragma once
 
 #include <QList>

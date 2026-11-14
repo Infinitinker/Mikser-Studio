@@ -1,3 +1,5 @@
+// The docking seam of the UI: panels, areas and workspaces behind one interface, so the docking library can be
+// replaced.
 #pragma once
 
 #include <QByteArray>
@@ -26,7 +28,9 @@ struct PanelDescriptor {
 };
 
 // The docking layer, kept behind this interface so the docking library (and its license) can be
-// swapped: KDDockWidgets today, Qt Advanced Docking System as the fallback.
+// swapped: KDDockWidgets today, which is GPL or commercial, and the Qt Advanced Docking System, under
+// the LGPL, if the license Mikser Studio takes needs it. Only Shell, which creates the host, names
+// the library; everything else uses this interface.
 //
 // Every panel can be docked, tabbed, floated on any monitor and closed. A workspace is a named,
 // saved layout. Restoring a workspace that mentions a panel nobody registered (e.g. a removed
@@ -56,12 +60,30 @@ public:
     [[nodiscard]] virtual QStringList workspaces() const = 0;
     virtual std::expected<void, QString> saveWorkspace(const QString& name) = 0;
     virtual std::expected<void, QString> loadWorkspace(const QString& name) = 0;
+    // The workspaces defined in code, in their order; the first is the default.
+    [[nodiscard]] virtual QStringList builtInWorkspaces() const = 0;
+    [[nodiscard]] virtual bool hasSavedWorkspace(const QString& name) const = 0;
+    // Built-in workspaces: deletes the saved file and applies the definition from code.
+    // Saved workspaces: loads the saved file again.
+    virtual std::expected<void, QString> resetWorkspace(const QString& name) = 0;
+    // Name of the workspace last loaded, saved or reset; empty before that.
+    [[nodiscard]] virtual QString currentWorkspace() const = 0;
+    // Names the workspace the current layout belongs to, e.g. after restoreLayout() of the last
+    // session's layout.
+    virtual void setCurrentWorkspace(const QString& name) = 0;
+
+    // Floats (or docks back) the first instance of an open panel.
+    virtual std::expected<void, QString> setPanelFloating(const QString& id, bool floating) = 0;
+    // The top-level window showing the panel: the main window or its floating window.
+    [[nodiscard]] virtual QWidget* panelWindow(const QString& id) const = 0;
 
 Q_SIGNALS:
     void panelOpened(const QString& id);
     void panelClosed(const QString& id);
     void panelsChanged();  // A panel was registered or unregistered.
     void layoutChanged();
+    // The workspace was loaded, saved, reset or named (see currentWorkspace()).
+    void currentWorkspaceChanged(const QString& name);
 };
 
 }  // namespace mikserstudio::ui

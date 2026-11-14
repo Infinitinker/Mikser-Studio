@@ -1,3 +1,4 @@
+// Formats frames as timecode (HH:MM:SS:FF) and as short durations for lists.
 #pragma once
 
 #include "mikserstudio/core/Project.h"

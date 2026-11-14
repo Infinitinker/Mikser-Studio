@@ -1,3 +1,5 @@
+// The program monitor's playback engine: plays the timeline of the project and rebuilds itself when the project
+// changes.
 #pragma once
 
 #include "mikserstudio/engine/MltPlayer.h"
@@ -29,8 +31,8 @@ class TimelinePlayer final : public MltPlayer {
 public:
     static constexpr int kRebuildDelayMs = 40;
 
-    TimelinePlayer(const MltRuntime& runtime, core::ProjectModel& project,
-                   AudioOutput audio = AudioOutput::Device, QObject* parent = nullptr);
+    TimelinePlayer(const MltRuntime& runtime, core::ProjectModel& project, AudioOutput audio = AudioOutput::Device,
+                   QObject* parent = nullptr);
     ~TimelinePlayer() override;
 
     // Rebuilds right away instead of waiting for the debounce timer.

@@ -1,3 +1,4 @@
+// The UI's design tokens (colors, sizes) and the stylesheet and palette made from them, for widgets and QML panels.
 #pragma once
 
 #include <QColor>
@@ -122,7 +123,7 @@ class ThemeObject final : public QObject {
     Q_PROPERTY(int fontSizeTitle READ fontSizeTitle CONSTANT)
 
 public:
-    explicit ThemeObject(const ThemeTokens& tokens = darkTheme(), QObject* parent = nullptr);
+    explicit ThemeObject(ThemeTokens tokens = darkTheme(), QObject* parent = nullptr);
 
     [[nodiscard]] const ThemeTokens& tokens() const { return m_tokens; }
 

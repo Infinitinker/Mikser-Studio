@@ -7,11 +7,14 @@ add_executable(mikserstudio-ui-tests
     CommandMenuTests.cpp
     CommandPaletteTests.cpp
     KddwDockHostTests.cpp
+    MediaBinPanelTests.cpp
     MessageBoxAnswer.h
     PluginPanelBridgeTests.cpp
+    PluginsPanelTests.cpp
     PropertiesPanelTests.cpp
     ShellStateTests.cpp
     SchemaFormTests.cpp
+    SettingsWindowTests.cpp
     TestCommands.h
     TimelineControllerTests.cpp
     TimelineFixture.h

@@ -112,7 +112,7 @@ Rectangle {
                 visible: clips.count === 0 && !timeline.dropActive
                 x: 24
                 y: Math.min(root.trackCount, 2) * timeline.trackHeight - height / 2
-                text: qsTr("Drag media from the Media panel here, or double-click it to append.")
+                text: qsTr("Drag media items from the media bin here, or double-click one to add it at the end.")
                 color: theme.textMuted
                 font.family: theme.fontFamily
                 font.pixelSize: theme.fontSize

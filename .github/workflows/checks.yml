@@ -1,0 +1,140 @@
+name: Checks
+
+# Pushes to the two long-lived branches, and pull requests, also from forks. The jobs have short,
+# fixed names, so they can be required status checks of the main branch ruleset ("Branches" in
+# docs/development.md). Windows is the only system with a release, so the build and the tests run
+# there; Linux and macOS get jobs of their own when their ports land.
+on:
+  push:
+    branches: [main, dev]
+  pull_request:
+
+# A newer push to the same branch or pull request cancels the run still going for the older one.
+concurrency:
+  group: checks-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  # The C++ include directions are the same on every system, so they are checked once, on the fastest
+  # runner, with Lua alone. The tests of the scripts in tools/ run with the C++ tests (Tests).
+  lint:
+    name: Lint
+    runs-on: ubuntu-26.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/lua
+      - name: Include directions
+        run: lua5.4 tools/check_includes.lua
+
+  # The Lua in tools/ and in the plugins (docs/development.md, "Lua"): StyLua and luacheck, each with
+  # the settings in the folder it checks, and Lua 5.4's own compiler, which only parses (-p), for what
+  # luacheck accepts without checking, such as <const> and <close>. StyLua's and luacheck's release
+  # binaries are pinned by version and checked against their SHA-256s; luac5.4 comes with Ubuntu's
+  # lua5.4. Each step fails on any finding.
+  lua:
+    name: Lua
+    runs-on: ubuntu-26.04
+    timeout-minutes: 15
+    env:
+      STYLUA_URL: https://github.com/JohnnyMorganz/StyLua/releases/download/v2.6.0/stylua-linux-x86_64.zip
+      STYLUA_SHA256: a485f72bbfa22e4642e77a84b5edc2611a5cab7477b34e2e709dd8f78e919895
+      LUACHECK_URL: https://github.com/lunarmodules/luacheck/releases/download/v1.2.0/luacheck
+      LUACHECK_SHA256: d68da17fca0697d9e2fb04201f3884abd259fa558b3a449bccaed47f1390defc
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/lua
+      - name: Install StyLua and luacheck
+        run: |
+          mkdir -p "$RUNNER_TEMP/bin"
+          cd "$RUNNER_TEMP"
+          curl -fsSL -o stylua.zip "$STYLUA_URL"
+          echo "$STYLUA_SHA256  stylua.zip" | sha256sum --check --strict
+          unzip -q stylua.zip -d bin
+          curl -fsSL -o bin/luacheck "$LUACHECK_URL"
+          echo "$LUACHECK_SHA256  bin/luacheck" | sha256sum --check --strict
+          chmod +x bin/stylua bin/luacheck
+          echo "$RUNNER_TEMP/bin" >> "$GITHUB_PATH"
+      - name: StyLua
+        run: |
+          (cd tools && stylua --check .)
+          (cd plugins && stylua --check .)
+      - name: luacheck
+        run: |
+          (cd tools && luacheck .)
+          (cd plugins && luacheck .)
+      - name: Parse with luac5.4
+        run: git ls-files -z 'tools/*.lua' 'plugins/*.lua' | xargs -0 -n 1 luac5.4 -p
+
+  # The C++ build with the ci preset, where warnings are errors, and its tests, the MCP bridge's and
+  # those of the scripts in tools/ among them. The whole AI path, through the app against a fake AI
+  # tool, is tested in e2e.yml.
+  tests:
+    name: Tests
+    runs-on: windows-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/msys2
+      - name: Build
+        shell: msys2 {0}
+        run: |
+          cmake --preset ci
+          cmake --build --preset ci
+      # No sound device on the runner: MLT plays to its silent output.
+      - name: C++ tests
+        shell: msys2 {0}
+        env:
+          MIKSERSTUDIO_AUDIO_OUTPUT: silent
+        run: ctest --preset ci -j4
+      # Tests that measure time run alone, after the rest, with up to two more tries.
+      - name: Timing tests
+        shell: msys2 {0}
+        env:
+          MIKSERSTUDIO_AUDIO_OUTPUT: silent
+        run: ctest --preset timing
+
+  # What a release ships from MSYS2, read from MSYS2's package database (tools/msys2_packages.lua), with
+  # MSYS2's Lua: THIRD-PARTY-NOTICES.md must be up to date, and every license must be one that can be
+  # combined with Mikser Studio's GPL-3.0-or-later (docs/releasing.md, "Licenses").
+  licenses:
+    name: Licenses
+    runs-on: windows-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/msys2
+      - name: Notices
+        shell: msys2 {0}
+        run: lua5.4 tools/notices.lua --check
+      - name: Licenses
+        shell: msys2 {0}
+        run: lua5.4 tools/licenses.lua
+
+  # The C++ code: clang-format and clang-tidy (.clang-format and .clang-tidy at the root). Each step
+  # fails on any finding. clang-tidy reads the compile commands of the ci preset: configuring is
+  # enough, nothing is built, but Qt's moc and uic run in the build, so the generated headers are
+  # made first.
+  cpp:
+    name: C++ checks
+    runs-on: windows-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/msys2
+        with:
+          packages: clang:p clang-tools-extra:p
+      - name: Format
+        shell: msys2 {0}
+        run: git ls-files '*.cpp' '*.h' | xargs clang-format --dry-run --Werror
+      - name: Configure
+        shell: msys2 {0}
+        run: |
+          cmake --preset ci
+          cmake --build --preset ci --target autogen
+      - name: clang-tidy
+        shell: msys2 {0}
+        run: git ls-files '*.cpp' | xargs -P 4 -n 1 clang-tidy -p build/ci --quiet

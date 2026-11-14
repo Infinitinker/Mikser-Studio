@@ -1,3 +1,5 @@
+// Fuzzy matching of a query against a text as a case-insensitive subsequence, scored for ranking the
+// command palette.
 #pragma once
 
 #include <QStringView>

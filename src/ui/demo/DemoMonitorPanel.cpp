@@ -1,3 +1,4 @@
+// The stand-in monitor panel: its picture area, timecode and play button.
 #include "DemoMonitorPanel.h"
 
 #include "mikserstudio/core/Project.h"
@@ -12,6 +13,7 @@
 #include <QVBoxLayout>
 
 #include <algorithm>
+#include <cmath>
 
 using namespace Qt::StringLiterals;
 
@@ -21,7 +23,7 @@ namespace {
 
 QString timecode(core::FramePos frame, core::Rational rate)
 {
-    const auto fps = std::max<core::FramePos>(1, static_cast<core::FramePos>(rate.toDouble() + 0.5));
+    const auto fps = std::max<core::FramePos>(1, static_cast<core::FramePos>(std::llround(rate.toDouble())));
     return u"%1:%2:%3:%4"_s.arg(frame / fps / 3600, 2, 10, u'0')
         .arg(frame / fps / 60 % 60, 2, 10, u'0')
         .arg(frame / fps % 60, 2, 10, u'0')
@@ -59,7 +61,8 @@ protected:
         if (media) {
             const QColor base = media->info.kind == core::MediaKind::Image ? theme.clipImage : theme.clipVideo;
             QLinearGradient gradient(frame.topLeft(), frame.bottomRight());
-            const double phase = static_cast<double>(m_transport.position() - clip->position) / std::max<double>(1.0, static_cast<double>(clip->length()));
+            const double phase = static_cast<double>(m_transport.position() - clip->position) /
+                                 std::max<double>(1.0, static_cast<double>(clip->length()));
             gradient.setColorAt(0.0, base.darker(260));
             gradient.setColorAt(std::clamp(phase, 0.05, 0.95), base.darker(140));
             gradient.setColorAt(1.0, theme.window);

@@ -1,3 +1,4 @@
+// The schema form: building fields from a JSON Schema, reading the value and showing validation problems.
 #include "mikserstudio/ui/SchemaForm.h"
 
 #include "SchemaEditors.h"
@@ -58,7 +59,7 @@ QStringList propertyOrder(const QJsonObject& schema)
 {
     const QJsonObject properties = schema.value(u"properties").toObject();
     QStringList order;
-    for (const QJsonValue& name : schema.value(u"required").toArray()) {
+    for (const QJsonValue name : schema.value(u"required").toArray()) {
         if (properties.contains(name.toString()) && !order.contains(name.toString()))
             order.append(name.toString());
     }
@@ -117,10 +118,12 @@ struct SchemaForm::Impl {
                 inner->addRow(node.error);
                 form->addRow(group);
                 node.focusWidget = group;
+                group->setObjectName(node.pointer);  // A field is found by its JSON Pointer.
             } else {
                 const bool optional = !node.required && !node.schema.contains(u"default");
                 node.editor = createFieldEditor(node.schema, optional, [this] { Q_EMIT q->valueChanged(); });
                 node.focusWidget = node.editor->widget();
+                node.focusWidget->setObjectName(node.pointer);
                 node.focusWidget->setToolTip(description);
                 auto* label = new QLabel(node.required ? title + u" *"_s : title);
                 label->setToolTip(description);
@@ -178,8 +181,7 @@ struct SchemaForm::Impl {
         return object;
     }
 
-    template<typename Visitor>
-    static void visit(std::vector<Node>& level, const Visitor& visitor)
+    template <typename Visitor> static void visit(std::vector<Node>& level, const Visitor& visitor)
     {
         for (Node& node : level) {
             visitor(node);
@@ -187,8 +189,7 @@ struct SchemaForm::Impl {
         }
     }
 
-    template<typename Visitor>
-    static void visit(const std::vector<Node>& level, const Visitor& visitor)
+    template <typename Visitor> static void visit(const std::vector<Node>& level, const Visitor& visitor)
     {
         for (const Node& node : level) {
             visitor(node);
@@ -324,17 +325,6 @@ void SchemaForm::clearErrors()
         node.error->hide();
         setInvalid(node.focusWidget, false);
     });
-}
-
-bool SchemaForm::hasFields() const
-{
-    return !d->nodes.empty();
-}
-
-QWidget* SchemaForm::editor(const QString& pointer) const
-{
-    const Node* node = d->find(pointer);
-    return node ? node->focusWidget : nullptr;
 }
 
 QString SchemaForm::errorText(const QString& pointer) const

@@ -1,3 +1,5 @@
+// Test commands the UI tests share: an edit that counts its undos and redos, and commands that record
+// how often they ran.
 #pragma once
 
 #include "mikserstudio/core/CommandBus.h"
@@ -17,8 +19,8 @@ public:
         : m_text(std::move(text))
     {
     }
-    void undo() override {}
-    void redo() override {}
+    void undo() override { }
+    void redo() override { }
     [[nodiscard]] QString text() const override { return m_text; }
 
 private:
@@ -34,6 +36,7 @@ struct TestCommand {
     QString editText = {};  // Non-empty: the command is undoable and pushes an edit with this text.
     bool readOnly = false;
     QString confirmation = {};
+    bool quiet = false;
 };
 
 // Registers a command that returns {"ran": <id>} and increments `*runs` (when given).
@@ -51,6 +54,13 @@ inline bool registerTestCommand(core::CommandBus& bus, const TestCommand& comman
             .undoable = undoable,
             .readOnly = command.readOnly,
             .confirmation = command.confirmation,
+            .confirmationParam = {},
+            .owner = QStringLiteral("core"),
+            .resultSchema = {},
+            .permission = {},
+            .startsJob = false,
+            .openWorld = false,
+            .quiet = command.quiet,
         },
         [id = command.id, editText = command.editText, runs](const QJsonObject&) -> core::CommandResult {
             if (runs)

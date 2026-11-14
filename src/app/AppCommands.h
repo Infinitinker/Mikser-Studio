@@ -1,3 +1,5 @@
+// The commands that tie modules together and belong to none of them: the project file commands and
+// source.open_media.
 #pragma once
 
 namespace mikserstudio::core {
@@ -11,14 +13,9 @@ class ClipPlayer;
 
 namespace mikserstudio::app {
 
-// Commands that tie modules together and so belong to neither of them:
+// Commands that tie modules together and so belong to none of them: the project file commands
+// (ProjectFileCommands.h) and
 //
-//   project.new          {}                -> {}           clears the undo history
-//   project.save         {path}            -> {path}       JSON project file (.mikser)
-//   project.open         {path}            -> {path}       clears the undo history
-//
-// project.new and project.open replace the project, so they carry a CommandSpec::confirmation
-// that interactive UIs ask before running them.
 //   source.open_media    {mediaId}         -> {mediaId}    shows a media item in the source monitor
 //
 // `source` is null when there is no playback engine; source.open_media is then not registered.

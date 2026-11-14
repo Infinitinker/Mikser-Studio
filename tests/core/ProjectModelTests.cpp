@@ -1,6 +1,9 @@
+// The project model: tracks, media items and clips with their rules, JSON round trips, and the checks a loaded
+// project must pass (ranges, local paths, clip ids and overlaps).
 #include "TestSupport.h"
 
 #include "mikserstudio/core/Project.h"
+#include "mikserstudio/core/ProjectSnapshot.h"
 
 #include <catch2/catch_test_macros.hpp>
 
@@ -27,8 +30,14 @@ MediaItem videoItem(const QString& id, FramePos duration = 300)
         .id = id,
         .path = mediaPath(id + u".mp4"_s),
         .name = {},
-        .info = MediaInfo{.kind = MediaKind::Video, .durationFrames = duration, .width = 1920, .height = 1080,
-                          .frameRate = {30, 1}, .hasVideo = true, .hasAudio = true, .audioSampleRate = 48000,
+        .info = MediaInfo{.kind = MediaKind::Video,
+                          .durationFrames = duration,
+                          .width = 1920,
+                          .height = 1080,
+                          .frameRate = {30, 1},
+                          .hasVideo = true,
+                          .hasAudio = true,
+                          .audioSampleRate = 48000,
                           .audioChannels = 2},
         .provenance = {},
     };
@@ -79,6 +88,22 @@ TEST_CASE("A new project has four tracks and default format", "[project]")
     project.reset({25, 1}, 1280, 720);
     CHECK(project.frameRate() == Rational{25, 1});
     CHECK(project.width() == 1280);
+}
+
+TEST_CASE("A project keeps the path of its file until it is reset", "[project]")
+{
+    ProjectModel project;
+    CHECK(project.filePath().isEmpty());
+    QStringList signaled;
+    QObject::connect(&project, &ProjectModel::filePathChanged,
+                     [&signaled](const QString& path) { signaled.append(path); });
+
+    project.setFilePath(u"D:/projects/cut.msproj"_s);
+    project.setFilePath(u"D:/projects/cut.msproj"_s);
+    CHECK(project.filePath() == u"D:/projects/cut.msproj"_s);
+    project.reset();
+    CHECK(project.filePath().isEmpty());
+    CHECK(signaled == QStringList{u"D:/projects/cut.msproj"_s, QString()});
 }
 
 TEST_CASE("Media can be added, found and removed", "[project]")
@@ -405,7 +430,7 @@ TEST_CASE("Loading rejects frame and size values outside the supported range", "
     CHECK(project.toJson() == before);
 }
 
-TEST_CASE("Loading accepts only local media paths and colour resources", "[project]")
+TEST_CASE("Loading accepts only local media paths and color resources", "[project]")
 {
     ProjectModel source;
     REQUIRE(source.addMedia(imageItem(u"m1"_s)));
@@ -421,17 +446,18 @@ TEST_CASE("Loading accepts only local media paths and colour resources", "[proje
     };
 
     ProjectModel project;
-    for (const QString& path : {
-             uR"(xml-string:<mlt><producer id="p"><property name="resource">http&#58;//example.invalid/t.mp4</property></producer></mlt>)"_s,
-             u"http://example.invalid/clip.mp4"_s,
-             u"file:///media/clip.mp4"_s,
-             u"dshow:video=Camera"_s,
-             u"gdigrab:desktop"_s,
-             u"//server/share/clip.mp4"_s,
-             uR"(\\server\share\clip.mp4)"_s,
-             u"media/clip.mp4"_s,
-             u"color:#ff0000; rm"_s,
-         }) {
+    for (
+        const QString& path : {
+            uR"(xml-string:<mlt><producer id="p"><property name="resource">http&#58;//example.invalid/t.mp4</property></producer></mlt>)"_s,
+            u"http://example.invalid/clip.mp4"_s,
+            u"file:///media/clip.mp4"_s,
+            u"dshow:video=Camera"_s,
+            u"gdigrab:desktop"_s,
+            u"//server/share/clip.mp4"_s,
+            uR"(\\server\share\clip.mp4)"_s,
+            u"media/clip.mp4"_s,
+            u"color:#ff0000; rm"_s,
+        }) {
         INFO(path.toStdString());
         const auto loaded = project.loadJson(withPath(path));
         REQUIRE_FALSE(loaded);
@@ -446,7 +472,7 @@ TEST_CASE("Loading accepts only local media paths and colour resources", "[proje
     }
 }
 
-TEST_CASE("isAllowedMediaPath accepts local files and colours only", "[project]")
+TEST_CASE("isAllowedMediaPath accepts local files and colors only", "[project]")
 {
     CHECK(isAllowedMediaPath(mediaPath(u"a.mp4"_s)));
     CHECK(isAllowedMediaPath(QDir::toNativeSeparators(mediaPath(u"a.mp4"_s))));
@@ -599,4 +625,42 @@ TEST_CASE("New video tracks go above the existing video tracks", "[project]")
     REQUIRE(project.loadJson(document));
     CHECK(project.addTrack(TrackKind::Video) == u"V1"_s);
     CHECK(project.tracks().first().id == u"V1"_s);
+}
+
+TEST_CASE("The project publishes a snapshot after every change, with a session per project", "[project][snapshot]")
+{
+    ProjectModel project;
+    const auto empty = project.snapshot();
+    REQUIRE(empty);
+    CHECK_FALSE(empty->session.isEmpty());
+    CHECK(empty->tracks.size() == 4);
+
+    REQUIRE(project.addMedia(videoItem(u"media-1"_s)));
+    REQUIRE(project.addClip(
+        Clip{.id = u"clip-1"_s, .mediaId = u"media-1"_s, .trackId = u"V1"_s, .position = 0, .in = 0, .out = 100}));
+    REQUIRE(project.addClip(
+        Clip{.id = u"clip-2"_s, .mediaId = u"media-1"_s, .trackId = u"V1"_s, .position = 200, .in = 0, .out = 50}));
+    const auto edited = project.snapshot();
+    CHECK(edited->revision == empty->revision + 3);
+    CHECK(edited->session == empty->session);
+    CHECK(empty->clips.isEmpty());  // An older snapshot never changes.
+    REQUIRE(edited->findClip(u"clip-2"_s));
+    CHECK(edited->findClip(u"clip-2"_s)->end() == 250);
+    CHECK(edited->findMedia(u"media-1"_s));
+    CHECK(edited->findTrack(u"V1"_s));
+    CHECK_FALSE(edited->findClip(u"clip-none"_s));
+    CHECK(edited->clipsInRange(90, 210).size() == 2);
+    CHECK(edited->clipsInRange(100, 200).isEmpty());
+    CHECK(edited->clipsInRange(0, 1000, u"V2"_s).isEmpty());
+    CHECK(edited->clipsOfMedia(u"media-1"_s).size() == 2);
+    CHECK(edited->toJson().value(u"revision"_s).toInteger() == static_cast<qint64>(edited->revision));
+
+    const QJsonObject saved = project.toJson();
+    project.reset();
+    const auto fresh = project.snapshot();
+    CHECK(fresh->session != edited->session);
+    CHECK(fresh->revision > edited->revision);
+    REQUIRE(project.loadJson(saved));
+    CHECK(project.snapshot()->session != fresh->session);
+    CHECK(project.snapshot()->clips.size() == 2);
 }

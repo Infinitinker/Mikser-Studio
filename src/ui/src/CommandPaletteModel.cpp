@@ -1,3 +1,4 @@
+// Filtering and ranking of the command palette's rows with the fuzzy matcher.
 #include "CommandPaletteModel.h"
 
 #include "FuzzyMatch.h"

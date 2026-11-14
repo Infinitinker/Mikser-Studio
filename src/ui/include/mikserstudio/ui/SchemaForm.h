@@ -1,3 +1,4 @@
+// A form generated from a JSON Schema, used for command params and plugin settings.
 #pragma once
 
 #include <QJsonObject>
@@ -36,9 +37,6 @@ public:
     QStringList validate();
     void clearErrors();
 
-    [[nodiscard]] bool hasFields() const;
-    // The editor of the property at a JSON Pointer ("/name", "/options/scale"), for focus and tests.
-    [[nodiscard]] QWidget* editor(const QString& pointer) const;
     // The inline error shown for a JSON Pointer (empty when there is none).
     [[nodiscard]] QString errorText(const QString& pointer) const;
 

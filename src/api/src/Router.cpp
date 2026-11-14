@@ -1,3 +1,5 @@
+// The /v1 routes (health, listing commands, running a command): authorization, parsing, calling the command bus
+// and turning command errors into HTTP errors.
 #include "Router.h"
 
 #include "Auth.h"
@@ -7,6 +9,7 @@
 #include <QHttpServerRequest>
 #include <QJsonArray>
 #include <QJsonParseError>
+#include <QTimer>
 
 using namespace Qt::StringLiterals;
 
@@ -48,7 +51,7 @@ ApiResponse notFound(const QString& path)
 ApiResponse unknownCommand(const QString& id)
 {
     return errorResponse(HttpStatus::NotFound, core::toString(core::CommandErrorCode::UnknownCommand),
-                         u"There is no command \"%1\". GET /v1/commands lists the available commands."_s.arg(id));
+                         u"There is no command “%1”. GET /v1/commands lists the available commands."_s.arg(id));
 }
 
 HttpStatus statusFor(core::CommandErrorCode code)
@@ -59,24 +62,76 @@ HttpStatus statusFor(core::CommandErrorCode code)
     case core::CommandErrorCode::InvalidParams:
         return HttpStatus::BadRequest;
     case core::CommandErrorCode::NotAvailable:
+    case core::CommandErrorCode::NeedsConfirmation:
+    case core::CommandErrorCode::Canceled:
         return HttpStatus::Conflict;
+    case core::CommandErrorCode::PermissionDenied:
+        return HttpStatus::Forbidden;
     case core::CommandErrorCode::Failed:
         return HttpStatus::InternalServerError;
     }
     return HttpStatus::InternalServerError;
 }
 
+// The command id of a /v1/commands/<id> path, or empty for any other path.
+QString commandId(const QString& path)
+{
+    if (!path.startsWith(kCommandPrefix))
+        return {};
+    const QString id = path.sliced(kCommandPrefix.size());
+    return id.contains(u'/') ? QString() : id;
+}
+
+// A POST's params: its body, a JSON object, or {} when it is empty.
+std::expected<QJsonObject, ApiResponse> paramsOf(const QHttpServerRequest& request)
+{
+    const QByteArray body = request.body();
+    if (body.size() > kMaxRequestBodyBytes) {
+        return std::unexpected(errorResponse(
+            HttpStatus::PayloadTooLarge, u"payload_too_large"_s,
+            u"The request body is larger than %1 bytes. Pass large data as file paths."_s.arg(kMaxRequestBodyBytes)));
+    }
+    if (body.trimmed().isEmpty())
+        return QJsonObject();
+    QJsonParseError parseError{};
+    const QJsonDocument document = QJsonDocument::fromJson(body, &parseError);
+    if (parseError.error != QJsonParseError::NoError) {
+        return std::unexpected(errorResponse(HttpStatus::BadRequest, u"malformed_json"_s,
+                                             u"The request body is not valid JSON (%1 at offset %2). Send a JSON "
+                                             "object, e.g. {}."_s.arg(parseError.errorString())
+                                                 .arg(parseError.offset)));
+    }
+    if (!document.isObject()) {
+        return std::unexpected(
+            errorResponse(HttpStatus::BadRequest, core::toString(core::CommandErrorCode::InvalidParams),
+                          u"The request body must be a JSON object with the command params, e.g. {}."_s));
+    }
+    return document.object();
+}
+
 }  // namespace
 
-Router::Router(core::CommandBus& bus, QByteArray token)
+Router::Router(core::CommandBus& bus, QByteArray token, std::function<bool()> pluginsReady)
     : m_bus(bus)
     , m_token(std::move(token))
+    , m_pluginsReady(std::move(pluginsReady))
 {
 }
 
-ApiResponse Router::handle(const QHttpServerRequest& request) const
+void Router::handle(const QHttpServerRequest& request, QObject* receiver, Answer answer) const
 {
+    // Only running a command may answer later; every other request answers at once.
     const QString path = request.url().path(QUrl::FullyDecoded);
+    if (const QString id = commandId(path);
+        !id.isEmpty() && request.method() == Method::Post && isAuthorized(request, m_token, TokenSource::HeaderOnly)) {
+        executeCommand(request, id, receiver, std::move(answer));
+        return;
+    }
+    answer(respond(request, path));
+}
+
+ApiResponse Router::respond(const QHttpServerRequest& request, const QString& path) const
+{
     if (path == kHealthPath)
         return health(request);
     if (!isAuthorized(request, m_token, TokenSource::HeaderOnly))
@@ -84,10 +139,10 @@ ApiResponse Router::handle(const QHttpServerRequest& request) const
     if (path == kCommandsPath)
         return listCommands(request);
     if (path.startsWith(kCommandPrefix)) {
-        const QString id = path.sliced(kCommandPrefix.size());
-        if (id.isEmpty() || id.contains(u'/'))
+        const QString id = commandId(path);
+        if (id.isEmpty())
             return notFound(path);
-        return command(request, id);
+        return describeCommand(request, id);
     }
     if (path == kEventsPath) {
         ApiResponse response = errorResponse(HttpStatus::UpgradeRequired, u"upgrade_required"_s,
@@ -106,6 +161,7 @@ ApiResponse Router::health(const QHttpServerRequest& request) const
         {u"name"_s, u"Mikser Studio"_s},
         {u"version"_s, QStringLiteral(MIKSERSTUDIO_VERSION_STRING)},
         {u"apiVersion"_s, kApiVersion},
+        {u"pluginsReady"_s, m_pluginsReady ? m_pluginsReady() : true},
     });
 }
 
@@ -119,10 +175,8 @@ ApiResponse Router::listCommands(const QHttpServerRequest& request) const
     return ApiResponse{HttpStatus::Ok, QJsonDocument(commands), {}};
 }
 
-ApiResponse Router::command(const QHttpServerRequest& request, const QString& id) const
+ApiResponse Router::describeCommand(const QHttpServerRequest& request, const QString& id) const
 {
-    if (request.method() == Method::Post)
-        return executeCommand(request, id);
     if (request.method() != Method::Get)
         return methodNotAllowed("GET, POST");
     const core::CommandSpec* spec = m_bus.spec(id);
@@ -131,37 +185,31 @@ ApiResponse Router::command(const QHttpServerRequest& request, const QString& id
     return jsonResponse(core::toJson(*spec));
 }
 
-ApiResponse Router::executeCommand(const QHttpServerRequest& request, const QString& id) const
+void Router::executeCommand(const QHttpServerRequest& request, const QString& id, QObject* receiver,
+                            Answer answer) const
 {
-    const QByteArray body = request.body();
-    if (body.size() > kMaxRequestBodyBytes) {
-        return errorResponse(HttpStatus::PayloadTooLarge, u"payload_too_large"_s,
-                             u"The request body is larger than %1 bytes. Pass large data as file paths."_s.arg(
-                                 kMaxRequestBodyBytes));
+    auto params = paramsOf(request);
+    if (!params) {
+        answer(std::move(params.error()));
+        return;
     }
-    QJsonObject params;
-    if (!body.trimmed().isEmpty()) {
-        QJsonParseError parseError{};
-        const QJsonDocument document = QJsonDocument::fromJson(body, &parseError);
-        if (parseError.error != QJsonParseError::NoError) {
-            return errorResponse(HttpStatus::BadRequest, u"malformed_json"_s,
-                                 u"The request body is not valid JSON (%1 at offset %2). Send a JSON object, "
-                                 "e.g. {}."_s.arg(parseError.errorString())
-                                     .arg(parseError.offset));
-        }
-        if (!document.isObject()) {
-            return errorResponse(HttpStatus::BadRequest, core::toString(core::CommandErrorCode::InvalidParams),
-                                 u"The request body must be a JSON object with the command params, e.g. {}."_s);
-        }
-        params = document.object();
-    }
-
-    auto result = m_bus.execute(id, params);
-    if (!result) {
-        const core::CommandError& error = result.error();
-        return errorResponse(statusFor(error.code), core::toString(error.code), error.message);
-    }
-    return jsonResponse(QJsonObject{{u"result"_s, *result}});
+    const auto run = m_bus.executeAsync(
+        id, *params, core::CallContext::api(), receiver,
+        [answer = std::move(answer)](const std::expected<QJsonObject, core::CommandError>& result) {
+            if (!result) {
+                const core::CommandError& error = result.error();
+                answer(errorResponse(statusFor(error.code), core::toString(error.code), error.message));
+                return;
+            }
+            answer(jsonResponse(QJsonObject{{u"result"_s, *result}}));
+        });
+    if (!m_bus.isPending(run))
+        return;  // It has answered.
+    QTimer::singleShot(kRunTimeout, receiver, [&bus = m_bus, run, id] {
+        bus.cancel(run, u"“%1” didn’t finish within %2 seconds, so the API stopped waiting for it. Its work may go on: "
+                        u"follow /v1/events to see when it ends."_s.arg(id)
+                            .arg(kRunTimeout.count()));
+    });
 }
 
 }  // namespace mikserstudio::api

@@ -1,3 +1,5 @@
+// Session tokens: generated ones are long, URL-safe and unique, a supplied one is validated, and tokens are
+// compared in constant time.
 #include "ApiTestSupport.h"
 
 #include "Auth.h"
@@ -49,17 +51,20 @@ TEST_CASE("A caller-supplied token is used and validated", "[api][auth]")
 
     SECTION("valid token")
     {
-        mikserstudio::api::ApiServer server(
-            bus, {.port = 0, .token = u"my-fixed-token-0123456789"_s, .discoveryFile = dir.filePath(u"api.json"_s)});
+        mikserstudio::api::ApiServer server(bus, {.port = 0,
+                                                  .token = u"my-fixed-token-0123456789"_s,
+                                                  .discoveryFile = dir.filePath(u"api.json"_s),
+                                                  .pluginsReady = {}});
         REQUIRE(server.start().has_value());
         CHECK(server.token() == u"my-fixed-token-0123456789"_s);
         const auto reply = mikserstudio::tests::sendRequest("GET", QUrl(server.baseUrl() + u"/v1/commands"_s), {},
-                                                     QByteArray("Bearer my-fixed-token-0123456789"));
+                                                            QByteArray("Bearer my-fixed-token-0123456789"));
         CHECK(reply.status == 200);
     }
     SECTION("weak token")
     {
-        mikserstudio::api::ApiServer server(bus, {.port = 0, .token = u"1234"_s, .discoveryFile = dir.filePath(u"api.json"_s)});
+        mikserstudio::api::ApiServer server(
+            bus, {.port = 0, .token = u"1234"_s, .discoveryFile = dir.filePath(u"api.json"_s), .pluginsReady = {}});
         const auto started = server.start();
         REQUIRE_FALSE(started.has_value());
         CHECK(started.error().contains(u"token"_s));

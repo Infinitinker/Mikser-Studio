@@ -1,3 +1,4 @@
+// The frame mailbox: it keeps only the newest frame and counts the frames dropped.
 #include "EngineTestSupport.h"
 
 #include "FrameMailbox.h"

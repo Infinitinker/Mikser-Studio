@@ -1,3 +1,5 @@
+// The KDDockWidgets dock host: panels open, raise, float and close, layouts are saved and restored, and
+// placeholders stand in for unknown panels until they appear.
 #include "mikserstudio/ui/KddwDockHost.h"
 #include "mikserstudio/ui/PanelIds.h"
 
@@ -7,6 +9,7 @@
 #include <catch2/catch_test_macros.hpp>
 
 #include <QApplication>
+#include <QCoreApplication>
 #include <QDir>
 #include <QFile>
 #include <QLabel>
@@ -19,6 +22,19 @@ using mikserstudio::ui::PanelDescriptor;
 
 namespace {
 
+// Whether the panel is open in a window of its own, apart from the main window, as the user sees it.
+bool isFloating(const KddwDockHost& host, const QString& id)
+{
+    const QWidget* window = host.panelWindow(id);
+    return window != nullptr && window != host.mainWindow();
+}
+
+// Whether the panel shows the placeholder for a panel nobody registered.
+bool isPlaceholder(const KddwDockHost& host, const QString& id)
+{
+    return qobject_cast<mikserstudio::ui::PlaceholderPanel*>(host.panelWidget(id)) != nullptr;
+}
+
 PanelDescriptor labelPanel(const QString& id, DockArea area = DockArea::Right, bool unique = true)
 {
     return PanelDescriptor{
@@ -26,11 +42,12 @@ PanelDescriptor labelPanel(const QString& id, DockArea area = DockArea::Right, b
         .title = u"Title of "_s + id,
         .defaultArea = area,
         .unique = unique,
-        .create = [id](QWidget* parent) {
-            auto* label = new QLabel(id, parent);
-            label->setObjectName(id);
-            return label;
-        },
+        .create =
+            [id](QWidget* parent) {
+                auto* label = new QLabel(id, parent);
+                label->setObjectName(id);
+                return label;
+            },
     };
 }
 
@@ -48,6 +65,15 @@ struct HostFixture {
 };
 
 }  // namespace
+
+TEST_CASE("KddwDockHost titles the main window after the running instance", "[docking]")
+{
+    const QString name = QCoreApplication::applicationName();
+    QCoreApplication::setApplicationName(u"Mikser Studio Dev"_s);
+    const HostFixture f;
+    CHECK(f.host->mainWindow()->windowTitle() == u"Mikser Studio Dev"_s);
+    QCoreApplication::setApplicationName(name);
+}
 
 TEST_CASE("KddwDockHost opens, raises and closes panels", "[docking]")
 {
@@ -71,11 +97,12 @@ TEST_CASE("KddwDockHost opens, raises and closes panels", "[docking]")
     CHECK(f.host->panelWindow(u"test/a"_s) == f.host->mainWindow());
     REQUIRE(f.host->panelWidget(u"test/a"_s) != nullptr);
     CHECK(f.host->panelWidget(u"test/a"_s)->objectName() == u"test/a"_s);
-    CHECK(f.host->openPanels() == QStringList{u"test/a"_s, u"test/b"_s});
 
-    // Opening a unique panel again only raises it.
+    // Opening a unique panel again only raises it: the same widget stays.
+    QWidget* first = f.host->panelWidget(u"test/a"_s);
     REQUIRE(f.host->openPanel(u"test/a"_s));
-    CHECK(f.host->openPanels().size() == 2);
+    CHECK(f.host->panelWidget(u"test/a"_s) == first);
+    CHECK(f.host->isPanelOpen(u"test/b"_s));
 
     f.host->closePanel(u"test/b"_s);
     f.settle();
@@ -115,11 +142,11 @@ TEST_CASE("KddwDockHost floats panels", "[docking]")
     REQUIRE(f.host->openPanel(u"test/b"_s));
     REQUIRE(f.host->openPanel(u"test/float"_s));
     f.settle();
-    CHECK(f.host->isPanelFloating(u"test/float"_s));
+    CHECK(isFloating(*f.host, u"test/float"_s));
 
     REQUIRE(f.host->setPanelFloating(u"test/b"_s, true));
     f.settle();
-    CHECK(f.host->isPanelFloating(u"test/b"_s));
+    CHECK(isFloating(*f.host, u"test/b"_s));
     QWidget* window = f.host->panelWindow(u"test/b"_s);
     REQUIRE(window != nullptr);
     CHECK(window != f.host->mainWindow());
@@ -127,7 +154,7 @@ TEST_CASE("KddwDockHost floats panels", "[docking]")
 
     REQUIRE(f.host->setPanelFloating(u"test/b"_s, false));
     f.settle();
-    CHECK_FALSE(f.host->isPanelFloating(u"test/b"_s));
+    CHECK_FALSE(isFloating(*f.host, u"test/b"_s));
     CHECK_FALSE(f.host->setPanelFloating(u"test/never-opened"_s, true));
 }
 
@@ -158,13 +185,57 @@ TEST_CASE("KddwDockHost saves and restores layouts", "[docking]")
     CHECK(layoutChanges == 1);
     CHECK(f.host->isPanelOpen(u"test/a"_s));
     CHECK(f.host->isPanelOpen(u"test/b"_s));
-    CHECK(f.host->isPanelFloating(u"test/b"_s));
+    CHECK(isFloating(*f.host, u"test/b"_s));
     CHECK_FALSE(f.host->isPanelOpen(u"test/c"_s));
 
     const auto broken = f.host->restoreLayout("{not json");
     REQUIRE_FALSE(broken);
-    CHECK(broken.error().contains(u"not valid JSON"_s));
+    CHECK(broken.error().contains(u"is damaged"_s));
     CHECK(f.host->isPanelOpen(u"test/a"_s));
+}
+
+TEST_CASE("KddwDockHost keeps background tabs open across a restart", "[docking]")
+{
+    const auto registerAll = [](KddwDockHost& host) {
+        host.registerPanel(labelPanel(u"test/front"_s, DockArea::Right));
+        host.registerPanel(labelPanel(u"test/back1"_s, DockArea::Right));
+        host.registerPanel(labelPanel(u"test/back2"_s, DockArea::Right));
+        host.registerPanel(labelPanel(u"test/closed"_s, DockArea::Left));
+    };
+
+    QByteArray layout;
+    QTemporaryDir dir;
+    {
+        KddwDockHost host(dir.path());
+        host.mainWindow()->resize(1200, 800);
+        host.mainWindow()->show();
+        registerAll(host);
+        // Same default area, so they share one tab group; the last one opened is in front.
+        REQUIRE(host.openPanel(u"test/back1"_s));
+        REQUIRE(host.openPanel(u"test/back2"_s));
+        REQUIRE(host.openPanel(u"test/front"_s));
+        REQUIRE(host.openPanel(u"test/closed"_s));
+        host.closePanel(u"test/closed"_s);
+        QApplication::processEvents();
+        REQUIRE(host.panelWidget(u"test/front"_s)->isVisible());
+        REQUIRE_FALSE(host.panelWidget(u"test/back1"_s)->isVisible());
+        layout = host.saveLayout();
+    }
+    QApplication::processEvents();
+
+    KddwDockHost host(dir.path());
+    host.mainWindow()->resize(1200, 800);
+    host.mainWindow()->show();
+    registerAll(host);
+    REQUIRE(host.openPanel(u"test/closed"_s));  // Open before the restore; the layout says closed.
+    REQUIRE(host.restoreLayout(layout));
+    QApplication::processEvents();
+
+    CHECK(host.isPanelOpen(u"test/front"_s));
+    CHECK(host.isPanelOpen(u"test/back1"_s));
+    CHECK(host.isPanelOpen(u"test/back2"_s));
+    CHECK(host.panelWidget(u"test/front"_s)->isVisible());
+    CHECK_FALSE(host.isPanelOpen(u"test/closed"_s));
 }
 
 TEST_CASE("KddwDockHost shows placeholders for unknown panels and replaces them later", "[docking]")
@@ -190,19 +261,20 @@ TEST_CASE("KddwDockHost shows placeholders for unknown panels and replaces them 
     QApplication::processEvents();
 
     CHECK(host.isPanelOpen(u"test/a"_s));
-    CHECK_FALSE(host.isPlaceholder(u"test/a"_s));
+    CHECK_FALSE(isPlaceholder(host, u"test/a"_s));
     REQUIRE(host.isPanelOpen(u"plugin.gone/panel"_s));
-    REQUIRE(host.isPlaceholder(u"plugin.gone/panel"_s));
-    const auto* placeholder = qobject_cast<mikserstudio::ui::PlaceholderPanel*>(host.panelWidget(u"plugin.gone/panel"_s));
+    REQUIRE(isPlaceholder(host, u"plugin.gone/panel"_s));
+    const auto* placeholder = qobject_cast<mikserstudio::ui::PlaceholderPanel*>(
+        host.panelWidget(u"plugin.gone/panel"_s));
     REQUIRE(placeholder != nullptr);
-    CHECK(mikserstudio::ui::PlaceholderPanel::message(placeholder->panelId())
-          == u"This panel comes from plugin.gone, which is not installed."_s);
+    CHECK(mikserstudio::ui::PlaceholderPanel::message(placeholder->panelId()) ==
+          u"This panel comes from plugin.gone, which is not installed."_s);
     CHECK(host.panels().size() == 1);
 
     // The plugin comes back: the placeholder becomes the real panel in place.
     host.registerPanel(labelPanel(u"plugin.gone/panel"_s, DockArea::Right));
     QApplication::processEvents();
-    CHECK_FALSE(host.isPlaceholder(u"plugin.gone/panel"_s));
+    CHECK_FALSE(isPlaceholder(host, u"plugin.gone/panel"_s));
     CHECK(host.isPanelOpen(u"plugin.gone/panel"_s));
     CHECK(host.panelWidget(u"plugin.gone/panel"_s)->objectName() == u"plugin.gone/panel"_s);
 
@@ -210,7 +282,7 @@ TEST_CASE("KddwDockHost shows placeholders for unknown panels and replaces them 
     host.unregisterPanel(u"plugin.gone/panel"_s);
     QApplication::processEvents();
     CHECK_FALSE(host.isPanelOpen(u"plugin.gone/panel"_s));
-    CHECK(host.isPlaceholder(u"plugin.gone/panel"_s));
+    CHECK(isPlaceholder(host, u"plugin.gone/panel"_s));
 }
 
 TEST_CASE("KddwDockHost saves, lists and loads named workspaces", "[docking]")
@@ -252,7 +324,8 @@ TEST_CASE("KddwDockHost saves, lists and loads named workspaces", "[docking]")
     corrupt.close();
     const auto broken = f.host->loadWorkspace(u"Broken"_s);
     REQUIRE_FALSE(broken);
-    CHECK(broken.error().contains(u"Broken"_s));
+    CHECK(broken.error().contains(u"“Broken” could not be loaded: the saved arrangement of the panels is damaged"_s));
+    CHECK(broken.error().contains(u"Save workspace as"_s));  // Reset would load the same file again.
 }
 
 TEST_CASE("KddwDockHost applies and resets the built-in workspaces", "[docking]")
@@ -310,8 +383,8 @@ TEST_CASE("KddwDockHost saves a built-in workspace typed in another case under t
     REQUIRE(f.host->saveWorkspace(u"editing"_s));
     CHECK(f.host->currentWorkspace() == u"Editing"_s);
     // The file name matters on case-sensitive file systems: it must be the one "Editing" loads.
-    CHECK(workspaces.entryList({u"*.json"_s}, QDir::Files)
-          == QStringList{mikserstudio::ui::workspaceFileName(u"Editing"_s)});
+    CHECK(workspaces.entryList({u"*.json"_s}, QDir::Files) ==
+          QStringList{mikserstudio::ui::workspaceFileName(u"Editing"_s)});
     CHECK(f.host->hasSavedWorkspace(u"Editing"_s));
     CHECK(f.host->hasSavedWorkspace(u"EDITING"_s));
     CHECK(f.host->workspaces().count(u"Editing"_s) == 1);

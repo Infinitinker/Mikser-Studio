@@ -1,3 +1,4 @@
+// The media probe implemented with MLT: reads a media item's kind, duration, frame rate and size when it is imported.
 #pragma once
 
 #include "mikserstudio/core/Project.h"
@@ -6,10 +7,10 @@ namespace mikserstudio::engine {
 
 class MltRuntime;
 
-// core::MediaProbe on top of MLT. Accepts absolute local file paths and colour resources such as
-// "color:#ff0000"; nothing else reaches MLT (see openProducer). Durations are expressed in the requested project frame rate; still images
-// (and colour producers) are reported as MediaKind::Image with MLT's default length.
-// Main thread only.
+// core::MediaProbe on top of MLT. Accepts absolute local file paths and color resources such as
+// "color:#ff0000"; nothing else reaches MLT (see openProducer). Durations are expressed in the requested project frame
+// rate; still images (and color producers) are reported as MediaKind::Image with MLT's default length. Main thread
+// only.
 class MltMediaProbe final : public core::MediaProbe {
 public:
     explicit MltMediaProbe(const MltRuntime& runtime);

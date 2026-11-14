@@ -1,3 +1,4 @@
+// The data of the AI engine: backends, operations, job states and outputs.
 #pragma once
 
 #include <QJsonObject>
@@ -9,46 +10,32 @@
 
 namespace mikserstudio::services {
 
-// The data of the AI sidecar API (see docs/ai.md).
+enum class AiJobState { Queued, Running, Succeeded, Failed, Canceled };
 
-enum class AiJobState { Queued, Running, Succeeded, Failed, Cancelled };
-
-// "queued", "running", "succeeded", "failed", "cancelled".
+// "queued", "running", "succeeded", "failed", "canceled".
 [[nodiscard]] QString toString(AiJobState state);
 [[nodiscard]] std::optional<AiJobState> aiJobStateFromString(QStringView text);
 [[nodiscard]] bool isFinished(AiJobState state);
 
 struct AiOperation {
-    QString id;  // "video.upscale"
+    QString id;  // "image.generate"
     QString title;
     QString description;
     QJsonObject paramsSchema;
 };
 
 struct AiBackendInfo {
-    QString id;  // "builtin", "ollama"
+    QString id;  // "comfyui"
     QString title;
     QList<AiOperation> operations;
     bool available = false;
     QString reason;  // Why it is not available and what to do; empty when available.
 };
 
-struct AiJobOutput {
+// A file a job made, in its folder of the AI cache.
+struct AiOutput {
     QString path;  // Absolute, '/' separators.
-    QString kind;  // "video", "image", "audio" or "text".
-};
-
-struct AiJobInfo {
-    QString id;
-    QString op;
-    QString backend;
-    AiJobState state = AiJobState::Queued;
-    double progress = 0.0;  // 0..1
-    QString message;
-    QJsonObject result;  // Whole result object: outputs, provenance and op-specific fields ("text").
-    QList<AiJobOutput> outputs;
-    QJsonObject provenance;
-    QString error;  // Set when state is Failed.
+    QString kind;  // "image", "video" or "audio".
 };
 
 }  // namespace mikserstudio::services

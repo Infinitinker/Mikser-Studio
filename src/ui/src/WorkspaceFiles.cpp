@@ -1,3 +1,4 @@
+// The encoding of workspace names as file names, and the check for usable names.
 #include "WorkspaceFiles.h"
 
 #include <QByteArray>

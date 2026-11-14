@@ -1,3 +1,4 @@
+// The logging category of the api module.
 #pragma once
 
 #include <QLoggingCategory>

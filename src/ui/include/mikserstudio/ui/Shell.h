@@ -1,3 +1,4 @@
+// The desktop shell: the main window with its menus, panels, command palette and status bar, built on the command bus.
 #pragma once
 
 #include <QObject>
@@ -25,6 +26,7 @@ class CommandLogModel;
 class CommandMenus;
 class CommandPalette;
 class CommandStatus;
+class DockHost;
 class KddwDockHost;
 class ThemeObject;
 class TimelineController;
@@ -54,12 +56,11 @@ public:
           QObject* parent = nullptr);
     ~Shell() override;
 
-    [[nodiscard]] KddwDockHost& dockHost() const;
+    [[nodiscard]] DockHost& dockHost() const;
     [[nodiscard]] QMainWindow* mainWindow() const;
     [[nodiscard]] ClipSelection& selection() const;
     [[nodiscard]] ThemeObject& theme() const;
     [[nodiscard]] CommandPalette& commandPalette() const;
-    [[nodiscard]] QString configDirectory() const { return m_configDir; }
 
     // The playhead of the timeline follows this transport (null: the playhead stays at 0).
     void setProgramTransport(core::Transport* transport);
@@ -71,15 +72,12 @@ public:
     bool saveState();
     void show();
     void showCommandPalette();
+    // Opens the Settings window, at `section` (such as "AI tools") when there is one.
+    void showSettings(const QString& section = {});
 
-    [[nodiscard]] QMenu* commandMenu(const QString& category) const;
-    [[nodiscard]] QStringList commandMenuCategories() const;  // In menu bar order.
-    [[nodiscard]] QAction* commandAction(const QString& commandId) const;
     [[nodiscard]] QMenu* windowMenu() const { return m_windowMenu; }
-    [[nodiscard]] QAction* windowMenuAction(const QString& panelId) const;
     [[nodiscard]] QMenu* workspaceMenu() const { return m_workspaceMenu; }
     [[nodiscard]] WorkspaceMenu& workspaces() const;
-    [[nodiscard]] QString statusText() const;
 
 protected:
     bool eventFilter(QObject* watched, QEvent* event) override;
@@ -89,6 +87,7 @@ private:
     void syncPluginPanels();
     void buildMenus();
     void updateWorkspaceLabel();
+    void updateWindowTitle();
     void applyPendingWorkspace();
 
     core::CommandBus& m_bus;
@@ -101,7 +100,8 @@ private:
     std::unique_ptr<CommandLogModel> m_log;
     std::unique_ptr<TimelineController> m_timeline;
     QSet<QString> m_pluginPanels;  // Registered "<plugin-id>/<panel-id>" ids.
-    QString m_pendingWorkspace;    // Applied by show().
+    QString m_pendingWorkspace;  // Applied by show().
+    bool m_restoreMaximized = false;  // From shell.json: the layout keeps only one window state.
 
     QMenu* m_windowMenu = nullptr;
     QMenu* m_workspaceMenu = nullptr;

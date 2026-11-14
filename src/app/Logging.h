@@ -1,3 +1,4 @@
+// The logging category of the app.
 #pragma once
 
 #include <QLoggingCategory>

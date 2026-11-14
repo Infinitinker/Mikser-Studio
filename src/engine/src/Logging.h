@@ -1,3 +1,4 @@
+// The engine's logging categories (mikserstudio.engine, .mlt, .playback and .monitor).
 #pragma once
 
 #include <QLoggingCategory>

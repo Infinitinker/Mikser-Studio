@@ -1,3 +1,4 @@
+// Entry point of the engine tests: they run in a QApplication on the offscreen platform, so no window appears.
 #include <catch2/catch_session.hpp>
 
 #include <QApplication>

@@ -1,3 +1,4 @@
+// Loading a plugin's QML panel, and showing the load errors in the panel instead.
 #include "PluginPanelHost.h"
 
 #include "Logging.h"
@@ -10,6 +11,7 @@
 #include <QFileInfo>
 #include <QLabel>
 #include <QQmlContext>
+#include <QQmlEngine>
 #include <QQmlError>
 #include <QQuickWidget>
 #include <QVBoxLayout>
@@ -21,8 +23,8 @@ namespace mikserstudio::ui {
 PluginPanelHost::PluginPanelHost(core::CommandBus& bus, const core::PluginManager& plugins, const QString& pluginId,
                                  const QString& pluginDirectory, const core::PanelContribution& panel, QWidget* parent)
     : QWidget(parent)
-    , m_bridge(new PluginPanelBridge(bus, plugins, pluginId, this))
     , m_quick(new QQuickWidget(this))
+    , m_bridge(new PluginPanelBridge(bus, plugins, pluginId, *m_quick->engine(), this))
     , m_error(new QLabel(this))
 {
     setProperty("role", u"panel"_s);
@@ -44,7 +46,8 @@ PluginPanelHost::PluginPanelHost(core::CommandBus& bus, const core::PluginManage
 
     const QString path = QDir(pluginDirectory).filePath(panel.qml);
     if (!QFileInfo::exists(path)) {
-        showError(u"The panel file %1 of %2 is missing. Reinstall the plugin."_s.arg(QDir::toNativeSeparators(path), pluginId));
+        showError(u"The panel file %1 of %2 is missing. Reinstall the plugin."_s.arg(QDir::toNativeSeparators(path),
+                                                                                     pluginId));
         return;
     }
     connect(m_quick, &QQuickWidget::statusChanged, this, [this, pluginId](QQuickWidget::Status status) {
@@ -57,11 +60,6 @@ PluginPanelHost::PluginPanelHost(core::CommandBus& bus, const core::PluginManage
         showError(u"The panel could not be loaded:\n%1"_s.arg(messages.join(u'\n')));
     });
     m_quick->setSource(QUrl::fromLocalFile(path));
-}
-
-QString PluginPanelHost::errorText() const
-{
-    return m_error->isHidden() ? QString() : m_error->text();
 }
 
 void PluginPanelHost::showError(const QString& message)

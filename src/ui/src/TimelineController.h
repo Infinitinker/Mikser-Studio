@@ -1,3 +1,5 @@
+// The timeline's controller for QML: tracks, zoom, scroll, playhead, snapping and the actions, all run as
+// commands.
 #pragma once
 
 #include "mikserstudio/core/Project.h"
@@ -158,7 +160,7 @@ private:
     [[nodiscard]] double maxScrollY() const;
     [[nodiscard]] qint64 snapFrame(qint64 frame, const QString& ignoreClipId, qint64* guide) const;
     // Runs an interactive command; a failure is shown in a toast. std::nullopt when it failed or
-    // the user cancelled.
+    // the user canceled.
     std::optional<QJsonObject> runForResult(const QString& id, const QJsonObject& params);
     bool run(const QString& id, const QJsonObject& params);
 

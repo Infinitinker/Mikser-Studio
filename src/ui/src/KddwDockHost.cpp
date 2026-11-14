@@ -1,3 +1,5 @@
+// The dock host on KDDockWidgets: panels as dock widgets, and workspaces saved and restored as layout
+// files.
 #include "mikserstudio/ui/KddwDockHost.h"
 
 #include "DockViewFactory.h"
@@ -17,8 +19,11 @@
 #include <QCoreApplication>
 #include <QDir>
 #include <QFile>
+#include <QJsonArray>
 #include <QJsonDocument>
+#include <QJsonObject>
 #include <QSaveFile>
+#include <QSet>
 
 #include <algorithm>
 
@@ -43,11 +48,11 @@ void configureKddw(KDDockWidgets::DockWidgetFactoryFunc factory)
 
     KDDockWidgets::initFrontend(KDDockWidgets::FrontendType::QtWidgets);
     auto& config = KDDockWidgets::Config::self();
-    using Config = KDDockWidgets::Config;
-    config.setFlags(Config::Flags(Config::Flag_Default) | Config::Flag_HideTitleBarWhenTabsVisible
-                    | Config::Flag_AlwaysShowTabs | Config::Flag_AllowReorderTabs
-                    | Config::Flag_TabsHaveCloseButton | Config::Flag_ShowButtonsOnTabBarIfTitleBarHidden
-                    | Config::Flag_AlwaysTitleBarWhenFloating | Config::Flag_TitleBarHasMaximizeButton);
+    using KDDockWidgets::Config;
+    config.setFlags(Config::Flags(Config::Flag_Default) | Config::Flag_HideTitleBarWhenTabsVisible |
+                    Config::Flag_AlwaysShowTabs | Config::Flag_AllowReorderTabs | Config::Flag_TabsHaveCloseButton |
+                    Config::Flag_ShowButtonsOnTabBarIfTitleBarHidden | Config::Flag_AlwaysTitleBarWhenFloating |
+                    Config::Flag_TitleBarHasMaximizeButton);
     config.setSeparatorThickness(4);
     config.setViewFactory(new DockViewFactory);  // Config takes ownership.
     config.setDockWidgetFactoryFunc(factory);
@@ -93,6 +98,62 @@ KDDockWidgets::InitialOption sizeOption(Placement placement, int size)
     return KDDockWidgets::InitialOption(horizontal ? QSize(size, 0) : QSize(0, size));
 }
 
+// Gives a placed panel the size its workspace step asks for, by moving its edge that faces the rest
+// of the layout. KDDockWidgets takes the room for every later panel of a row from all the panels in
+// it, so without this the media bin of "Editing" ends up a third narrower than the workspace says.
+void restoreStepSize(KDDockWidgets::QtWidgets::DockWidget& dock, const WorkspaceStep& step)
+{
+    if (step.size <= 0 || step.placement == Placement::Tab)
+        return;
+    const QSize current = dock.dockWidget()->sizeInLayout();
+    switch (step.placement) {
+    case Placement::Left:
+        dock.dockWidget()->resizeInLayout(0, 0, step.size - current.width(), 0);
+        break;
+    case Placement::Right:
+        dock.dockWidget()->resizeInLayout(step.size - current.width(), 0, 0, 0);
+        break;
+    case Placement::Top:
+        dock.dockWidget()->resizeInLayout(0, 0, 0, step.size - current.height());
+        break;
+    case Placement::Bottom:
+        dock.dockWidget()->resizeInLayout(0, step.size - current.height(), 0, 0);
+        break;
+    case Placement::Tab:
+        break;
+    }
+}
+
+void collectPlacedDocks(const QJsonValue& value, QSet<QString>& names)
+{
+    if (value.isArray()) {
+        for (const QJsonValue item : value.toArray())
+            collectPlacedDocks(item, names);
+        return;
+    }
+    const QJsonObject object = value.toObject();
+    for (auto it = object.constBegin(); it != object.constEnd(); ++it) {
+        if (it.key() == u"dockWidgets"_s) {
+            for (const QJsonValue name : it.value().toArray())
+                names.insert(name.toString());
+        } else {
+            collectPlacedDocks(it.value(), names);
+        }
+    }
+}
+
+// The docks a saved layout puts in a tab group of a main or floating window, i.e. the open ones.
+// Not LayoutSaver::openedDockWidgetsInLayout(): KDDockWidgets 2.5 decides "closed" by visibility,
+// so it also lists every tab that was not the current one, and closing those would lose them.
+QSet<QString> placedDocks(const QJsonObject& layout)
+{
+    QSet<QString> names;
+    collectPlacedDocks(layout.value(u"mainWindows"_s), names);
+    collectPlacedDocks(layout.value(u"floatingWindows"_s), names);
+    names.remove(QString());
+    return names;
+}
+
 }  // namespace
 
 KddwDockHost::KddwDockHost(QString workspaceDirectory, QObject* parent)
@@ -103,7 +164,8 @@ KddwDockHost::KddwDockHost(QString workspaceDirectory, QObject* parent)
     configureKddw(&KddwDockHost::createDockForLayout);
     s_instance = this;
     m_mainWindow = std::make_unique<KDDockWidgets::QtWidgets::MainWindow>(kMainWindowName);
-    m_mainWindow->setWindowTitle(u"Mikser Studio"_s);
+    // The instance's name, so a build from source says "Mikser Studio Dev" (core/Instance.h).
+    m_mainWindow->setWindowTitle(QCoreApplication::applicationName());
 }
 
 KddwDockHost::~KddwDockHost()
@@ -174,7 +236,7 @@ std::expected<void, QString> KddwDockHost::openPanel(const QString& id)
     if (!panel) {
         dock = firstDock(id);
         if (!dock)
-            return std::unexpected(u"There is no panel \"%1\". It may come from a plugin that is not active."_s.arg(id));
+            return std::unexpected(u"There is no panel “%1”. It may come from a plugin that is not active."_s.arg(id));
     } else if (panel->unique) {
         dock = firstDock(id);
     } else {
@@ -227,7 +289,9 @@ QByteArray KddwDockHost::saveLayout() const
 
 std::expected<void, QString> KddwDockHost::restoreLayout(const QByteArray& layout)
 {
-    return restore(layout, false);
+    if (auto restored = restore(layout, false); !restored)
+        return std::unexpected(u"The panels could not be arranged as in the last session: %1."_s.arg(restored.error()));
+    return {};
 }
 
 QStringList KddwDockHost::workspaces() const
@@ -252,13 +316,13 @@ std::expected<void, QString> KddwDockHost::saveWorkspace(const QString& name)
     if (const QString problem = checkWorkspaceName(name); !problem.isEmpty())
         return std::unexpected(problem);
     if (!QDir().mkpath(m_workspaceDirectory))
-        return std::unexpected(u"Could not create the workspace folder %1. Check that it is writable."_s
-                                   .arg(QDir::toNativeSeparators(m_workspaceDirectory)));
+        return std::unexpected(u"Could not create the workspace folder %1. Check that it is writable."_s.arg(
+            QDir::toNativeSeparators(m_workspaceDirectory)));
     const QString path = workspacePath(name);
     QSaveFile file(path);
     if (!file.open(QIODevice::WriteOnly) || file.write(saveLayout()) < 0 || !file.commit())
-        return std::unexpected(u"Could not save the workspace to %1: %2"_s.arg(QDir::toNativeSeparators(path),
-                                                                                 file.errorString()));
+        return std::unexpected(
+            u"Could not save the workspace to %1: %2"_s.arg(QDir::toNativeSeparators(path), file.errorString()));
     const WorkspacePreset* preset = findWorkspacePreset(name);
     setCurrentWorkspace(preset ? preset->name : name);
     qCInfo(lcDocking) << "Saved workspace" << m_currentWorkspace;
@@ -272,20 +336,25 @@ std::expected<void, QString> KddwDockHost::loadWorkspace(const QString& name)
     if (QFile::exists(path)) {
         QFile file(path);
         if (!file.open(QIODevice::ReadOnly))
-            return std::unexpected(u"Could not read the workspace file %1: %2"_s.arg(QDir::toNativeSeparators(path),
-                                                                                       file.errorString()));
-        if (auto restored = restore(file.readAll(), true); !restored)
-            return std::unexpected(u"The workspace \"%1\" could not be loaded. %2"_s.arg(name, restored.error()));
+            return std::unexpected(
+                u"Could not read the workspace file %1: %2"_s.arg(QDir::toNativeSeparators(path), file.errorString()));
+        if (auto restored = restore(file.readAll(), true); !restored) {
+            // Reset workspace would only load the same file again: saving over it is what replaces it.
+            return std::unexpected(
+                u"The workspace “%1” could not be loaded: %2. Arrange the panels and choose "
+                u"Save workspace as… in the Workspace menu, with the name “%1”, to replace it."_s.arg(
+                    name, restored.error()));
+        }
     } else if (preset) {
         applyPreset(*preset);
     } else {
-        return std::unexpected(u"There is no workspace named \"%1\"."_s.arg(name));
+        return std::unexpected(u"There is no workspace named “%1”."_s.arg(name));
     }
     setCurrentWorkspace(preset ? preset->name : name);
     return {};
 }
 
-QStringList KddwDockHost::builtInWorkspaces()
+QStringList KddwDockHost::builtInWorkspaces() const
 {
     QStringList names;
     for (const WorkspacePreset& preset : workspacePresets())
@@ -322,16 +391,10 @@ std::expected<void, QString> KddwDockHost::setPanelFloating(const QString& id, b
         }
     }
     if (!dock)
-        return std::unexpected(u"The panel \"%1\" is not open."_s.arg(id));
+        return std::unexpected(u"The panel “%1” is not open."_s.arg(id));
     if (dock->isFloating() != floating)
         dock->setFloating(floating);
     return {};
-}
-
-bool KddwDockHost::isPanelFloating(const QString& id) const
-{
-    const auto docks = docksOf(id);
-    return std::ranges::any_of(docks, [](const Dock* dock) { return dock->isOpen() && dock->isFloating(); });
 }
 
 QWidget* KddwDockHost::panelWindow(const QString& id) const
@@ -347,25 +410,6 @@ QWidget* KddwDockHost::panelWidget(const QString& id) const
 {
     Dock* dock = firstDock(id);
     return dock ? dock->widget() : nullptr;
-}
-
-bool KddwDockHost::isPlaceholder(const QString& id) const
-{
-    return qobject_cast<PlaceholderPanel*>(panelWidget(id)) != nullptr;
-}
-
-QStringList KddwDockHost::openPanels() const
-{
-    QStringList ids;
-    for (auto it = m_docks.cbegin(); it != m_docks.cend(); ++it) {
-        if (it.value() && it.value()->isOpen()) {
-            const QString id = panelIdOf(it.key());
-            if (!ids.contains(id))
-                ids.append(id);
-        }
-    }
-    ids.sort();
-    return ids;
 }
 
 KDDockWidgets::Core::DockWidget* KddwDockHost::createDockForLayout(const QString& name)
@@ -391,9 +435,8 @@ QList<KddwDockHost::Dock*> KddwDockHost::docksOf(const QString& id) const
             names.append(it.key());
     }
     // Instance order: "<id>", "<id>#2", "<id>#3", ...
-    std::ranges::sort(names, [](const QString& a, const QString& b) {
-        return a.size() != b.size() ? a.size() < b.size() : a < b;
-    });
+    std::ranges::sort(
+        names, [](const QString& a, const QString& b) { return a.size() != b.size() ? a.size() < b.size() : a < b; });
     QList<Dock*> docks;
     for (const QString& name : names)
         docks.append(m_docks.value(name).data());
@@ -503,6 +546,10 @@ void KddwDockHost::applyPreset(const WorkspacePreset& preset)
         }
         placed.insert(step.panelId, dock);
     }
+    for (const WorkspaceStep& step : preset.steps) {
+        if (Dock* dock = placed.value(step.panelId, nullptr))
+            restoreStepSize(*dock, step);
+    }
     for (Dock* leader : groupLeaders)
         leader->setAsCurrentTab();
     qCInfo(lcDocking) << "Applied the built-in workspace" << preset.name;
@@ -521,18 +568,21 @@ std::expected<void, QString> KddwDockHost::restore(const QByteArray& layout, boo
 {
     QJsonParseError error;
     const QJsonDocument document = QJsonDocument::fromJson(layout, &error);
-    if (error.error != QJsonParseError::NoError || !document.isObject())
-        return std::unexpected(u"The layout is not valid JSON (%1)."_s.arg(error.errorString()));
+    if (error.error != QJsonParseError::NoError || !document.isObject()) {
+        qCWarning(lcDocking).noquote() << "The saved layout is not a JSON object:" << error.errorString() << "at offset"
+                                       << error.offset;
+        return std::unexpected(u"the saved arrangement of the panels is damaged"_s);
+    }
     KDDockWidgets::RestoreOptions options = KDDockWidgets::RestoreOption_CloseUnknownDockWidgets;
     if (keepMainWindowGeometry)
         options |= KDDockWidgets::RestoreOption_RelativeToMainWindow;
     KDDockWidgets::LayoutSaver saver(options);
     if (!saver.restoreLayout(layout))
-        return std::unexpected(u"The layout could not be restored; it may come from an incompatible version of Mikser Studio."_s);
-    // Panels the layout does not mention would otherwise stay open (KDDockWidgets floats them).
-    const auto inLayout = KDDockWidgets::LayoutSaver::openedDockWidgetsInLayout(layout);
+        return std::unexpected(u"the saved arrangement of the panels does not fit this version of Mikser Studio"_s);
+    // Panels the layout does not place would otherwise stay open (KDDockWidgets floats them).
+    const QSet<QString> placed = placedDocks(document.object());
     for (auto it = m_docks.cbegin(); it != m_docks.cend(); ++it) {
-        if (it.value() && it.value()->isOpen() && !inLayout.contains(it.key()))
+        if (it.value() && it.value()->isOpen() && !placed.contains(it.key()))
             it.value()->forceClose();
     }
     Q_EMIT layoutChanged();

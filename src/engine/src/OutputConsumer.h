@@ -1,3 +1,4 @@
+// The MLT consumer that plays a producer in real time (audio device, else silent) and reports each shown frame.
 #pragma once
 
 #include "SilentPacer.h"
@@ -52,7 +53,7 @@ public:
     void stop();
     [[nodiscard]] bool isRunning() const;
     void refresh();  // Show the producer's current frame again (needed while paused).
-    void purge();    // Drop frames rendered ahead of time.
+    void purge();  // Drop frames rendered ahead of time.
     [[nodiscard]] QString name() const { return m_name; }
 
 private:

@@ -1,3 +1,4 @@
+// The command palette popup: the search field, the result list and running the chosen command.
 #include "mikserstudio/ui/CommandPalette.h"
 
 #include "CommandInvoker.h"
@@ -69,16 +70,16 @@ public:
         painter->setFont(titleFont);
         painter->setPen(theme.text);
         const QRectF titleRect(textArea.left(), textArea.top(), textArea.width(), textArea.height() * 0.55);
-        painter->drawText(titleRect, Qt::AlignLeft | Qt::AlignVCenter,
-                          QFontMetricsF(titleFont).elidedText(index.data().toString(), Qt::ElideRight,
-                                                              titleRect.width()));
+        painter->drawText(
+            titleRect, Qt::AlignLeft | Qt::AlignVCenter,
+            QFontMetricsF(titleFont).elidedText(index.data().toString(), Qt::ElideRight, titleRect.width()));
 
         QFont detailFont = option.font;
         detailFont.setPixelSize(theme.fontSizeSmall);
         painter->setFont(detailFont);
         painter->setPen(theme.textMuted);
-        const QString detail = index.data(CommandPaletteModel::CategoryRole).toString() + u"  ·  "_s
-            + index.data(CommandPaletteModel::IdRole).toString();
+        const QString detail = index.data(CommandPaletteModel::CategoryRole).toString() + u"  ·  "_s +
+                               index.data(CommandPaletteModel::IdRole).toString();
         const QRectF detailRect(textArea.left(), titleRect.bottom(), textArea.width(),
                                 textArea.height() - titleRect.height());
         painter->drawText(detailRect, Qt::AlignLeft | Qt::AlignVCenter,

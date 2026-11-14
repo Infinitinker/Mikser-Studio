@@ -1,3 +1,5 @@
+// Helpers the engine tests share: the MLT runtime, waiting for a condition while the event loop runs, and
+// the frame sink that records what it receives.
 #include "EngineTestSupport.h"
 
 #include "mikserstudio/engine/MltRuntime.h"
@@ -7,6 +9,7 @@
 #include <QThread>
 
 #include <cstdlib>
+#include <ranges>
 
 namespace mikserstudio::tests {
 
@@ -32,23 +35,23 @@ bool waitUntil(const std::function<bool()>& done, std::chrono::milliseconds time
 
 std::optional<QString> sampleVideo()
 {
-    const QString path = QStringLiteral(MIKSERSTUDIO_SAMPLE_VIDEO);
+    QString path = QStringLiteral(MIKSERSTUDIO_SAMPLE_VIDEO);
     if (path.isEmpty() || !QFileInfo::exists(path))
         return std::nullopt;
     return path;
 }
 
-QColor centreColour(const QImage& image)
+QColor centerColor(const QImage& image)
 {
     return image.pixelColor(image.width() / 2, image.height() / 2);
 }
 
 bool closeTo(const QColor& actual, const QColor& expected, int tolerance)
 {
-    return std::abs(actual.red() - expected.red()) <= tolerance
-           && std::abs(actual.green() - expected.green()) <= tolerance
-           && std::abs(actual.blue() - expected.blue()) <= tolerance
-           && std::abs(actual.alpha() - expected.alpha()) <= tolerance;
+    return std::abs(actual.red() - expected.red()) <= tolerance &&
+           std::abs(actual.green() - expected.green()) <= tolerance &&
+           std::abs(actual.blue() - expected.blue()) <= tolerance &&
+           std::abs(actual.alpha() - expected.alpha()) <= tolerance;
 }
 
 void RecordingSink::presentFrame(engine::VideoFrame frame)
@@ -77,9 +80,9 @@ std::optional<engine::VideoFrame> RecordingSink::last() const
 std::optional<engine::VideoFrame> RecordingSink::lastAt(core::FramePos position) const
 {
     const std::scoped_lock lock(m_mutex);
-    for (auto it = m_frames.rbegin(); it != m_frames.rend(); ++it) {
-        if (it->position == position)
-            return *it;
+    for (const auto& frame : std::views::reverse(m_frames)) {
+        if (frame.position == position)
+            return frame;
     }
     return std::nullopt;
 }

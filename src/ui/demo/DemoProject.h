@@ -1,3 +1,4 @@
+// Fills the UI demo's project with stand-in media items and a small edit, through the project commands.
 #pragma once
 
 #include <QString>

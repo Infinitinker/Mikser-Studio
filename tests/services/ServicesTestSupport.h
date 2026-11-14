@@ -1,3 +1,5 @@
+// Helpers the services tests share: waiting for the event loop, a media probe that needs no engine, and an
+// in-process HTTP server that records requests.
 #pragma once
 
 #include <catch2/catch_test_macros.hpp>
@@ -19,13 +21,11 @@
 #include <functional>
 #include <memory>
 
-template <>
-struct Catch::StringMaker<QString> {
+template <> struct Catch::StringMaker<QString> {
     static std::string convert(const QString& value) { return '"' + value.toStdString() + '"'; }
 };
 
-template <>
-struct Catch::StringMaker<QJsonObject> {
+template <> struct Catch::StringMaker<QJsonObject> {
     static std::string convert(const QJsonObject& value)
     {
         return QJsonDocument(value).toJson(QJsonDocument::Compact).toStdString();
@@ -52,7 +52,7 @@ public:
 
 struct RecordedRequest {
     QByteArray method;  // "GET", "POST", "DELETE"
-    QString path;       // Percent-encoded, as sent.
+    QString path;  // Percent-encoded, as sent.
     QByteArray authorization;
     QByteArray body;
 };
@@ -68,6 +68,8 @@ public:
 
     void setHandler(Handler handler) { m_handler = std::move(handler); }
     [[nodiscard]] QUrl url() const;
+    // The server itself, e.g. to accept WebSocket connections on the same port.
+    [[nodiscard]] QHttpServer& server() { return *m_server; }
     [[nodiscard]] int port() const { return m_port; }
     [[nodiscard]] const QList<RecordedRequest>& requests() const { return m_requests; }
 

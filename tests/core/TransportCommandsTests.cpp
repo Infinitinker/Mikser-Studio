@@ -1,3 +1,5 @@
+// The transport commands: they are registered under their prefix, drive a fake transport and return its
+// status, stepping clamps to the media, and out-of-range frames are rejected.
 #include "TestSupport.h"
 
 #include "mikserstudio/core/CommandBus.h"
@@ -5,6 +7,9 @@
 #include "mikserstudio/core/UndoStack.h"
 
 #include <catch2/catch_test_macros.hpp>
+
+#include <QCoreApplication>
+#include <QDeadlineTimer>
 
 #include <algorithm>
 
@@ -55,7 +60,7 @@ private:
 };
 
 struct Fixture {
-    Fixture() { registerTransportCommands(bus, transport, u"program"_s, u"Program Monitor"_s); }
+    Fixture() { registerTransportCommands(bus, transport, u"program"_s, u"Program monitor"_s); }
 
     QJsonObject run(const QString& name, const QJsonObject& params = {})
     {
@@ -64,6 +69,8 @@ struct Fixture {
         return *result;
     }
 
+    int argc = 0;
+    QCoreApplication app{argc, nullptr};  // transport.state's throttle runs on timers.
     UndoStack stack;
     CommandBus bus{stack};
     FakeTransport transport;
@@ -77,20 +84,21 @@ TEST_CASE("Transport commands are registered under the prefix", "[transport]")
     for (const QString& name : {u"play"_s, u"pause"_s, u"toggle"_s, u"seek"_s, u"step"_s, u"shuttle"_s, u"status"_s}) {
         const CommandSpec* spec = f.bus.spec(u"program."_s + name);
         REQUIRE(spec);
-        CHECK(spec->category == u"Program Monitor"_s);
-        CHECK(spec->title.startsWith(u"Program Monitor: "_s));
+        CHECK(spec->category == u"Program monitor"_s);
+        CHECK(spec->title.startsWith(u"Program monitor: "_s));
         CHECK_FALSE(spec->undoable);
         CHECK(spec->readOnly == (name == u"status"_s));
         CHECK(spec->confirmation.isEmpty());
     }
-    registerTransportCommands(f.bus, f.transport, u"source"_s, u"Source Monitor"_s);
+    registerTransportCommands(f.bus, f.transport, u"source"_s, u"Source monitor"_s);
     CHECK(f.bus.contains(u"source.play"_s));
 }
 
 TEST_CASE("Transport commands drive the transport and return its status", "[transport]")
 {
     Fixture f;
-    CHECK(f.run(u"status"_s) == json(R"({"position": 0, "duration": 100, "state": "stopped", "frameRate": {"num": 25, "den": 1}})"));
+    CHECK(f.run(u"status"_s) ==
+          json(R"({"position": 0, "duration": 100, "state": "stopped", "frameRate": {"num": 25, "den": 1}})"));
 
     CHECK(f.run(u"play"_s).value(u"state").toString() == u"playing"_s);
     CHECK(f.run(u"pause"_s).value(u"state").toString() == u"paused"_s);
@@ -143,4 +151,28 @@ TEST_CASE("Frame params outside the supported range are rejected, not wrapped", 
     CHECK(f.run(u"seek"_s, QJsonObject{{u"frame"_s, qint64{kMaxFrame}}}).value(u"position").toInt() == 99);
     CHECK(f.run(u"step"_s, QJsonObject{{u"frames"_s, qint64{kMaxFrame}}}).value(u"position").toInt() == 99);
     CHECK(f.run(u"step"_s, QJsonObject{{u"frames"_s, qint64{-kMaxFrame}}}).value(u"position").toInt() == 0);
+}
+
+TEST_CASE("A transport's state is published at most 10 times a second, ending with the latest", "[transport][events]")
+{
+    Fixture f;
+    QList<QJsonObject> states;
+    QObject::connect(&f.bus.events(), &EventBus::published, &f.bus, [&states](const Event& event) {
+        if (event.topic == u"transport.state"_s)
+            states.append(event.payload);
+    });
+
+    for (int frame = 1; frame <= 5; ++frame)
+        f.run(u"seek"_s, QJsonObject{{u"frame"_s, frame}});
+    REQUIRE(states.size() == 1);  // The first change, at once.
+    CHECK(states.constFirst().value(u"transport"_s) == u"program"_s);
+    CHECK(states.constFirst().value(u"position"_s) == 1);
+
+    const QDeadlineTimer deadline(std::chrono::seconds(5));
+    while (states.size() < 2 && !deadline.hasExpired())
+        QCoreApplication::processEvents(QEventLoop::AllEvents, 20);
+    REQUIRE(states.size() == 2);  // The rest of the burst, as one.
+    CHECK(states.constLast().value(u"position"_s) == 5);
+    CHECK(states.constLast().value(u"state"_s) == u"stopped"_s);
+    CHECK(states.constLast().value(u"duration"_s) == 100);
 }

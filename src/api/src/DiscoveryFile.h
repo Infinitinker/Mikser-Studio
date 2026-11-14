@@ -1,3 +1,5 @@
+// The discovery file (api.json): how it is written and removed, so other programs can find the local API's
+// address and session token. Where it lives is the app's to say (core::UserFolders).
 #pragma once
 
 #include <QJsonObject>
@@ -6,9 +8,6 @@
 #include <expected>
 
 namespace mikserstudio::api {
-
-// The default location: QStandardPaths::AppLocalDataLocation + "/api.json"; empty if unknown.
-[[nodiscard]] QString defaultDiscoveryFilePath();
 
 // Atomically writes `contents` to `path` (creating the folder) with owner-only permissions.
 [[nodiscard]] std::expected<void, QString> writeDiscoveryFile(const QString& path, const QJsonObject& contents);

@@ -1,3 +1,4 @@
+// Entry point of the services tests: they run in a QCoreApplication.
 #include <catch2/catch_session.hpp>
 
 #include <QCoreApplication>

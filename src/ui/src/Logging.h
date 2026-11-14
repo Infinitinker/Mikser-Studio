@@ -1,3 +1,4 @@
+// The logging categories of the UI module.
 #pragma once
 
 #include <QLoggingCategory>

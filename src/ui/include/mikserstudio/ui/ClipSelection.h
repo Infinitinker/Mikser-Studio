@@ -1,3 +1,4 @@
+// The selection of timeline clips, shared by the timeline, properties and AI panels.
 #pragma once
 
 #include <QObject>

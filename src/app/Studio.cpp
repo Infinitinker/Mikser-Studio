@@ -1,3 +1,5 @@
+// Creating the core, engine, AI engine, plugins and local API, registering their commands, and starting and
+// stopping them in order.
 #include "Studio.h"
 
 #include "AppCommands.h"
@@ -5,7 +7,10 @@
 #include "Logging.h"
 #include "UnavailableProbe.h"
 
+#include "mikserstudio/core/AppInfo.h"
+#include "mikserstudio/core/PluginCommands.h"
 #include "mikserstudio/core/ProjectCommands.h"
+#include "mikserstudio/core/ProjectSnapshot.h"
 #include "mikserstudio/core/Transport.h"
 #include "mikserstudio/engine/MltRuntime.h"
 #include "mikserstudio/services/AiCommands.h"
@@ -18,24 +23,27 @@ namespace mikserstudio::app {
 
 namespace {
 
-services::SidecarOptions sidecarOptions(const AppPaths& paths)
+services::AiEngineOptions aiOptions(const AppPaths& paths)
 {
-    services::SidecarOptions options;
-    options.aiDirectory = paths.aiDir;
-    options.cacheDirectory = QDir(paths.cacheDir).filePath(u"ai"_s);
-    // An installed ai/ folder is read-only (e.g. under Program Files): keep its Python
-    // environment in the per-user data folder instead of ai/.venv.
-    if (!paths.devBuild && !options.environment.contains(u"UV_PROJECT_ENVIRONMENT"_s))
-        options.environment.insert(u"UV_PROJECT_ENVIRONMENT"_s, QDir(paths.dataDir).filePath(u"ai-venv"_s));
-    return options;
+    return services::AiEngineOptions{
+        .cacheDirectory = QDir(paths.user.cache).filePath(u"ai"_s),
+        .settingsFile = QDir(paths.user.config).filePath(u"ai-settings.json"_s),
+    };
 }
 
 }  // namespace
 
 Studio::Studio(const AppPaths& paths, StudioOptions options)
     : m_options(options)
-    , m_sidecar(sidecarOptions(paths))
-    , m_plugins(m_bus, QDir(paths.configDir).filePath(u"plugins"_s))
+    , m_ai(aiOptions(paths))
+    , m_comfyUi(m_jobs, {.apiPort = [this] { return m_apiPort; },
+                         .outputDirectory = QDir(paths.user.cache).filePath(u"jobs"_s)})
+    , m_lua({.bus = &m_bus,
+             .jobs = &m_jobs,
+             .snapshot = [this] { return m_project.snapshot(); },
+             .hotReload = options.pluginHotReload})
+    , m_discoveryFile(paths.user.discoveryFile)
+    , m_plugins(m_bus, QDir(paths.user.config).filePath(u"plugin-settings"_s))
 {
     const auto audio = options.audio ? engine::AudioOutput::Device : engine::AudioOutput::Silent;
     if (const auto runtime = engine::MltRuntime::initialize(); runtime) {
@@ -51,21 +59,31 @@ Studio::Studio(const AppPaths& paths, StudioOptions options)
 
     core::registerProjectCommands(m_bus, m_project, *m_probe);
     if (m_program)
-        core::registerTransportCommands(m_bus, *m_program, u"program"_s, u"Program Monitor"_s);
+        core::registerTransportCommands(m_bus, *m_program, u"program"_s, u"Program monitor"_s);
     if (m_source)
-        core::registerTransportCommands(m_bus, *m_source, u"source"_s, u"Source Monitor"_s);
+        core::registerTransportCommands(m_bus, *m_source, u"source"_s, u"Source monitor"_s);
     registerAppCommands(m_bus, m_project, m_source.get());
+    core::registerAppInfoCommand(m_bus);
     if (m_source) {
         // The source monitor shows a media item of the project; a new or opened project replaces it.
         QObject::connect(&m_project, &core::ProjectModel::projectReset, m_source.get(), &engine::ClipPlayer::close);
     }
 
-    if (paths.aiDir.isEmpty())
-        qCWarning(lcApp) << "The AI service folder (ai/) was not found; AI commands will report it.";
-    services::registerAiCommands(m_bus, m_project, m_sidecar, m_aiClient);
+    services::registerAiCommands(m_bus, m_project, m_ai);
+    core::registerJobCommands(m_bus, m_jobs);
+    services::mirrorAiJobs(m_ai, m_jobs);
 
-    m_plugins.addSearchPath(paths.pluginsDir);
+    m_plugins.setRuntime(&m_lua);
+    m_plugins.addSearchPath(paths.pluginsDir, core::PluginSource::BuiltIn);
+    if (options.safeMode) {
+        qCInfo(lcApp) << "Safe mode: only the built-in plugins run";
+    } else {
+        m_plugins.addSearchPath(paths.userPluginsDir, core::PluginSource::User);
+        for (const QString& folder : paths.developmentPluginsDirs)
+            m_plugins.addSearchPath(folder, core::PluginSource::Development);
+    }
     m_plugins.discover();
+    core::registerPluginCommands(m_bus, m_plugins);
     QObject::connect(&m_plugins, &core::PluginManager::pluginFailed, [](const QString& id, const QString& message) {
         qCWarning(lcApp) << "Plugin" << id << "failed:" << message;
     });
@@ -73,7 +91,7 @@ Studio::Studio(const AppPaths& paths, StudioOptions options)
 
 Studio::~Studio()
 {
-    // Silence playback first: stopping plugins and the AI service below can take seconds.
+    // Silence playback first: stopping plugins below can take seconds.
     if (m_program)
         m_program->pause();
     if (m_source)
@@ -85,11 +103,15 @@ void Studio::start()
     if (m_options.api) {
         api::ApiServerOptions apiOptions;
         apiOptions.port = m_options.apiPort;
+        apiOptions.discoveryFile = m_discoveryFile;
+        apiOptions.pluginsReady = [this] { return m_plugins.ready(); };
         m_api = std::make_unique<api::ApiServer>(m_bus, apiOptions);
-        if (const auto port = m_api->start(); port)
+        if (const auto port = m_api->start(); port) {
+            m_apiPort = *port;
             qCInfo(lcApp) << "API listening on 127.0.0.1:" << *port << "discovery file:" << m_api->discoveryFilePath();
-        else
+        } else {
             qCWarning(lcApp) << "The local API is off:" << port.error();
+        }
     }
     m_plugins.activateAll();
 }

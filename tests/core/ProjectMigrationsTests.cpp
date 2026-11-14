@@ -1,3 +1,5 @@
+// Project migrations: the built-in ones cover every older format, run step by step to the target version, and
+// refuse missing, invalid and newer versions.
 #include "TestSupport.h"
 
 #include "ProjectMigrations.h"
@@ -66,7 +68,7 @@ TEST_CASE("Migration rejects missing, invalid and newer versions", "[project][mi
     CHECK(huge.error().contains(u"format 1e+300"_s));
 
     const std::array<ProjectMigration, 1> failing{ProjectMigration{
-        1, [](QJsonObject) -> std::expected<QJsonObject, QString> { return std::unexpected(u"bad data"_s); }}};
+        1, [](const QJsonObject&) -> std::expected<QJsonObject, QString> { return std::unexpected(u"bad data"_s); }}};
     const auto failed = migrateProject(json(R"({"version": 1})"), 2, failing);
     REQUIRE_FALSE(failed);
     CHECK(failed.error().contains(u"bad data"_s));

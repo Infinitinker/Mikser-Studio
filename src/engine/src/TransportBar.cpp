@@ -1,3 +1,4 @@
+// The monitor panel's transport controls and how they follow the transport.
 #include "TransportBar.h"
 
 #include "mikserstudio/engine/Timecode.h"
@@ -86,8 +87,8 @@ void TransportBar::updateState(core::Transport::State state)
 void TransportBar::updateTimecode()
 {
     const core::Rational rate = m_transport.frameRate();
-    m_timecode->setText(u"%1 / %2"_s.arg(formatTimecode(m_transport.position(), rate),
-                                         formatTimecode(m_transport.duration(), rate)));
+    m_timecode->setText(
+        u"%1 / %2"_s.arg(formatTimecode(m_transport.position(), rate), formatTimecode(m_transport.duration(), rate)));
 }
 
 }  // namespace mikserstudio::engine

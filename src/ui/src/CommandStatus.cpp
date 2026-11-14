@@ -1,7 +1,7 @@
+// The status bar's command result: listens to the command bus and skips quiet commands.
 #include "CommandStatus.h"
 
 #include "CommandText.h"
-#include "QuietCommands.h"
 
 #include "mikserstudio/core/CommandBus.h"
 

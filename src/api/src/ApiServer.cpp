@@ -1,3 +1,5 @@
+// The local API: listening on the loopback addresses, writing and removing the discovery file, and wiring the
+// router, the HTTP frontend and the event hub.
 #include "mikserstudio/api/ApiServer.h"
 
 #include "Auth.h"
@@ -43,8 +45,9 @@ ApiServer::ApiServer(core::CommandBus& bus, Options options, QObject* parent)
     : QObject(parent)
     , m_bus(bus)
     , m_token(options.token.isEmpty() ? generateToken() : std::move(options.token))
-    , m_discoveryFile(options.discoveryFile.isEmpty() ? defaultDiscoveryFilePath() : std::move(options.discoveryFile))
+    , m_discoveryFile(std::move(options.discoveryFile))
     , m_requestedPort(options.port)
+    , m_pluginsReady(std::move(options.pluginsReady))
 {
 }
 
@@ -63,16 +66,16 @@ std::expected<quint16, QString> ApiServer::start()
         return std::unexpected(valid.error());
     if (m_discoveryFile.isEmpty()) {
         return std::unexpected(
-            u"There is no folder for the API discovery file. Set the application name or pass a path."_s);
+            u"The API has no discovery file to write. Pass its path in ApiServerOptions::discoveryFile."_s);
     }
 
     const QByteArray token = m_token.toUtf8();
-    m_router = std::make_unique<Router>(m_bus, token);
+    m_router = std::make_unique<Router>(m_bus, token, m_pluginsReady);
     m_http = std::make_unique<HttpFrontend>(*m_router, token);
 
     auto ipv4 = listenOn(*m_http, QHostAddress(QHostAddress::LocalHost), m_requestedPort);
     if (!ipv4) {
-        const QString reason = ipv4.error();
+        const QString& reason = ipv4.error();
         stop();
         return std::unexpected(u"The API server could not listen on 127.0.0.1:%1: %2. Choose another port or "
                                "use 0 for a free one."_s.arg(m_requestedPort)
@@ -146,11 +149,6 @@ QString ApiServer::baseUrl() const
 QString ApiServer::eventsUrl() const
 {
     return isRunning() ? u"ws://127.0.0.1:%1/v1/events"_s.arg(m_port) : QString();
-}
-
-int ApiServer::eventClientCount() const
-{
-    return m_events ? m_events->clientCount() : 0;
 }
 
 void ApiServer::acceptWebSockets()

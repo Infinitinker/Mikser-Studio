@@ -1,3 +1,5 @@
+// The fixture the timeline tests share: a project with the project and timeline commands, one video media
+// item and the timeline controller, without the engine.
 #pragma once
 
 #include "mikserstudio/core/CommandBus.h"

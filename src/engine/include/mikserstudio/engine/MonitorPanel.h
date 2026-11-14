@@ -1,3 +1,5 @@
+// The monitor panel: the GPU video surface of a monitor together with its transport bar and playback keys.
+// The app creates one for the source monitor and one for the program monitor and hands them to the UI.
 #pragma once
 
 #include "mikserstudio/engine/FrameSink.h"

@@ -1,3 +1,5 @@
+// The discovery file: it describes the running local API, only the current user can read it, it is removed
+// on stop, a file taken over by another instance is kept, and an unwritable path fails the start.
 #include "ApiTestSupport.h"
 
 #include "DiscoveryFile.h"
@@ -48,8 +50,8 @@ bool onlyCurrentUserHasAccess(const QString& path)
     std::wstring nativePath = path.toStdWString();
     PACL dacl = nullptr;
     PSECURITY_DESCRIPTOR descriptor = nullptr;
-    if (GetNamedSecurityInfoW(nativePath.data(), SE_FILE_OBJECT, DACL_SECURITY_INFORMATION, nullptr, nullptr,
-                              &dacl, nullptr, &descriptor) != ERROR_SUCCESS)
+    if (GetNamedSecurityInfoW(nativePath.data(), SE_FILE_OBJECT, DACL_SECURITY_INFORMATION, nullptr, nullptr, &dacl,
+                              nullptr, &descriptor) != ERROR_SUCCESS)
         return false;
     SECURITY_DESCRIPTOR_CONTROL control = 0;
     DWORD revision = 0;
@@ -57,8 +59,7 @@ bool onlyCurrentUserHasAccess(const QString& path)
     bool result = dacl != nullptr && (control & SE_DACL_PROTECTED) != 0 && dacl->AceCount == 1;
     if (result) {
         void* ace = nullptr;
-        result = GetAce(dacl, 0, &ace) != 0 &&
-                 static_cast<ACE_HEADER*>(ace)->AceType == ACCESS_ALLOWED_ACE_TYPE &&
+        result = GetAce(dacl, 0, &ace) != 0 && static_cast<ACE_HEADER*>(ace)->AceType == ACCESS_ALLOWED_ACE_TYPE &&
                  EqualSid(&static_cast<ACCESS_ALLOWED_ACE*>(ace)->SidStart, user->User.Sid) != 0;
     }
     LocalFree(descriptor);
@@ -85,8 +86,9 @@ TEST_CASE("The discovery file describes the running server and is removed on sto
     CHECK(QDir(fixture.dir.path()).entryList(QDir::Files | QDir::Hidden) == QStringList{u"api.json"_s});
 
     // A tool that reads only the discovery file can call the API.
-    const auto reply = mikserstudio::tests::sendRequest("GET", QUrl(discovery.value(u"baseUrl"_s).toString() + u"/v1/commands"_s),
-                                                 {}, "Bearer " + discovery.value(u"token"_s).toString().toUtf8());
+    const auto reply = mikserstudio::tests::sendRequest(
+        "GET", QUrl(discovery.value(u"baseUrl"_s).toString() + u"/v1/commands"_s), {},
+        "Bearer " + discovery.value(u"token"_s).toString().toUtf8());
     CHECK(reply.status == 200);
 
     SECTION("stop() removes it")
@@ -127,10 +129,15 @@ TEST_CASE("The discovery file is readable only by the current user", "[api][disc
     CHECK_FALSE(QFileInfo::exists(path));
 }
 
-TEST_CASE("The default discovery file lives in the app's local data folder", "[api][discovery]")
+TEST_CASE("start() refuses to run without a discovery file to write", "[api][discovery]")
 {
-    const QString path = mikserstudio::api::defaultDiscoveryFilePath();
-    CHECK(path.endsWith(u"/MikserStudioApiTests/api.json"_s));
+    mikserstudio::core::UndoStack undo;
+    mikserstudio::core::CommandBus bus(undo);
+    mikserstudio::api::ApiServer server(bus, {.port = 0, .token = {}, .discoveryFile = {}, .pluginsReady = {}});
+    const auto started = server.start();
+    REQUIRE_FALSE(started.has_value());
+    CHECK(started.error().contains(u"no discovery file"_s));
+    CHECK_FALSE(server.isRunning());
 }
 
 TEST_CASE("start() fails cleanly when the discovery file cannot be written", "[api][discovery]")
@@ -144,7 +151,8 @@ TEST_CASE("start() fails cleanly when the discovery file cannot be written", "[a
     }
     mikserstudio::core::UndoStack undo;
     mikserstudio::core::CommandBus bus(undo);
-    mikserstudio::api::ApiServer server(bus, {.port = 0, .token = {}, .discoveryFile = blocker + u"/api.json"_s});
+    mikserstudio::api::ApiServer server(
+        bus, {.port = 0, .token = {}, .discoveryFile = blocker + u"/api.json"_s, .pluginsReady = {}});
 
     const auto started = server.start();
     REQUIRE_FALSE(started.has_value());

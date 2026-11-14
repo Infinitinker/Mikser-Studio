@@ -1,0 +1,113 @@
+-- luacheck's settings for the plugins (docs/plugins.md, "Tooling"): only what a plugin's sandbox offers,
+-- as src/lua/src/LuaWorker.cpp and src/lua/src/prelude.lua build it, so a removed global such as io,
+-- debug, package, dofile, string.dump or os.execute fails. Every warning fails.
+
+stds.mikserstudio = {
+    read_globals = {
+        -- Lua 5.4's base library, with the prelude's text-only load and require from the plugin's
+        -- folder; print goes to the log.
+        "_G",
+        "_VERSION",
+        "assert",
+        "collectgarbage",
+        "error",
+        "getmetatable",
+        "ipairs",
+        "load",
+        "next",
+        "pairs",
+        "pcall",
+        "print",
+        "rawequal",
+        "rawget",
+        "rawlen",
+        "rawset",
+        "require",
+        "select",
+        "setmetatable",
+        "tonumber",
+        "tostring",
+        "type",
+        "warn",
+        "xpcall",
+        coroutine = {
+            fields = { "close", "create", "isyieldable", "resume", "running", "status", "wrap", "yield" },
+        },
+        math = {
+            fields = {
+                "abs",
+                "acos",
+                "asin",
+                "atan",
+                "ceil",
+                "cos",
+                "deg",
+                "exp",
+                "floor",
+                "fmod",
+                "huge",
+                "log",
+                "max",
+                "maxinteger",
+                "min",
+                "mininteger",
+                "modf",
+                "pi",
+                "rad",
+                "random",
+                "randomseed",
+                "sin",
+                "sqrt",
+                "tan",
+                "tointeger",
+                "type",
+                "ult",
+            },
+        },
+        -- Of os, only the time.
+        os = { fields = { "clock", "date", "time" } },
+        -- Without string.dump: no bytecode.
+        string = {
+            fields = {
+                "byte",
+                "char",
+                "find",
+                "format",
+                "gmatch",
+                "gsub",
+                "len",
+                "lower",
+                "match",
+                "pack",
+                "packsize",
+                "rep",
+                "reverse",
+                "sub",
+                "unpack",
+                "upper",
+            },
+        },
+        table = { fields = { "concat", "insert", "move", "pack", "remove", "sort", "unpack" } },
+        utf8 = { fields = { "char", "charpattern", "codepoint", "codes", "len", "offset" } },
+        -- The ms API (docs/plugins.md, "The Lua API").
+        ms = {
+            fields = {
+                "array",
+                "command",
+                "null",
+                "on",
+                "plugin_id",
+                "project",
+                "run",
+                "settings",
+                "transaction",
+                jobs = { fields = { "get", "run", "start" } },
+                log = { fields = { "debug", "error", "info", "warning" } },
+            },
+        },
+    },
+}
+
+std = "mikserstudio"
+-- Annotations for language servers, which mikser-studio --print-lua-types writes: not plugin code.
+exclude_files = { "types/" }

@@ -1,8 +1,10 @@
+// The project model: the rules for media, tracks and clips, and the changes that keep them consistent.
 #include "mikserstudio/core/Project.h"
 
 #include "Logging.h"
 #include "ProjectJson.h"
 #include "ProjectMigrations.h"
+#include "mikserstudio/core/ProjectSnapshot.h"
 
 #include <QDir>
 #include <QFileInfo>
@@ -34,11 +36,11 @@ std::optional<QString> mediaProblem(const MediaItem& item)
     if (item.id.isEmpty())
         return u"Media needs an id."_s;
     if (item.path.isEmpty())
-        return u"Media \"%1\" needs a file path."_s.arg(item.id);
+        return u"Media “%1” needs a file path."_s.arg(item.id);
     if (item.info.durationFrames < 0)
-        return u"Media \"%1\" has a negative duration."_s.arg(item.id);
+        return u"Media “%1” has a negative duration."_s.arg(item.id);
     if (item.info.durationFrames > kMaxFrame) {
-        return u"Media \"%1\" is %2 frames long; Mikser Studio supports at most %3 frames."_s.arg(item.id)
+        return u"Media “%1” is %2 frames long; Mikser Studio supports at most %3 frames."_s.arg(item.id)
             .arg(item.info.durationFrames)
             .arg(kMaxFrame);
     }
@@ -49,22 +51,23 @@ std::optional<QString> mediaProblem(const MediaItem& item)
 std::optional<QString> clipProblem(const Clip& clip, const MediaItem* media, const Track* track)
 {
     if (!media)
-        return u"There is no media with id \"%1\" in the project."_s.arg(clip.mediaId);
+        return u"There is no media with id “%1” in the project."_s.arg(clip.mediaId);
     if (!track)
-        return u"There is no track \"%1\"."_s.arg(clip.trackId);
+        return u"There is no track “%1”."_s.arg(clip.trackId);
     if (!fitsTrack(media->info, track->kind)) {
         return track->kind == TrackKind::Video
-                   ? u"\"%1\" has no picture, so it cannot go on video track %2."_s.arg(media->name, track->id)
-                   : u"\"%1\" has no sound, so it cannot go on audio track %2."_s.arg(media->name, track->id);
+                   ? u"“%1” has no picture, so it cannot go on video track %2."_s.arg(media->name, track->id)
+                   : u"“%1” has no sound, so it cannot go on audio track %2."_s.arg(media->name, track->id);
     }
     if (clip.position < 0)
         return u"A clip cannot start before frame 0 (got %1)."_s.arg(clip.position);
     if (clip.in < 0 || clip.out <= clip.in)
-        return u"Clip in/out points %1-%2 are invalid: in must be >= 0 and out greater than in."_s.arg(clip.in).arg(clip.out);
+        return u"Clip in/out points %1-%2 are invalid: in must be >= 0 and out greater than in."_s.arg(clip.in).arg(
+            clip.out);
     if (clip.out > kMaxFrame)
         return u"Out point %1 is past frame %2, the last frame Mikser Studio supports."_s.arg(clip.out).arg(kMaxFrame);
     if (media->info.kind != MediaKind::Image && clip.out > media->info.durationFrames) {
-        return u"Out point %1 is past the end of \"%2\", which is %3 frames long."_s.arg(clip.out)
+        return u"Out point %1 is past the end of “%2”, which is %3 frames long."_s.arg(clip.out)
             .arg(media->name)
             .arg(media->info.durationFrames);
     }
@@ -79,7 +82,7 @@ std::optional<QString> clipProblem(const Clip& clip, const MediaItem* media, con
 
 QString overlapProblem(const Clip& other)
 {
-    return u"The clip would overlap clip \"%1\" on track %2 (frames %3-%4). Move it to a free spot."_s
+    return u"The clip would overlap clip “%1” on track %2 (frames %3-%4). Move it to a free spot."_s
         .arg(other.id, other.trackId)
         .arg(other.position)
         .arg(other.end());
@@ -89,9 +92,8 @@ QString overlapProblem(const Clip& other)
 
 bool isAllowedMediaPath(const QString& path)
 {
-    static const QRegularExpression colour(
-        uR"(^color:(#[0-9A-Fa-f]{6}|#[0-9A-Fa-f]{8}|0x[0-9A-Fa-f]{8}|[A-Za-z]+)$)"_s);
-    if (colour.match(path).hasMatch())
+    static const QRegularExpression color(uR"(^color:(#[0-9A-Fa-f]{6}|#[0-9A-Fa-f]{8}|0x[0-9A-Fa-f]{8}|[A-Za-z]+)$)"_s);
+    if (color.match(path).hasMatch())
         return true;
     const QString normalized = QDir::fromNativeSeparators(path);
     return !normalized.startsWith(u"//"_s) && QDir::isAbsolutePath(normalized);
@@ -100,6 +102,15 @@ bool isAllowedMediaPath(const QString& path)
 ProjectModel::ProjectModel(QObject* parent)
     : QObject(parent)
 {
+    // Connected first, so the snapshot is current for every other receiver of these signals.
+    for (const auto signal : {&ProjectModel::mediaAdded, &ProjectModel::mediaRemoved, &ProjectModel::clipAdded,
+                              &ProjectModel::clipRemoved, &ProjectModel::clipChanged, &ProjectModel::trackAdded,
+                              &ProjectModel::trackRemoved, &ProjectModel::trackChanged, &ProjectModel::filePathChanged})
+        connect(this, signal, this, &ProjectModel::publishSnapshot);
+    connect(this, &ProjectModel::projectReset, this, [this] {
+        m_session = QUuid::createUuid().toString(QUuid::WithoutBraces);
+        publishSnapshot();
+    });
     reset();
 }
 
@@ -136,7 +147,7 @@ std::expected<void, QString> ProjectModel::addMedia(MediaItem item, qsizetype in
     if (const auto problem = mediaProblem(item))
         return std::unexpected(*problem);
     if (findMedia(item.id))
-        return std::unexpected(u"Media id \"%1\" is already used in this project."_s.arg(item.id));
+        return std::unexpected(u"Media id “%1” is already used in this project."_s.arg(item.id));
     if (index < -1 || index > m_media.size())
         return std::unexpected(u"Media bin position %1 is out of range (0 to %2)."_s.arg(index).arg(m_media.size()));
     if (item.name.isEmpty())
@@ -152,12 +163,11 @@ std::expected<MediaItem, QString> ProjectModel::removeMedia(const QString& id)
 {
     const auto it = std::ranges::find(m_media, id, &MediaItem::id);
     if (it == m_media.end())
-        return std::unexpected(u"There is no media with id \"%1\" in the project."_s.arg(id));
+        return std::unexpected(u"There is no media with id “%1” in the project."_s.arg(id));
     const auto users = std::ranges::count(m_clips, id, &Clip::mediaId);
     if (users > 0) {
-        return std::unexpected(u"\"%1\" is used by %2 clip(s) on the timeline. Remove those clips first."_s
-                                   .arg(it->name)
-                                   .arg(users));
+        return std::unexpected(
+            u"“%1” is used by %2 clip(s) on the timeline. Remove those clips first."_s.arg(it->name).arg(users));
     }
     MediaItem removed = std::move(*it);
     m_media.erase(it);
@@ -196,7 +206,7 @@ std::expected<void, QString> ProjectModel::addClip(Clip clip)
     if (clip.id.isEmpty())
         return std::unexpected(u"A clip needs an id."_s);
     if (findClip(clip.id))
-        return std::unexpected(u"Clip id \"%1\" is already used on the timeline."_s.arg(clip.id));
+        return std::unexpected(u"Clip id “%1” is already used on the timeline."_s.arg(clip.id));
     if (const auto problem = checkPlacement(clip, QString()))
         return std::unexpected(*problem);
 
@@ -212,7 +222,7 @@ std::expected<Clip, QString> ProjectModel::removeClip(const QString& id)
 {
     const auto it = std::ranges::find(m_clips, id, &Clip::id);
     if (it == m_clips.end())
-        return std::unexpected(u"There is no clip with id \"%1\" on the timeline."_s.arg(id));
+        return std::unexpected(u"There is no clip with id “%1” on the timeline."_s.arg(id));
     Clip removed = std::move(*it);
     m_clips.erase(it);
     Q_EMIT clipRemoved(id);
@@ -224,7 +234,7 @@ std::expected<void, QString> ProjectModel::moveClip(const QString& id, const QSt
 {
     const auto it = std::ranges::find(m_clips, id, &Clip::id);
     if (it == m_clips.end())
-        return std::unexpected(u"There is no clip with id \"%1\" on the timeline."_s.arg(id));
+        return std::unexpected(u"There is no clip with id “%1” on the timeline."_s.arg(id));
     Clip moved = *it;
     moved.trackId = trackId;
     moved.position = position;
@@ -242,7 +252,7 @@ std::expected<void, QString> ProjectModel::trimClip(const QString& id, FramePos 
 {
     const auto it = std::ranges::find(m_clips, id, &Clip::id);
     if (it == m_clips.end())
-        return std::unexpected(u"There is no clip with id \"%1\" on the timeline."_s.arg(id));
+        return std::unexpected(u"There is no clip with id “%1” on the timeline."_s.arg(id));
     Clip trimmed = *it;
     trimmed.in = in;
     trimmed.out = out;
@@ -281,7 +291,7 @@ std::expected<QString, QString> ProjectModel::addTrack(TrackKind kind)
         const auto lastVideo = std::ranges::find_last(m_tracks, TrackKind::Video, &Track::kind);
         index = lastVideo.empty() ? 0 : (lastVideo.begin() - m_tracks.begin()) + 1;
     }
-    const QString id = track.id;
+    QString id = track.id;
     m_tracks.insert(index, std::move(track));
     Q_EMIT trackAdded(id);
     Q_EMIT timelineChanged();
@@ -292,7 +302,7 @@ std::expected<Track, QString> ProjectModel::removeTrack(const QString& id)
 {
     const auto it = std::ranges::find(m_tracks, id, &Track::id);
     if (it == m_tracks.end())
-        return std::unexpected(u"There is no track \"%1\"."_s.arg(id));
+        return std::unexpected(u"There is no track “%1”."_s.arg(id));
     const auto clips = std::ranges::count(m_clips, id, &Clip::trackId);
     if (clips > 0)
         return std::unexpected(u"Track %1 still holds %2 clip(s). Remove those clips first."_s.arg(id).arg(clips));
@@ -307,7 +317,7 @@ std::expected<void, QString> ProjectModel::setTrackFlags(const QString& id, bool
 {
     const auto it = std::ranges::find(m_tracks, id, &Track::id);
     if (it == m_tracks.end())
-        return std::unexpected(u"There is no track \"%1\"."_s.arg(id));
+        return std::unexpected(u"There is no track “%1”."_s.arg(id));
     if (it->muted == muted && it->hidden == hidden)
         return {};
     it->muted = muted;
@@ -317,8 +327,17 @@ std::expected<void, QString> ProjectModel::setTrackFlags(const QString& id, bool
     return {};
 }
 
+void ProjectModel::setFilePath(const QString& path)
+{
+    if (path == m_filePath)
+        return;
+    m_filePath = path;
+    Q_EMIT filePathChanged(m_filePath);
+}
+
 void ProjectModel::reset(Rational frameRate, int width, int height)
 {
+    setFilePath({});
     m_frameRate = frameRate;
     m_width = width;
     m_height = height;
@@ -336,24 +355,30 @@ void ProjectModel::reset(Rational frameRate, int width, int height)
 
 QJsonObject ProjectModel::toJson() const
 {
-    QJsonArray media;
-    for (const MediaItem& item : m_media)
-        media.append(mediaToJson(item));
-    QJsonArray tracks;
-    for (const Track& track : m_tracks)
-        tracks.append(trackToJson(track));
-    QJsonArray clips;
-    for (const Clip& clip : m_clips)
-        clips.append(clipToJson(clip));
-    return QJsonObject{
-        {u"version"_s, kFormatVersion},
-        {u"frameRate"_s, rationalToJson(m_frameRate)},
-        {u"width"_s, m_width},
-        {u"height"_s, m_height},
-        {u"media"_s, media},
-        {u"tracks"_s, tracks},
-        {u"clips"_s, clips},
-    };
+    return projectToJson(m_frameRate, m_width, m_height, m_media, m_tracks, m_clips);
+}
+
+std::shared_ptr<const ProjectSnapshot> ProjectModel::snapshot() const
+{
+    const std::scoped_lock lock(m_snapshotMutex);
+    return m_snapshot;
+}
+
+void ProjectModel::publishSnapshot()
+{
+    auto next = std::make_shared<ProjectSnapshot>(ProjectSnapshot{
+        .revision = ++m_revision,
+        .session = m_session,
+        .frameRate = m_frameRate,
+        .width = m_width,
+        .height = m_height,
+        .filePath = m_filePath,
+        .media = m_media,
+        .tracks = m_tracks,
+        .clips = m_clips,
+    });
+    const std::scoped_lock lock(m_snapshotMutex);
+    m_snapshot = std::move(next);
 }
 
 std::expected<void, QString> ProjectModel::loadJson(const QJsonObject& json)
@@ -374,7 +399,7 @@ std::expected<void, QString> ProjectModel::loadJson(const QJsonObject& json)
     QSet<QString> trackIds;
     for (Track& track : document->tracks) {
         if (trackIds.contains(track.id))
-            return std::unexpected(u"The project file is damaged: track \"%1\" appears twice."_s.arg(track.id));
+            return std::unexpected(u"The project file is damaged: track “%1” appears twice."_s.arg(track.id));
         trackIds.insert(track.id);
         staging.m_tracks.append(std::move(track));
     }
@@ -386,7 +411,7 @@ std::expected<void, QString> ProjectModel::loadJson(const QJsonObject& json)
         if (const auto problem = mediaProblem(item))
             return std::unexpected(u"The project file is damaged: %1"_s.arg(*problem));
         if (mediaIds.contains(item.id))
-            return std::unexpected(u"The project file is damaged: media \"%1\" appears twice."_s.arg(item.id));
+            return std::unexpected(u"The project file is damaged: media “%1” appears twice."_s.arg(item.id));
         mediaIds.insert(item.id);
         if (item.name.isEmpty())
             item.name = QFileInfo(item.path).fileName();
@@ -403,10 +428,10 @@ std::expected<void, QString> ProjectModel::loadJson(const QJsonObject& json)
     QSet<QString> clipIds;
     for (Clip& clip : document->clips) {
         if (clipIds.contains(clip.id))
-            return std::unexpected(u"The project file is damaged: clip \"%1\" appears twice."_s.arg(clip.id));
+            return std::unexpected(u"The project file is damaged: clip “%1” appears twice."_s.arg(clip.id));
         clipIds.insert(clip.id);
         if (const auto problem = clipProblem(clip, mediaById.value(clip.mediaId), trackById.value(clip.trackId)))
-            return std::unexpected(u"The project file is damaged: clip \"%1\": %2"_s.arg(clip.id, *problem));
+            return std::unexpected(u"The project file is damaged: clip “%1”: %2"_s.arg(clip.id, *problem));
         staging.m_clips.append(std::move(clip));
     }
     staging.sortClips();
@@ -417,7 +442,7 @@ std::expected<void, QString> ProjectModel::loadJson(const QJsonObject& json)
         // Sorted by start, so any overlap on a track shows up between neighbours.
         if (previous.trackId == current.trackId && current.position < previous.end()) {
             return std::unexpected(
-                u"The project file is damaged: clip \"%1\": %2"_s.arg(current.id, overlapProblem(previous)));
+                u"The project file is damaged: clip “%1”: %2"_s.arg(current.id, overlapProblem(previous)));
         }
     }
 

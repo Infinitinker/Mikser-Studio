@@ -1,0 +1,23 @@
+name: Plugin request
+description: Ask for a plugin, or for what a plugin needs from Mikser Studio, or share a plugin you wrote.
+labels: [plugin]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What the plugin should do
+      description: The commands, settings or panels it would add, and what you would use them for.
+    validations:
+      required: true
+  - type: textarea
+    id: missing
+    attributes:
+      label: What it needs from Mikser Studio
+      description: >
+        Anything the plugin API doesn't offer yet (see docs/plugins.md), such as a command, an event
+        or access to the timeline.
+  - type: input
+    id: link
+    attributes:
+      label: Your plugin
+      description: If you wrote one, a link to its source (see CONTRIBUTING.md).

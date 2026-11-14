@@ -1,3 +1,5 @@
+// The desktop shell: wires the menus, panels, command palette, status bar and workspaces into the main
+// window.
 #include "mikserstudio/ui/Shell.h"
 
 #include "AiPanel.h"
@@ -10,6 +12,7 @@
 #include "PluginPanelHost.h"
 #include "PluginsPanel.h"
 #include "PropertiesPanel.h"
+#include "SettingsWindow.h"
 #include "TimelineController.h"
 #include "TimelineView.h"
 #include "WindowMenu.h"
@@ -18,6 +21,7 @@
 #include "mikserstudio/core/CommandBus.h"
 #include "mikserstudio/core/PluginManager.h"
 #include "mikserstudio/core/Project.h"
+#include "mikserstudio/core/UndoStack.h"
 #include "mikserstudio/ui/ClipSelection.h"
 #include "mikserstudio/ui/CommandPalette.h"
 #include "mikserstudio/ui/KddwDockHost.h"
@@ -26,8 +30,10 @@
 
 #include <QAction>
 #include <QCloseEvent>
+#include <QCoreApplication>
 #include <QDir>
 #include <QFile>
+#include <QFileInfo>
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QLabel>
@@ -75,7 +81,6 @@ Shell::Shell(core::CommandBus& bus, core::ProjectModel& project, core::PluginMan
     , m_dockHost(std::make_unique<KddwDockHost>(QDir(m_configDir).filePath(u"workspaces"_s)))
 {
     QMainWindow* window = mainWindow();
-    window->setWindowTitle(u"Mikser Studio"_s);
     window->resize(kDefaultWindowSize);
     window->installEventFilter(this);
 
@@ -95,11 +100,14 @@ Shell::Shell(core::CommandBus& bus, core::ProjectModel& project, core::PluginMan
     syncPluginPanels();
     connect(m_dockHost.get(), &KddwDockHost::currentWorkspaceChanged, this, &Shell::updateWorkspaceLabel);
     updateWorkspaceLabel();
+    connect(&project, &core::ProjectModel::filePathChanged, this, &Shell::updateWindowTitle);
+    connect(&bus.undoStack(), &core::UndoStack::cleanChanged, this, &Shell::updateWindowTitle);
+    updateWindowTitle();
 }
 
 Shell::~Shell() = default;
 
-KddwDockHost& Shell::dockHost() const
+DockHost& Shell::dockHost() const
 {
     return *m_dockHost;
 }
@@ -131,10 +139,12 @@ void Shell::setProgramTransport(core::Transport* transport)
 
 void Shell::restoreState()
 {
-    QString workspace = KddwDockHost::builtInWorkspaces().constFirst();
+    QString workspace = m_dockHost->builtInWorkspaces().constFirst();
+    QJsonObject shellState;
     QFile shellFile(QDir(m_configDir).filePath(kShellFile));
     if (shellFile.open(QIODevice::ReadOnly)) {
-        const QString saved = QJsonDocument::fromJson(shellFile.readAll()).object().value(u"workspace").toString();
+        shellState = QJsonDocument::fromJson(shellFile.readAll()).object();
+        const QString saved = shellState.value(u"workspace").toString();
         if (!saved.isEmpty() && m_dockHost->workspaces().contains(saved, Qt::CaseInsensitive))
             workspace = saved;
     }
@@ -145,15 +155,17 @@ void Shell::restoreState()
         if (restored) {
             // The layout is the workspace as the user left it.
             m_dockHost->setCurrentWorkspace(workspace);
+            m_restoreMaximized = shellState.value(u"maximized").toBool();
             qCInfo(lcShell) << "Restored the last layout";
             return;
         }
-        qCWarning(lcShell).noquote() << "Could not restore the last layout:" << restored.error();
+        qCWarning(lcShell).noquote() << restored.error();
         m_status->showMessage(
-            u"The last window layout could not be restored; using the \"%1\" workspace."_s.arg(workspace), true);
+            u"The panels could not be arranged as you left them, so the “%1” workspace is shown."_s.arg(workspace),
+            true);
     }
     // Workspaces are laid out in proportion to the window, so wait until it has its real size.
-    m_pendingWorkspace = workspace;
+    m_pendingWorkspace = std::move(workspace);
     if (mainWindow()->isVisible())
         applyPendingWorkspace();
 }
@@ -166,9 +178,12 @@ bool Shell::saveState()
     }
     QSaveFile layout(QDir(m_configDir).filePath(kLayoutFile));
     QSaveFile shell(QDir(m_configDir).filePath(kShellFile));
-    const QJsonObject state{{u"workspace"_s, m_dockHost->currentWorkspace()}};
-    const bool ok = layout.open(QIODevice::WriteOnly) && layout.write(m_dockHost->saveLayout()) >= 0 && layout.commit()
-        && shell.open(QIODevice::WriteOnly) && shell.write(QJsonDocument(state).toJson()) >= 0 && shell.commit();
+    // QWidget keeps "maximized" while the window is minimized; the layout saves only "minimized".
+    const QJsonObject state{{u"workspace"_s, m_dockHost->currentWorkspace()},
+                            {u"maximized"_s, mainWindow()->isMaximized()}};
+    const bool ok = layout.open(QIODevice::WriteOnly) && layout.write(m_dockHost->saveLayout()) >= 0 &&
+                    layout.commit() && shell.open(QIODevice::WriteOnly) &&
+                    shell.write(QJsonDocument(state).toJson()) >= 0 && shell.commit();
     if (!ok)
         qCWarning(lcShell) << "Could not save the window layout to" << m_configDir;
     return ok;
@@ -177,11 +192,13 @@ bool Shell::saveState()
 void Shell::show()
 {
     // A pending workspace means there is no saved layout (first start): fill the screen's work
-    // area instead of guessing a size that may run under the taskbar.
-    if (m_pendingWorkspace.isEmpty())
-        mainWindow()->show();
-    else
+    // area instead of guessing a size that may run under the taskbar. After a restore, use the
+    // saved "maximized" and never start minimized: KDDockWidgets saves one window state (minimized
+    // wins over maximized) and applies it to the native window, where plain show() would keep it.
+    if (!m_pendingWorkspace.isEmpty() || m_restoreMaximized)
         mainWindow()->showMaximized();
+    else
+        mainWindow()->showNormal();
     applyPendingWorkspace();
 }
 
@@ -199,34 +216,17 @@ void Shell::showCommandPalette()
     m_palette->popup();
 }
 
-QMenu* Shell::commandMenu(const QString& category) const
+void Shell::showSettings(const QString& section)
 {
-    return m_commandMenus->menu(category);
-}
-
-QStringList Shell::commandMenuCategories() const
-{
-    return m_commandMenus->categories();
-}
-
-QAction* Shell::commandAction(const QString& commandId) const
-{
-    return m_commandMenus->action(commandId);
-}
-
-QAction* Shell::windowMenuAction(const QString& panelId) const
-{
-    return m_windowMenuController->panelAction(panelId);
+    SettingsWindow window(m_bus, m_plugins, mainWindow());
+    if (!section.isEmpty())
+        window.showSection(section);
+    window.exec();
 }
 
 WorkspaceMenu& Shell::workspaces() const
 {
     return *m_workspaceMenuController;
-}
-
-QString Shell::statusText() const
-{
-    return m_status->text();
 }
 
 bool Shell::eventFilter(QObject* watched, QEvent* event)
@@ -240,7 +240,7 @@ void Shell::registerCorePanels()
 {
     using namespace panel_ids;
     KddwDockHost& host = *m_dockHost;
-    host.registerPanel({kMediaBin.toString(), u"Media"_s, DockArea::Left, true,
+    host.registerPanel({kMediaBin.toString(), u"Media bin"_s, DockArea::Left, true,
                         [this](QWidget* parent) { return new MediaBinPanel(m_bus, m_project, parent); }});
     host.registerPanel({kTimeline.toString(), u"Timeline"_s, DockArea::Bottom, true,
                         [this](QWidget* parent) { return new TimelineView(*m_timeline, *m_theme, parent); }});
@@ -248,11 +248,11 @@ void Shell::registerCorePanels()
                             return new PropertiesPanel(m_bus, m_project, *m_selection, parent);
                         }});
     host.registerPanel({kAi.toString(), u"AI"_s, DockArea::Right, true,
-                        [this](QWidget* parent) { return new AiPanel(m_bus, m_project, *m_selection, parent); }});
+                        [this](QWidget* parent) { return new AiPanel(m_bus, parent); }});
     host.registerPanel({kLog.toString(), u"Log"_s, DockArea::Bottom, true,
                         [this](QWidget* parent) { return new LogPanel(*m_log, parent); }});
     host.registerPanel({kPlugins.toString(), u"Plugins"_s, DockArea::Right, true,
-                        [this](QWidget* parent) { return new PluginsPanel(m_plugins, parent); }});
+                        [this](QWidget* parent) { return new PluginsPanel(m_bus, m_plugins, parent); }});
 }
 
 void Shell::syncPluginPanels()
@@ -270,7 +270,8 @@ void Shell::syncPluginPanels()
             const QString directory = state.manifest.directory;
             m_dockHost->registerPanel({id, panel.title, toDockArea(panel.defaultArea), true,
                                        [this, pluginId, directory, panel](QWidget* parent) {
-                                           return new PluginPanelHost(m_bus, m_plugins, pluginId, directory, panel, parent);
+                                           return new PluginPanelHost(m_bus, m_plugins, pluginId, directory, panel,
+                                                                      parent);
                                        }});
             m_pluginPanels.insert(id);
         }
@@ -294,13 +295,19 @@ void Shell::buildMenus()
     m_commandMenus = new CommandMenus(m_bus, bar, window, this);
     m_commandMenus->setInsertBefore(m_workspaceMenu->menuAction());
 
-    auto* palette = new QAction(u"Command Palette…"_s, window);
+    auto* palette = new QAction(u"Command palette…"_s, window);
     palette->setShortcuts({QKeySequence(u"Ctrl+Shift+P"_s), QKeySequence(u"Ctrl+K"_s)});
     palette->setShortcutContext(Qt::ApplicationShortcut);
     palette->setToolTip(u"Search and run any command."_s);
     connect(palette, &QAction::triggered, this, &Shell::showCommandPalette);
     window->addAction(palette);
-    m_windowMenuController = new WindowMenu(*m_dockHost, m_windowMenu, {palette}, this);
+    auto* settings = new QAction(u"Settings…"_s, window);
+    settings->setShortcut(QKeySequence(u"Ctrl+,"_s));
+    settings->setShortcutContext(Qt::ApplicationShortcut);
+    settings->setToolTip(u"Shows the settings of the built-in plugins, such as the AI tools’ addresses."_s);
+    connect(settings, &QAction::triggered, this, [this] { showSettings(); });
+    window->addAction(settings);
+    m_windowMenuController = new WindowMenu(*m_dockHost, m_windowMenu, *m_status, {palette, settings}, this);
 
     m_workspaceMenuController = new WorkspaceMenu(*m_dockHost, m_workspaceMenu, *m_status, window, this);
 }
@@ -309,6 +316,17 @@ void Shell::updateWorkspaceLabel()
 {
     const QString name = m_dockHost->currentWorkspace();
     m_workspaceLabel->setText(name.isEmpty() ? QString() : u"Workspace: %1"_s.arg(name));
+}
+
+void Shell::updateWindowTitle()
+{
+    // "Cut v1.2* – Mikser Studio Dev": the project's file name, marked while there are unsaved changes
+    // ([*] is where Qt shows the mark), and the instance's name (core/Instance.h).
+    const QString file = m_project.filePath();
+    const QString name = file.isEmpty() ? u"Untitled"_s : QFileInfo(file).completeBaseName();
+    QMainWindow* window = mainWindow();
+    window->setWindowTitle(u"%1[*] – %2"_s.arg(name, QCoreApplication::applicationName()));
+    window->setWindowModified(!m_bus.undoStack().isClean());
 }
 
 }  // namespace mikserstudio::ui

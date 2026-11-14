@@ -1,3 +1,4 @@
+// The logging category of the api module.
 #include "Logging.h"
 
 namespace mikserstudio::api {

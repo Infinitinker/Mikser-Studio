@@ -1,3 +1,4 @@
+// The HTTP server of the local API: hands requests to the router and accepts authorized WebSocket upgrades.
 #pragma once
 
 #include <QAbstractHttpServer>

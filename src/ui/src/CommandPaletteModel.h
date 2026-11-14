@@ -1,3 +1,4 @@
+// The command palette's rows: commands filtered and ranked by a fuzzy query over title, id and category.
 #pragma once
 
 #include "mikserstudio/core/Command.h"

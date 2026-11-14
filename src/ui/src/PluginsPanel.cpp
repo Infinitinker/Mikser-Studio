@@ -1,5 +1,7 @@
+// The Plugins panel: plugin list, activation and enabling, and the settings form from the settings schema.
 #include "PluginsPanel.h"
 
+#include "CommandInvoker.h"
 #include "PanelLayout.h"
 
 #include "mikserstudio/core/PluginManager.h"
@@ -21,11 +23,13 @@ namespace mikserstudio::ui {
 
 namespace {
 
-QString statusText(const core::PluginState& state)
+QString statusText(core::PluginStatus status)
 {
-    switch (state.status) {
+    switch (status) {
     case core::PluginStatus::Active:
         return u"Active"_s;
+    case core::PluginStatus::Starting:
+        return u"Starting"_s;
     case core::PluginStatus::Failed:
         return u"Failed"_s;
     case core::PluginStatus::Disabled:
@@ -33,7 +37,7 @@ QString statusText(const core::PluginState& state)
     case core::PluginStatus::Discovered:
         break;
     }
-    return state.manifest.kind == u"python" ? u"Runs in the AI service"_s : u"Not active"_s;
+    return u"Not active"_s;
 }
 
 QColor statusColor(core::PluginStatus status)
@@ -42,6 +46,8 @@ QColor statusColor(core::PluginStatus status)
     switch (status) {
     case core::PluginStatus::Active:
         return theme.success;
+    case core::PluginStatus::Starting:
+        return theme.textMuted;
     case core::PluginStatus::Failed:
         return theme.danger;
     case core::PluginStatus::Disabled:
@@ -52,16 +58,33 @@ QColor statusColor(core::PluginStatus status)
     return theme.textMuted;
 }
 
+// What the panel calls a plugin: its name, or its id when its manifest is broken and has none.
+QString title(const core::PluginManifest& manifest)
+{
+    return manifest.name.isEmpty() ? manifest.id : manifest.name;
+}
+
+// The parts that aren't empty, joined by the separator.
+QString joined(QStringList parts, const QString& separator)
+{
+    parts.removeAll(QString());
+    return parts.join(separator);
+}
+
 }  // namespace
 
-PluginsPanel::PluginsPanel(core::PluginManager& plugins, QWidget* parent)
+PluginsPanel::PluginsPanel(core::CommandBus& bus, core::PluginManager& plugins, QWidget* parent)
     : QWidget(parent)
+    , m_bus(bus)
     , m_plugins(plugins)
 {
     auto* layout = makePanelLayout(this);
     auto* rescan = new QPushButton(u"Rescan"_s, this);
     rescan->setToolTip(u"Reads the plugin folders again for new or changed plugins."_s);
-    connect(rescan, &QPushButton::clicked, this, [this] { m_plugins.discover(); });
+    connect(rescan, &QPushButton::clicked, this, [this] {
+        if (const auto result = executeAsking(m_bus, u"plugins.rescan"_s, {}, this); result && !*result)
+            setFeedback(result->error().message, true);
+    });
     layout->addLayout(makePanelHeader(u"Plugins"_s, {rescan}));
 
     auto* splitter = new QSplitter(Qt::Vertical, this);
@@ -137,8 +160,12 @@ PluginsPanel::PluginsPanel(core::PluginManager& plugins, QWidget* parent)
     });
     connect(m_activate, &QPushButton::clicked, this, &PluginsPanel::toggleActive);
     connect(m_enabled, &QCheckBox::toggled, this, [this](bool enabled) {
-        if (const auto result = m_plugins.setEnabled(m_selectedId, enabled); !result)
-            setFeedback(result.error(), true);
+        const auto result = executeAsking(m_bus, u"plugins.set_enabled"_s,
+                                          {{u"id"_s, m_selectedId}, {u"enabled"_s, enabled}}, this);
+        if (!result)
+            showDetails();  // Declined: the box shows the plugin as it is.
+        else if (!*result)
+            setFeedback(result->error().message, true);
     });
     connect(m_save, &QPushButton::clicked, this, &PluginsPanel::saveSettings);
     connect(&plugins, &core::PluginManager::pluginsChanged, this, &PluginsPanel::reloadList);
@@ -159,22 +186,12 @@ void PluginsPanel::selectPlugin(const QString& id)
     }
 }
 
-QString PluginsPanel::feedbackText() const
-{
-    return m_feedback->text();
-}
-
-int PluginsPanel::pluginCount() const
-{
-    return m_list->count();
-}
-
 void PluginsPanel::toggleActive()
 {
     const core::PluginState* state = m_plugins.plugin(m_selectedId);
     if (!state)
         return;
-    if (state->status == core::PluginStatus::Active) {
+    if (state->status == core::PluginStatus::Active || state->status == core::PluginStatus::Starting) {
         m_plugins.deactivate(m_selectedId);
         setFeedback(u"Deactivated."_s, false);
     } else if (const auto result = m_plugins.activate(m_selectedId); !result) {
@@ -190,8 +207,12 @@ void PluginsPanel::saveSettings()
         setFeedback(u"Fix the highlighted settings first."_s, true);
         return;
     }
-    if (const auto result = m_plugins.setSettings(m_selectedId, m_form->value()); !result) {
-        setFeedback(result.error(), true);
+    const auto result = executeAsking(m_bus, u"plugins.set_settings"_s,
+                                      {{u"id"_s, m_selectedId}, {u"settings"_s, m_form->value()}}, this);
+    if (!result)
+        return;
+    if (!*result) {
+        setFeedback(result->error().message, true);
         return;
     }
     setFeedback(u"Settings saved."_s, false);
@@ -203,10 +224,10 @@ void PluginsPanel::reloadList()
     const QSignalBlocker blocker(m_list);
     m_list->clear();
     for (const core::PluginState& state : m_plugins.plugins()) {
-        auto* item = new QListWidgetItem(u"%1  %2"_s.arg(state.manifest.name, state.manifest.version), m_list);
+        auto* item = new QListWidgetItem(joined({title(state.manifest), state.manifest.version}, u"  "_s), m_list);
         item->setData(Qt::UserRole, state.manifest.id);
         item->setData(Qt::DecorationRole, statusColor(state.status));
-        item->setToolTip(u"%1 — %2"_s.arg(state.manifest.id, statusText(state)));
+        item->setToolTip(u"%1 — %2"_s.arg(state.manifest.id, statusText(state.status)));
         if (state.manifest.id == keep)
             m_list->setCurrentItem(item);
     }
@@ -224,19 +245,20 @@ void PluginsPanel::showDetails()
         return;
     }
     const core::PluginManifest& manifest = state->manifest;
-    m_name->setText(manifest.name);
-    m_meta->setText(u"%1  ·  %2  ·  %3"_s.arg(manifest.id, manifest.version, manifest.kind));
+    m_name->setText(title(manifest));
+    const QString permissions = state->granted.isEmpty() ? u"No permissions"_s
+                                                         : u"Permissions: %1"_s.arg(state->granted.join(u", "_s));
+    m_meta->setText(joined({manifest.id, manifest.version, permissions}, u"  ·  "_s));
     m_description->setText(manifest.description);
     m_description->setVisible(!manifest.description.isEmpty());
-    m_status->setText(statusText(*state));
+    m_status->setText(statusText(state->status));
     m_status->setStyleSheet(u"color: %1; font-weight: 600;"_s.arg(statusColor(state->status).name()));
     m_error->setText(state->error);
     m_error->setVisible(!state->error.isEmpty());
 
-    const bool native = manifest.kind == u"native";
-    const bool active = state->status == core::PluginStatus::Active;
+    const bool active = state->status == core::PluginStatus::Active || state->status == core::PluginStatus::Starting;
     m_activate->setText(active ? u"Deactivate"_s : u"Activate"_s);
-    m_activate->setEnabled(native && state->status != core::PluginStatus::Disabled);
+    m_activate->setEnabled(state->status != core::PluginStatus::Disabled);
     {
         const QSignalBlocker blocker(m_enabled);
         m_enabled->setChecked(state->status != core::PluginStatus::Disabled);

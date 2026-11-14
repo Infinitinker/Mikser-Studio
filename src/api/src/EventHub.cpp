@@ -1,8 +1,10 @@
+// Sending the app's events to the clients of /v1/events, and dropping clients that do not keep
+// up.
 #include "EventHub.h"
 
 #include "Logging.h"
 #include "mikserstudio/core/CommandBus.h"
-#include "mikserstudio/core/UndoStack.h"
+#include "mikserstudio/core/EventBus.h"
 
 #include <QJsonDocument>
 #include <QWebSocket>
@@ -24,17 +26,9 @@ constexpr quint64 kMaxIncomingMessageBytes = 4096;
 
 EventHub::EventHub(core::CommandBus& bus, QObject* parent)
     : QObject(parent)
-    , m_bus(bus)
 {
-    connect(&bus, &core::CommandBus::executed, this, &EventHub::onExecuted);
-    connect(&bus, &core::CommandBus::failed, this, &EventHub::onFailed);
-    connect(&bus, &core::CommandBus::commandRegistered, this, [this](const QString& id) {
-        broadcast(QJsonObject{{u"type"_s, u"command.registered"_s}, {u"id"_s, id}});
-    });
-    connect(&bus, &core::CommandBus::commandUnregistered, this, [this](const QString& id) {
-        broadcast(QJsonObject{{u"type"_s, u"command.unregistered"_s}, {u"id"_s, id}});
-    });
-    connect(&bus.undoStack(), &core::UndoStack::changed, this, &EventHub::onUndoChanged);
+    connect(&bus.events(), &core::EventBus::published, this,
+            [this](const core::Event& event) { broadcast(core::toJson(event)); });
 }
 
 EventHub::~EventHub()
@@ -55,11 +49,6 @@ void EventHub::addClient(std::unique_ptr<QWebSocket> socket)
     });
     m_clients.append(client);
     qCDebug(lcApi) << "Events client connected," << m_clients.size() << "connected";
-}
-
-int EventHub::clientCount() const
-{
-    return static_cast<int>(m_clients.size());
 }
 
 void EventHub::closeAll()
@@ -87,38 +76,6 @@ void EventHub::broadcast(const QJsonObject& event)
         }
         client->sendTextMessage(message);
     }
-}
-
-void EventHub::onExecuted(const QString& id, const QJsonObject& params, const QJsonObject& result)
-{
-    broadcast(QJsonObject{
-        {u"type"_s, u"command.executed"_s},
-        {u"id"_s, id},
-        {u"params"_s, params},
-        {u"result"_s, result},
-    });
-}
-
-void EventHub::onFailed(const QString& id, const QJsonObject& params, const core::CommandError& error)
-{
-    broadcast(QJsonObject{
-        {u"type"_s, u"command.failed"_s},
-        {u"id"_s, id},
-        {u"params"_s, params},
-        {u"error"_s, QJsonObject{{u"code"_s, core::toString(error.code)}, {u"message"_s, error.message}}},
-    });
-}
-
-void EventHub::onUndoChanged()
-{
-    const core::UndoStack& undo = m_bus.undoStack();
-    broadcast(QJsonObject{
-        {u"type"_s, u"undo.changed"_s},
-        {u"canUndo"_s, undo.canUndo()},
-        {u"canRedo"_s, undo.canRedo()},
-        {u"undoText"_s, undo.undoText()},
-        {u"redoText"_s, undo.redoText()},
-    });
 }
 
 }  // namespace mikserstudio::api

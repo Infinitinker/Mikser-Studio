@@ -1,0 +1,25 @@
+{
+    "id": "mikserstudio.examples.hello",
+    "name": "Hello",
+    "version": "0.2.0",
+    "description": "Example plugin: a greeting command and a panel that runs it.",
+    "apiVersion": 1,
+    "entry": "main.lua",
+    "permissions": ["project.read", "ui"],
+    "settingsSchema": {
+        "type": "object",
+        "properties": {
+            "greeting": {
+                "type": "string",
+                "title": "Greeting",
+                "description": "Word the greeting starts with.",
+                "minLength": 1,
+                "default": "Hello"
+            }
+        },
+        "additionalProperties": false
+    },
+    "panels": [
+        {"id": "greeter", "title": "Greeter", "qml": "hello.qml", "defaultArea": "right"}
+    ]
+}

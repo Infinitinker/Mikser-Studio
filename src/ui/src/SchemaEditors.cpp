@@ -1,3 +1,4 @@
+// The schema form's editors: line edit, combo box, spin box, check box and JSON text, by schema type.
 #include "SchemaEditors.h"
 
 #include <QCheckBox>
@@ -82,7 +83,7 @@ public:
             m_combo->addItem(kNotSet);
             m_values.append(std::nullopt);
         }
-        for (const QJsonValue& option : options) {
+        for (const QJsonValue option : options) {
             m_combo->addItem(display(option));
             m_values.append(option);
         }
@@ -95,9 +96,9 @@ public:
         qsizetype index = 0;
         for (qsizetype i = 0; i < m_values.size(); ++i) {
             const auto& candidate = m_values.at(i);
-            const bool same = candidate && value
-                && (*candidate == *value
-                    || (candidate->isDouble() && value->isDouble() && candidate->toDouble() == value->toDouble()));
+            const bool same = candidate && value &&
+                              (*candidate == *value || (candidate->isDouble() && value->isDouble() &&
+                                                        candidate->toDouble() == value->toDouble()));
             if (same || (!candidate && !value)) {
                 index = i;
                 break;
@@ -230,10 +231,7 @@ public:
             return std::nullopt;
         return QJsonValue(m_box->isChecked());
     }
-    void setValue(const std::optional<QJsonValue>& value) override
-    {
-        m_box->setChecked(value && value->toBool());
-    }
+    void setValue(const std::optional<QJsonValue>& value) override { m_box->setChecked(value && value->toBool()); }
 
 private:
     QCheckBox* m_box;
@@ -294,7 +292,8 @@ QString singleSchemaType(const QJsonObject& schema)
     return {};
 }
 
-std::unique_ptr<FieldEditor> createFieldEditor(const QJsonObject& schema, bool optional, std::function<void()> changed)
+std::unique_ptr<FieldEditor> createFieldEditor(const QJsonObject& schema, bool optional,
+                                               const std::function<void()>& changed)
 {
     if (schema.value(u"enum").isArray())
         return std::make_unique<EnumEditor>(schema.value(u"enum").toArray(), optional, changed);

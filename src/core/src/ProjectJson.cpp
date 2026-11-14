@@ -1,3 +1,4 @@
+// The project file's JSON schema and the conversion of the project and its parts to and from JSON.
 #include "ProjectJson.h"
 
 #include "mikserstudio/core/JsonSchema.h"
@@ -169,23 +170,39 @@ QJsonObject mediaToJson(const MediaItem& item)
 QJsonObject trackToJson(const Track& track)
 {
     return QJsonObject{
-        {u"id"_s, track.id},
-        {u"kind"_s, toString(track.kind)},
-        {u"name"_s, track.name},
-        {u"muted"_s, track.muted},
-        {u"hidden"_s, track.hidden},
+        {u"id"_s, track.id},       {u"kind"_s, toString(track.kind)}, {u"name"_s, track.name},
+        {u"muted"_s, track.muted}, {u"hidden"_s, track.hidden},
     };
 }
 
 QJsonObject clipToJson(const Clip& clip)
 {
     return QJsonObject{
-        {u"id"_s, clip.id},
-        {u"mediaId"_s, clip.mediaId},
-        {u"trackId"_s, clip.trackId},
-        {u"position"_s, clip.position},
-        {u"in"_s, clip.in},
-        {u"out"_s, clip.out},
+        {u"id"_s, clip.id}, {u"mediaId"_s, clip.mediaId}, {u"trackId"_s, clip.trackId}, {u"position"_s, clip.position},
+        {u"in"_s, clip.in}, {u"out"_s, clip.out},
+    };
+}
+
+QJsonObject projectToJson(Rational frameRate, int width, int height, const QList<MediaItem>& media,
+                          const QList<Track>& tracks, const QList<Clip>& clips)
+{
+    QJsonArray mediaJson;
+    for (const MediaItem& item : media)
+        mediaJson.append(mediaToJson(item));
+    QJsonArray tracksJson;
+    for (const Track& track : tracks)
+        tracksJson.append(trackToJson(track));
+    QJsonArray clipsJson;
+    for (const Clip& clip : clips)
+        clipsJson.append(clipToJson(clip));
+    return QJsonObject{
+        {u"version"_s, ProjectModel::kFormatVersion},
+        {u"frameRate"_s, rationalToJson(frameRate)},
+        {u"width"_s, width},
+        {u"height"_s, height},
+        {u"media"_s, mediaJson},
+        {u"tracks"_s, tracksJson},
+        {u"clips"_s, clipsJson},
     };
 }
 
@@ -198,12 +215,12 @@ std::expected<ProjectDocument, QString> projectFromJson(const QJsonObject& json)
     document.frameRate = rationalFromJson(json.value(u"frameRate").toObject());
     document.width = json.value(u"width").toInt();
     document.height = json.value(u"height").toInt();
-    for (const QJsonValue& value : json.value(u"media").toArray()) {
+    for (const QJsonValue value : json.value(u"media").toArray()) {
         const QJsonObject object = value.toObject();
         const QString path = object.value(u"path").toString();
         if (!isAllowedMediaPath(path)) {
             return std::unexpected(
-                u"The project file is damaged: media \"%1\" has the path \"%2\", which is not an absolute path to a "
+                u"The project file is damaged: media “%1” has the path “%2”, which is not an absolute path to a "
                 "file on this computer. Mikser Studio only opens local media files from projects; import the file again."_s
                     .arg(object.value(u"id").toString(), path));
         }
@@ -215,7 +232,7 @@ std::expected<ProjectDocument, QString> projectFromJson(const QJsonObject& json)
             .provenance = object.value(u"provenance").toObject(),
         });
     }
-    for (const QJsonValue& value : json.value(u"tracks").toArray()) {
+    for (const QJsonValue value : json.value(u"tracks").toArray()) {
         const QJsonObject object = value.toObject();
         document.tracks.append(Track{
             .id = object.value(u"id").toString(),
@@ -225,7 +242,7 @@ std::expected<ProjectDocument, QString> projectFromJson(const QJsonObject& json)
             .hidden = object.value(u"hidden").toBool(),
         });
     }
-    for (const QJsonValue& value : json.value(u"clips").toArray()) {
+    for (const QJsonValue value : json.value(u"clips").toArray()) {
         const QJsonObject object = value.toObject();
         document.clips.append(Clip{
             .id = object.value(u"id").toString(),

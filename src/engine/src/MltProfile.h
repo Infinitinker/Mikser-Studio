@@ -1,3 +1,4 @@
+// Makes the MLT profile (frame rate, size, progressive, BT.709) a player works in, and checks one against a format.
 #pragma once
 
 #include "mikserstudio/core/Project.h"

@@ -1,3 +1,4 @@
+// Generates the menu bar's menus from the registered commands and keeps them in sync with the command bus.
 #pragma once
 
 #include <QHash>
@@ -42,7 +43,7 @@ private:
     QMenuBar* m_menuBar;
     QWidget* m_dialogParent;
     QAction* m_insertBefore = nullptr;
-    QHash<QString, QMenu*> m_menus;      // By category.
+    QHash<QString, QMenu*> m_menus;  // By category.
     QHash<QString, QAction*> m_actions;  // By command id.
     QHash<QString, QString> m_categoryOf;
 };

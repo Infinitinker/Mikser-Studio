@@ -1,3 +1,4 @@
+// The AI panel's job row: shows one entry of the "jobs.list" result and offers Cancel.
 #include "AiJobRow.h"
 
 #include "mikserstudio/ui/Theme.h"
@@ -32,7 +33,7 @@ QColor stateColor(const QString& state)
 
 bool isFinished(const QString& state)
 {
-    return state == u"succeeded" || state == u"failed" || state == u"cancelled";
+    return state == u"succeeded" || state == u"failed" || state == u"canceled";
 }
 
 }  // namespace
@@ -56,7 +57,7 @@ AiJobRow::AiJobRow(QWidget* parent)
     m_result->setWordWrap(true);
     m_result->setTextInteractionFlags(Qt::TextSelectableByMouse);
     m_result->hide();
-    m_cancel->setToolTip(u"Stops the job (ai.cancel_job)."_s);
+    m_cancel->setToolTip(u"Stops the job (jobs.cancel)."_s);
     connect(m_cancel, &QPushButton::clicked, this, [this] { Q_EMIT cancelRequested(m_jobId); });
 
     auto* layout = new QGridLayout(this);
@@ -86,7 +87,9 @@ void AiJobRow::update(const QJsonObject& job)
 
     const QString error = job.value(u"error").toString();
     const QString message = job.value(u"message").toString();
-    m_detail->setText(!error.isEmpty() ? error : message.isEmpty() ? u"%1 %"_s.arg(std::lround(progress * 100.0)) : message);
+    m_detail->setText(!error.isEmpty()    ? error
+                      : message.isEmpty() ? u"%1 %"_s.arg(std::lround(progress * 100.0))
+                                          : message);
     m_detail->setStyleSheet(error.isEmpty() ? QString() : u"color: %1;"_s.arg(darkTheme().danger.name()));
     m_cancel->setVisible(!isFinished(m_state));
 

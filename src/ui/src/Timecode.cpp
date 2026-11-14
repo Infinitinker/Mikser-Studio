@@ -1,3 +1,4 @@
+// Timecode and duration formatting.
 #include "Timecode.h"
 
 #include <algorithm>
@@ -36,7 +37,8 @@ QString formatTimecode(core::FramePos frame, core::Rational rate)
 QString formatDuration(core::FramePos frames, core::Rational rate)
 {
     const double fps = rate.toDouble() > 0.0 ? rate.toDouble() : 30.0;
-    const auto totalSeconds = static_cast<core::FramePos>(std::llround(static_cast<double>(std::max<core::FramePos>(frames, 0)) / fps));
+    const auto totalSeconds = static_cast<core::FramePos>(
+        std::llround(static_cast<double>(std::max<core::FramePos>(frames, 0)) / fps));
     const core::FramePos seconds = totalSeconds % 60;
     const core::FramePos minutes = (totalSeconds / 60) % 60;
     const core::FramePos hours = totalSeconds / 3600;

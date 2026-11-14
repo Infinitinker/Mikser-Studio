@@ -1,3 +1,4 @@
+// A stand-in for the AI commands in the UI demo, so the AI panel works without Ollama or ComfyUI.
 #pragma once
 
 #include <QJsonArray>
@@ -7,20 +8,20 @@
 
 namespace mikserstudio::core {
 class CommandBus;
-class ProjectModel;
 }  // namespace mikserstudio::core
 
 namespace mikserstudio::ui::demo {
 
-// Stand-in for the services module's AI commands, with the same names and result shapes
-// (ai.upscale_clip, ai.generate_text, ai.jobs, ai.cancel_job), so the AI panel can be tried
-// without the Python sidecar. Jobs only advance a progress value; nothing is generated: upscale
-// jobs finish with a note saying so and text jobs answer with a canned sentence.
+// Stand-in for the commands the AI panel runs, with the same names and result shapes: ai.run with
+// image.generate, the Ollama plugin's mikserstudio.ollama.generate_text, and the job commands
+// jobs.list and jobs.cancel, so the AI panel can be tried without the AI tools. Jobs only advance a
+// progress value; nothing is generated: image jobs finish with a note saying so and text jobs answer
+// with a canned sentence.
 class FakeAiService final : public QObject {
     Q_OBJECT
 
 public:
-    FakeAiService(core::CommandBus& bus, const core::ProjectModel& project, QObject* parent = nullptr);
+    explicit FakeAiService(core::CommandBus& bus, QObject* parent = nullptr);
     ~FakeAiService() override;
 
     // Adds a job directly (for the demo's initial state).
@@ -41,7 +42,6 @@ private:
     [[nodiscard]] QJsonArray jobsJson() const;
 
     core::CommandBus& m_bus;
-    const core::ProjectModel& m_project;
     QList<Job> m_jobs;
     QTimer m_timer;
     QStringList m_commandIds;

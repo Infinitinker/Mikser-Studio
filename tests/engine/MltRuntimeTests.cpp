@@ -1,3 +1,5 @@
+// The MLT runtime: it starts once with the services playback needs, reports a wrong override folder in user
+// terms, and finds its folders without an environment override.
 #include "EngineTestSupport.h"
 
 #include "MltPaths.h"
@@ -8,7 +10,7 @@
 using namespace Qt::StringLiterals;
 using mikserstudio::engine::MltRuntime;
 
-TEST_CASE("MLT initialises once with the services playback needs", "[mlt]")
+TEST_CASE("MLT initializes once with the services playback needs", "[mlt]")
 {
     const auto first = MltRuntime::initialize();
     REQUIRE(first.has_value());

@@ -1,3 +1,4 @@
+// A transport without media for the UI demo: a timer moves the playhead like the real engine would.
 #pragma once
 
 #include "mikserstudio/core/Transport.h"

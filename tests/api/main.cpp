@@ -1,3 +1,5 @@
+// Entry point of the local API tests: they run in a QCoreApplication with Qt's test mode on, so the discovery
+// file stays out of the real user folders.
 #include <catch2/catch_session.hpp>
 
 #include <QCoreApplication>

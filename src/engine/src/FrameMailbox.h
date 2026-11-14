@@ -1,3 +1,4 @@
+// The one-slot hand-over of frames from a player's MLT thread to the monitor window: it keeps only the newest frame.
 #pragma once
 
 #include "mikserstudio/engine/FrameSink.h"

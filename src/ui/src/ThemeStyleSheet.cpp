@@ -1,3 +1,4 @@
+// The widget style sheet of the theme, with its color tokens filled in.
 #include "mikserstudio/ui/Theme.h"
 
 #include <QList>

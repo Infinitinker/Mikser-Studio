@@ -1,3 +1,5 @@
+// The timeline model: tracks run top to bottom, it follows clips added, changed and removed, marks selected
+// clips, resets with the project and names its roles for QML.
 #include "mikserstudio/core/Project.h"
 #include "mikserstudio/ui/ClipSelection.h"
 #include "mikserstudio/ui/Theme.h"
@@ -45,8 +47,8 @@ struct TimelineFixture {
     {
         REQUIRE(project.addMedia(media(u"media-video"_s, u"Interview.mp4"_s, MediaKind::Video)));
         REQUIRE(project.addMedia(media(u"media-audio"_s, u"Score.wav"_s, MediaKind::Audio)));
-        REQUIRE(project.addMedia(media(u"media-ai"_s, u"Upscaled.mp4"_s, MediaKind::Video,
-                                       QJsonObject{{u"jobId"_s, u"job-1"_s}})));
+        REQUIRE(project.addMedia(
+            media(u"media-ai"_s, u"Upscaled.mp4"_s, MediaKind::Video, QJsonObject{{u"jobId"_s, u"job-1"_s}})));
     }
 
     [[nodiscard]] QVariant data(const QString& clipId, int role) const
@@ -115,7 +117,7 @@ TEST_CASE("TimelineModel follows clips added, changed and removed", "[timeline]"
 
     // Every row still points at a clip of the project.
     for (int row = 0; row < f.model.rowCount(); ++row)
-        CHECK(f.project.findClip(f.model.clipIdAt(row)) != nullptr);
+        CHECK(f.project.findClip(f.model.index(row).data(TimelineModel::ClipIdRole).toString()) != nullptr);
 }
 
 TEST_CASE("TimelineModel marks selected clips and resets with the project", "[timeline]")

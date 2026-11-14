@@ -4,6 +4,8 @@ find_package(Qt6 6.8 REQUIRED COMPONENTS Network WebSockets)
 add_executable(mikserstudio-api-tests
     ApiTestSupport.cpp
     ApiTestSupport.h
+    HttpTestSupport.cpp
+    HttpTestSupport.h
     AuthTests.cpp
     DiscoveryFileTests.cpp
     EventsTests.cpp

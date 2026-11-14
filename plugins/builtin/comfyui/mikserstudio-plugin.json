@@ -1,0 +1,24 @@
+{
+    "id": "mikserstudio.comfyui",
+    "name": "ComfyUI",
+    "version": "1.0.0",
+    "description": "Generates images with Qwen Image 2.1 in a ComfyUI that runs on this computer or another one, and adds them to the media bin.",
+    "apiVersion": 1,
+    "entry": "main.lua",
+    "permissions": ["network", "files", "project.read", "project.write"],
+    "network": ["127.0.0.1:*", "localhost:*", "[::1]:*", "*:*"],
+    "settingsSection": "AI tools",
+    "settingsSchema": {
+        "type": "object",
+        "properties": {
+            "url": {
+                "type": "string",
+                "title": "Address",
+                "description": "Where ComfyUI listens, such as http://127.0.0.1:8188.",
+                "default": "http://127.0.0.1:8188",
+                "pattern": "^https?://[^/\\s]+"
+            }
+        },
+        "additionalProperties": false
+    }
+}

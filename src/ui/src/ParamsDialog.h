@@ -1,3 +1,4 @@
+// The dialog that asks for a command's params with a form generated from its schema, then runs the command.
 #pragma once
 
 #include "mikserstudio/core/Command.h"
@@ -9,6 +10,7 @@
 #include <optional>
 
 class QLabel;
+class QPushButton;
 
 namespace mikserstudio::core {
 class CommandBus;
@@ -28,7 +30,7 @@ public:
 
     [[nodiscard]] SchemaForm* form() const { return m_form; }
     // The successful result, set when the dialog was accepted.
-    [[nodiscard]] std::expected<QJsonObject, core::CommandError> result() const { return m_result; }
+    [[nodiscard]] std::expected<QJsonObject, core::CommandError> outcome() const { return m_result; }
 
     void run();  // What the Run button does.
 
@@ -37,6 +39,7 @@ private:
     QString m_commandId;
     SchemaForm* m_form = nullptr;
     QLabel* m_error = nullptr;
+    QPushButton* m_runButton = nullptr;
     std::expected<QJsonObject, core::CommandError> m_result;
 };
 

@@ -1,3 +1,5 @@
+// Receiving requests for the local API, answering them through the router, logging them without secrets and
+// checking WebSocket upgrades.
 #include "HttpFrontend.h"
 
 #include "ApiResponse.h"
@@ -11,6 +13,8 @@
 #include <QHttpServerRequest>
 #include <QHttpServerResponder>
 #include <QMetaEnum>
+
+#include <memory>
 
 using namespace Qt::StringLiterals;
 
@@ -52,11 +56,14 @@ bool HttpFrontend::handleRequest(const QHttpServerRequest& request, QHttpServerR
 {
     QElapsedTimer timer;
     timer.start();
-    ApiResponse response = m_router.handle(request);
-    response.headers.append(QHttpHeaders::WellKnownHeader::CacheControl, "no-store");
-    responder.write(response.body, response.headers, response.status);
-    qCDebug(lcApi).noquote() << describe(request) << "->" << static_cast<int>(response.status) << "in"
-                             << timer.elapsed() << "ms";
+    // Kept until the answer comes, which for a command that answers later is after this returns.
+    auto kept = std::make_shared<QHttpServerResponder>(std::move(responder));
+    m_router.handle(request, this, [kept, timer, what = describe(request)](ApiResponse response) {
+        response.headers.append(QHttpHeaders::WellKnownHeader::CacheControl, "no-store");
+        kept->write(response.body, response.headers, response.status);
+        qCDebug(lcApi).noquote() << what << "->" << static_cast<int>(response.status) << "in" << timer.elapsed()
+                                 << "ms";
+    });
     return true;
 }
 
@@ -80,8 +87,9 @@ QHttpServerWebSocketUpgradeResponse HttpFrontend::verifyUpgrade(const QHttpServe
         qCDebug(lcApi).noquote() << what << "-> 401";
         return QHttpServerWebSocketUpgradeResponse::deny(
             static_cast<int>(HttpStatus::Unauthorized),
-            compactErrorJson(u"unauthorized"_s,
-                             u"Missing or wrong API token. Pass ?token=<token> or \"Authorization: Bearer <token>\"."_s));
+            compactErrorJson(
+                u"unauthorized"_s,
+                u"Missing or wrong API token. Pass ?token=<token> or \"Authorization: Bearer <token>\"."_s));
     }
     qCDebug(lcApi).noquote() << what << "-> 101";
     return QHttpServerWebSocketUpgradeResponse::accept();

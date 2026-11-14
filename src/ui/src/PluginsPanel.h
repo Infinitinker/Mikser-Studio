@@ -1,3 +1,5 @@
+// The Plugins panel: lists the plugins with their status, switches them on and off and edits their
+// settings.
 #pragma once
 
 #include <QWidget>
@@ -9,8 +11,9 @@ class QPushButton;
 class QStackedLayout;
 
 namespace mikserstudio::core {
+class CommandBus;
 class PluginManager;
-}
+}  // namespace mikserstudio::core
 
 namespace mikserstudio::ui {
 
@@ -23,13 +26,9 @@ class PluginsPanel final : public QWidget {
     Q_OBJECT
 
 public:
-    explicit PluginsPanel(core::PluginManager& plugins, QWidget* parent = nullptr);
+    PluginsPanel(core::CommandBus& bus, core::PluginManager& plugins, QWidget* parent = nullptr);
 
     void selectPlugin(const QString& id);
-    [[nodiscard]] QString selectedPlugin() const { return m_selectedId; }
-    [[nodiscard]] SchemaForm* settingsForm() const { return m_form; }
-    [[nodiscard]] QString feedbackText() const;
-    [[nodiscard]] int pluginCount() const;
 
     void toggleActive();
     void saveSettings();
@@ -39,6 +38,7 @@ private:
     void showDetails();
     void setFeedback(const QString& message, bool error);
 
+    core::CommandBus& m_bus;
     core::PluginManager& m_plugins;
     QString m_selectedId;
     QString m_formPluginId;  // Whose settings the form shows.

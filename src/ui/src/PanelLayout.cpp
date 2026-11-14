@@ -1,3 +1,4 @@
+// The shared panel layout helpers: margins, header row and labels with a theme role.
 #include "PanelLayout.h"
 
 #include "mikserstudio/ui/Theme.h"

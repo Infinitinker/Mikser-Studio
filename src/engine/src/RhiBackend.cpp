@@ -1,3 +1,4 @@
+// Choosing the QRhi backend of the monitor windows, preparing their surfaces and creating the QRhi.
 #include "RhiBackend.h"
 
 #include "Logging.h"
@@ -69,7 +70,7 @@ QRhi::Implementation preferredRhiBackend()
     const QString platform = QGuiApplication::platformName();
     if (platform == u"offscreen"_s || platform == u"minimal"_s)
         return QRhi::Null;
-#if defined(Q_OS_WIN)
+#ifdef Q_OS_WIN
     return QRhi::D3D11;
 #elif defined(Q_OS_MACOS) || defined(Q_OS_IOS)
     return QRhi::Metal;
@@ -113,7 +114,7 @@ std::unique_ptr<QRhi> createRhi(QRhi::Implementation backend, QWindow& window)
 {
     std::unique_ptr<QRhi> rhi;
     switch (backend) {
-#if defined(Q_OS_WIN)
+#ifdef Q_OS_WIN
     case QRhi::D3D11: {
         QRhiD3D11InitParams params;
         rhi.reset(QRhi::create(QRhi::D3D11, &params));

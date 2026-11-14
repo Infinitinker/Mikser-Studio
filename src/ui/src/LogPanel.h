@@ -1,3 +1,4 @@
+// The Log panel: the commands run in this session with their params, results and errors.
 #pragma once
 
 #include <QWidget>
@@ -17,7 +18,7 @@ class LogPanel final : public QWidget {
     Q_OBJECT
 
 public:
-    LogPanel(CommandLogModel& model, QWidget* parent = nullptr);
+    explicit LogPanel(CommandLogModel& model, QWidget* parent = nullptr);
 
 private:
     QTreeView* m_view;

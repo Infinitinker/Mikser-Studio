@@ -1,3 +1,4 @@
+// The timeline's clips as a list model for QML, kept in sync with the project.
 #pragma once
 
 #include "mikserstudio/core/Project.h"
@@ -48,7 +49,6 @@ public:
     [[nodiscard]] QStringList trackOrder() const { return m_trackOrder; }
     [[nodiscard]] int rowOfTrack(const QString& trackId) const;
     [[nodiscard]] QString trackAtRow(int row) const;
-    [[nodiscard]] QString clipIdAt(int row) const;
     [[nodiscard]] int rowOfClip(const QString& clipId) const;
 
 Q_SIGNALS:
@@ -64,7 +64,7 @@ private:
 
     const core::ProjectModel& m_project;
     const ClipSelection& m_selection;
-    QStringList m_clipIds;     // Row order.
+    QStringList m_clipIds;  // Row order.
     QStringList m_trackOrder;  // Top to bottom.
 };
 

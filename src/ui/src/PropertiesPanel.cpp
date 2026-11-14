@@ -1,3 +1,4 @@
+// The Properties panel: the clip's fields, and the move and trim commands that edits run.
 #include "PropertiesPanel.h"
 
 #include "CommandInvoker.h"
@@ -96,9 +97,11 @@ PropertiesPanel::PropertiesPanel(core::CommandBus& bus, const core::ProjectModel
     form->addRow(u"Position"_s, positionCell);
 
     m_in = frameSpinBox(details);
+    m_in->setObjectName(u"in"_s);
     m_in->setToolTip(u"First source frame used (timeline.trim_clip)."_s);
     form->addRow(u"In"_s, m_in);
     m_out = frameSpinBox(details);
+    m_out->setObjectName(u"out"_s);
     m_out->setToolTip(u"Source frame after the last one used (timeline.trim_clip)."_s);
     m_trimTimecode = makeLabel({}, u"hint"_s, details);
     auto* outCell = new QWidget(details);
@@ -113,6 +116,7 @@ PropertiesPanel::PropertiesPanel(core::CommandBus& bus, const core::ProjectModel
     form->addRow(u"Duration"_s, m_duration);
 
     m_error = makeLabel({}, u"error"_s, details);
+    m_error->setObjectName(u"error"_s);
     m_error->setWordWrap(true);
     m_error->hide();
     form->addRow(m_error);
@@ -136,21 +140,15 @@ PropertiesPanel::PropertiesPanel(core::CommandBus& bus, const core::ProjectModel
     refresh();
 }
 
-QString PropertiesPanel::errorText() const
-{
-    return m_error->isHidden() ? QString() : m_error->text();
-}
-
 void PropertiesPanel::commitPosition()
 {
     const core::Clip* clip = m_project.findClip(m_clipId);
     if (!clip || m_position->value() == clip->position)
         return;
-    const auto run = executeInteractive(m_bus, u"timeline.move_clip"_s,
-                                        QJsonObject{{u"clipId"_s, clip->id},
-                                                    {u"trackId"_s, clip->trackId},
-                                                    {u"position"_s, m_position->value()}},
-                                        this);
+    const auto run = executeInteractive(
+        m_bus, u"timeline.move_clip"_s,
+        QJsonObject{{u"clipId"_s, clip->id}, {u"trackId"_s, clip->trackId}, {u"position"_s, m_position->value()}},
+        this);
     if (run && !*run)
         showError(run->error().message);
     else if (run)
@@ -228,7 +226,8 @@ void PropertiesPanel::refresh()
     m_in->setValue(toInt(clip->in));
     m_out->setValue(toInt(clip->out));
 
-    m_positionTimecode->setText(u"%1 → %2"_s.arg(formatTimecode(clip->position, rate), formatTimecode(clip->end(), rate)));
+    m_positionTimecode->setText(
+        u"%1 → %2"_s.arg(formatTimecode(clip->position, rate), formatTimecode(clip->end(), rate)));
     m_trimTimecode->setText(u"Source %1 → %2"_s.arg(formatTimecode(clip->in, rate), formatTimecode(clip->out, rate)));
     m_duration->setText(u"%1  (%2 frames)"_s.arg(formatTimecode(clip->length(), rate)).arg(clip->length()));
     m_stack->setCurrentIndex(1);

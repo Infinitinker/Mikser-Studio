@@ -40,14 +40,19 @@ While the server runs, it writes a JSON file (atomically, with `QSaveFile`):
 }
 ```
 
-Default location: `QStandardPaths::AppLocalDataLocation` + `/api.json`, with the application name
-`Mikser Studio` (the app sets no organization name, so there is no extra folder level):
+Location: `api.json` in the data folder of the Mikser Studio that runs (`core::UserFolders`,
+`QStandardPaths::AppLocalDataLocation` for the instance's name, or `MIKSERSTUDIO_DATA_DIR`). For the
+installed app, named `Mikser Studio` (it sets no organization name, so there is no extra folder level):
 
 | OS | Path |
 |---|---|
 | Windows | `%LOCALAPPDATA%\Mikser Studio\api.json` |
 | macOS | `~/Library/Application Support/Mikser Studio/api.json` |
 | Linux | `~/.local/share/Mikser Studio/api.json` |
+
+A build from source and the app under the end-to-end tests are named `Mikser Studio Dev` and `Mikser
+Studio E2E` (see [development.md](development.md#instances)), so their files are in folders of those
+names instead.
 
 The file is removed when the server stops or the app exits normally. If the app crashes the file
 stays behind: check that `pid` is still running (or that `GET /v1/health` answers) before trusting
@@ -76,10 +81,13 @@ TOKEN=$(jq -r .token "$HOME/.local/share/Mikser Studio/api.json")
 | 400 | `invalid_params` | The params do not match the command's `paramsSchema`, or the body is not a JSON object. |
 | 400 | `malformed_json` | The body is not valid JSON. |
 | 401 | `unauthorized` | Missing or wrong token (also sends `WWW-Authenticate: Bearer`). |
+| 403 | `permission_denied` | The caller lacks the command's `permission`. API clients carry every permission, so today only a command a plugin runs for them can answer this. |
 | 404 | `unknown_command` | No command with that id. |
 | 404 | `not_found` | No such route. |
 | 405 | `method_not_allowed` | Wrong HTTP method (the `Allow` header lists the right ones). |
 | 409 | `not_available` | The command exists but cannot run now (e.g. nothing to undo). |
+| 409 | `needs_confirmation` | This run needs the person's agreement; the message is the question (see `confirmationParam`). |
+| 409 | `canceled` | The run was stopped before it finished, such as a command that answers later and didn't within 60 seconds. |
 | 413 | `payload_too_large` | The body is larger than 1 MiB (1 048 576 bytes). |
 | 426 | `upgrade_required` | A plain GET on `/v1/events`, which is a WebSocket. |
 | 500 | `failed` | The command ran and failed; the message says why. |
@@ -100,10 +108,12 @@ curl -s http://127.0.0.1:52341/v1/health
 ```
 
 ```json
-{"apiVersion": 1, "name": "Mikser Studio", "version": "0.1.0"}
+{"apiVersion": 1, "name": "Mikser Studio", "pluginsReady": true, "version": "0.1.0"}
 ```
 
-`apiVersion` changes only on breaking changes; new routes, fields and commands may be added to
+`pluginsReady` is true once every plugin that is on has started or failed; tests and agents that need
+a plugin's commands wait for it (or for the `plugins.changed` event that says so). `apiVersion`
+changes only on breaking changes; new routes, fields and commands may be added to
 version 1 at any time, so ignore fields you do not know.
 
 ### `GET /v1/commands`
@@ -123,15 +133,52 @@ curl -s -H "Authorization: Bearer $TOKEN" "$API/v1/commands"
         "category": "Edit",
         "paramsSchema": {"type": "object", "properties": {}, "additionalProperties": false},
         "shortcut": "Ctrl+Z",
-        "undoable": false
+        "undoable": false,
+        "readOnly": false,
+        "confirmation": "",
+        "confirmationParam": "",
+        "owner": "core",
+        "resultSchema": {"type": "object", "properties": {"text": {"type": "string"}}, "required": ["text"]},
+        "permission": "project.write",
+        "startsJob": false,
+        "openWorld": false,
+        "quiet": false,
+        "async": false
     },
     ...
 ]
 ```
 
 `paramsSchema` is a JSON Schema (draft 2020-12 subset, see `mikserstudio/core/JsonSchema.h`) of the params
-object. `undoable` is true when a successful run adds a step to the undo history. Plugins add and
-remove commands at run time; the events socket reports those changes.
+object. `undoable` is true when a successful run adds a step to the undo history. `readOnly` is true
+when the command only reads and changes nothing (such as `project.list`). `confirmation`, when not
+empty, is the question a client asks the person before it runs the command, because the command
+always replaces or deletes their work; the API itself runs it without asking. `confirmationParam`,
+when not empty, names a boolean parameter for commands that need the person's agreement only on some
+runs: `project.new` and `project.open` (`discard`) only while there are unsaved changes, and
+`project.save` and `project.save_as` (`overwrite`) only when they would replace another existing file;
+saving to the project's own file never asks. Such a run without the parameter fails with
+`409 needs_confirmation`, whose message is the question to ask; the client asks the person and, when
+they agree, runs the command again with the parameter set to `true`. A plugin can't agree for the
+person: when a plugin runs one of these commands, the run answers `409 needs_confirmation` until the
+person agrees.
+
+`owner` is `core` for the app's own commands and the plugin's id for a plugin's; a command's spec
+changes (`command.changed`) and its commands go away with their owner. `resultSchema`, when
+not empty, is the JSON Schema of a successful run's `result`, such as `{path}` for `project.save`.
+`permission` is what a caller needs to run the command ([architecture.md](architecture.md#permissions)):
+`project.read` for read-only commands, `project.write` for changes to the project, `files` for
+reading and writing files (opening, saving and importing), `network` for talking to the AI tools and
+changing their addresses, `ui` for the monitors and playback, and `plugins.manage` for the
+`plugins.*` commands. The person and the API's clients hold every permission; a plugin holds those
+it was granted, and its commands run with no more than its own and its caller's. `startsJob` is true when the work goes on in a job that the result names
+(`ai.run` answers `{jobId}`; `ai.jobs` follows it). `openWorld` is true when the command reaches
+outside the app, to an AI tool that may be on another computer or online. `quiet` is true for
+bookkeeping that the command log and the status bar leave out, as they leave out read-only commands:
+the seeks of `program.seek` and `source.seek`, which scrubbing sends many times. `async` is true for
+a command that answers later, after work that takes a while, such as a plugin's call to a tool;
+`POST` waits for it (see below).
+Plugins add and remove commands at run time; the events socket reports those changes.
 
 ### `GET /v1/commands/<id>`
 
@@ -154,6 +201,10 @@ curl -s -X POST -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/
 ```json
 {"result": {"mediaId": "media-43f78b2b-a279-419f-9256-c92174caf7aa"}}
 ```
+
+A command whose spec has `async` answers later; the request waits for it. When it hasn't finished
+within 60 seconds, the API stops waiting and answers `409 canceled`: its work may go on, and
+`/v1/events` tells when it ends.
 
 Undo and redo are commands too:
 
@@ -188,15 +239,45 @@ websocat "ws://127.0.0.1:52341/v1/events?token=$TOKEN"
 Each text message is one JSON object with a `type`:
 
 ```json
-{"type": "command.executed", "id": "project.import_media", "params": {"path": "D:/samples/sample-30s.mp4"}, "result": {"mediaId": "media-..."}}
-{"type": "command.failed", "id": "edit.undo", "params": {}, "error": {"code": "not_available", "message": "There is nothing to undo."}}
+{"type": "command.executed", "id": "project.import_media", "params": {"path": "D:/samples/sample-30s.mp4"}, "result": {"mediaId": "media-..."}, "origin": "api", "origins": ["api"]}
+{"type": "command.failed", "id": "edit.undo", "params": {}, "error": {"code": "not_available", "message": "There is nothing to undo."}, "origin": "ui", "origins": ["ui"]}
 {"type": "command.registered", "id": "hello.greet"}
 {"type": "command.unregistered", "id": "hello.greet"}
-{"type": "undo.changed", "canUndo": true, "canRedo": false, "undoText": "Import \"sample-30s.mp4\"", "redoText": ""}
+{"type": "command.changed", "id": "hello.greet"}
+{"type": "undo.changed", "canUndo": true, "canRedo": false, "undoText": "Import “sample-30s.mp4”", "redoText": "", "undoOrigins": ["api"]}
+{"type": "media.added", "mediaId": "media-...", "origin": "api", "origins": ["api"]}
+{"type": "clip.changed", "clipId": "clip-...", "origin": "ui", "origins": ["ui"]}
+{"type": "job.progress", "jobId": "aijob-...", "progress": 0.5, "message": "Step 10 of 20", "origin": "api", "origins": ["api"]}
+{"type": "transport.state", "transport": "program", "position": 120, "duration": 900, "state": "playing", "frameRate": {"num": 30, "den": 1}}
 ```
 
 - Events cover **every** command run, whether it came from the API, the UI, a shortcut or a plugin.
-  `params` are the params after defaults were applied.
+  A run that answers `needs_confirmation` publishes none: it is a question for the caller, and the
+  run after the person agrees is the one reported. `params` are the params after defaults were
+  applied. `origin` says who started the run: `ui` (the
+  person, in the interface), `api` (a client of this API, such as an agent through the MCP bridge) or
+  `plugin:<id>`. `origins` is the chain of callers, the one who started the run first: a plugin's
+  command run through the API is `["api", "plugin:hello"]`. Commands a command runs keep its origin.
+  The project's changes and jobs carry the origin of the command that caused them; `undo.changed`
+  names the origins of the step that undo would revert (`undoOrigins`). An event the app causes by
+  itself, such as a plugin's commands registered at start-up, has none.
+- The project's changes come with the id of what changed: `media.added` and `media.removed`
+  (`mediaId`), `clip.added`, `clip.removed` and `clip.changed` (`clipId`), `track.added`,
+  `track.removed` and `track.changed` (`trackId`), `project.reset` (a new or opened project) and
+  `project.file_changed` (`path`). Read the details with `project.list`, which answers with the
+  project's `session` (it changes when a project is started or opened, so ids from another session
+  are gone) and its `revision` (it grows with every change); `project.session` answers just those
+  two.
+- Jobs report `job.created` (`jobId`, `kind`, `title`, `owner`, `lane`), `job.progress`
+  (`progress` from 0 to 1, `message`; at most 10 a second per job) and `job.finished` (`state`:
+  `succeeded`, `failed` or `canceled`, `error`, `result`). `jobs.list` lists them, the AI engine's
+  included, with the same ids as `ai.run` gives; `jobs.cancel {jobId}` cancels one.
+- `plugins.changed` (`ready`) reports that a plugin was found, started, failed, turned on or off,
+  or reloaded; `plugins.list` answers the details. `ready` is what
+  `GET /v1/health` answers as `pluginsReady`.
+- `transport.state` reports a monitor's playback (`transport` is `program` or `source`, with the
+  status the transport commands return), when it changes and at most 10 times a second per monitor:
+  the first change at once and the last one of a burst within 100 ms.
 - For an undoable command, `undo.changed` arrives before its `command.executed`.
 - No state is sent on connect: call `GET /v1/commands` (and the commands you care about) after the
   socket is open to get the current state, then apply events.
@@ -204,15 +285,76 @@ Each text message is one JSON object with a `type`:
   stops reading and lets more than 8 MiB of events pile up is disconnected.
 - When the server stops, clients are closed with code 1001 (going away).
 
+## MCP bridge
+
+The MCP bridge offers the commands to agents that speak the
+[Model Context Protocol](https://modelcontextprotocol.io), such as Claude Code. It is a program of
+its own, `mikser-studio-mcp` (`src/mcp`), built and shipped next to `mikser-studio`, that the agent's
+client starts and talks to on stdin and stdout, one JSON-RPC message a line. It speaks the protocol
+versions 2025-11-25, 2025-06-18, 2025-03-26 and 2024-11-05. It uses only what this page describes: the
+discovery file, `/v1/commands` and `/v1/events`.
+
+- **Tools:** every command is a tool, named after its id with `_` for `.` (`project.import_media`
+  is `project_import_media`), with its title, description and `paramsSchema` as the input schema.
+  The app refuses a command whose tool name would be longer than MCP's 64 characters, would be
+  `recent_events` (the bridge's own tool), or would equal another command's.
+  Read-only commands carry `readOnlyHint`, and commands with a `confirmation` or a
+  `confirmationParam` carry `destructiveHint`; a `confirmationParam` is left out of the input schema,
+  and the description says that the person is asked first. Commands with `openWorld` carry
+  `openWorldHint`, and a command's `resultSchema` is the tool's output schema for clients of protocol
+  version 2025-06-18 or later. A tool's result is the command's
+  `result`, as JSON text and, for clients of protocol version 2025-06-18 or later, as structured
+  content; a command's error is a tool error with its message and code.
+- **Confirmations:** before a command with a `confirmation`, the bridge asks the person through the
+  client (MCP elicitation) and runs the command only when they accept. When a run answers
+  `needs_confirmation`, the bridge asks with its message and, when they accept, runs it again with
+  the `confirmationParam` set; an agent's own value for that parameter is dropped. A client that
+  cannot ask gets a tool error, and the command does not run.
+- **Following the app:** the bridge reads the discovery file anew for every request, so it follows the
+  app when it restarts. While the app is not running it lists no tools, and calls say to start it. It
+  keeps the events socket open and tells the client when the tools change: when the app starts or
+  stops, and when plugins add, change or remove commands. Changes that come within 50 ms of each
+  other become one `notifications/tools/list_changed`.
+- **Recent events:** the bridge's own read-only tool `recent_events` lists the last 100 events it
+  received (except `transport.state`, which playback sends often: read it with `program.status`),
+  newest last, each with a `number`, the `time` it arrived and the `event` as the socket sent
+  it, so an agent sees what the person changed. Its result's `latest` is the newest number; pass it as
+  `after` the next time to get only the events since. The tool is listed with the commands, and a
+  command whose tool would take its name is left out.
+- **Which app:** `--instance` chooses the installed app (`installed`, the default unless
+  `MIKSERSTUDIO_INSTANCE` names another), `dev` (a build from source) or `e2e`; `--discovery-file`
+  names another `api.json`. Its log goes to stderr.
+
+To connect Claude Code to Mikser Studio Dev, from the repository after a `debug` build:
+
+```sh
+claude mcp add mikser-studio -e 'PATH=C:\msys64\ucrt64\bin' -- "$PWD/build/debug/bin/mikser-studio-mcp" --instance dev
+```
+
+A build from source needs MSYS2's libraries (Qt and the C++ run time), which are not on the `PATH`
+Claude Code starts programs with, so the command gives the bridge a `PATH` of MSYS2's UCRT64 `bin`
+folder, as `start.bat` does for the app (with MSYS2 elsewhere, its `ucrt64\bin`; on Linux and macOS
+leave `-e` out). Without it the bridge does not start, and Claude Code shows it as failed.
+
+To connect it to the installed Mikser Studio, give the program in the installation's `bin` folder,
+for one user by default `%LOCALAPPDATA%\Programs\Mikser Studio\bin\mikser-studio-mcp.exe`:
+
+```sh
+claude mcp add mikser-studio -- "$LOCALAPPDATA/Programs/Mikser Studio/bin/mikser-studio-mcp.exe"
+```
+
+Other clients take the same program and arguments in their MCP settings.
+
 ## Embedding (C++)
 
 ```cpp
-mikserstudio::api::ApiServer api(bus, {.port = 0, .token = {}, .discoveryFile = {}});
+const mikserstudio::core::UserFolders folders = mikserstudio::core::UserFolders::resolve();
+mikserstudio::api::ApiServer api(bus, {.port = 0, .token = {}, .discoveryFile = folders.discoveryFile});
 if (auto port = api.start(); !port)
     qCWarning(lcApp) << port.error();
 ```
 
 `ApiServer` must be created and started on the thread that owns the `CommandBus` (the main thread),
-and destroyed before the bus. `start()` returns the bound port or an English error (port taken,
+and destroyed before the bus. `start()` returns the bound port or an English error (no discovery file given, port taken,
 discovery file not writable, malformed fixed token). `stop()` is idempotent and is called by the
 destructor.

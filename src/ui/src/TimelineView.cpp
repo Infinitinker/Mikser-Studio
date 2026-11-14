@@ -1,3 +1,4 @@
+// The timeline panel's drops, wheel zoom and scroll, and keys.
 #include "TimelineView.h"
 
 #include "Logging.h"

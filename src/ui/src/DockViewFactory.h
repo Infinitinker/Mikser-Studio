@@ -1,3 +1,4 @@
+// A KDDockWidgets view factory that draws the title bar and tab bar buttons in the theme's colors.
 #pragma once
 
 #include <kddockwidgets/qtwidgets/ViewFactory.h>

@@ -1,3 +1,5 @@
+// The command palette: fuzzy scoring, the model that lists, filters and ranks commands, and the popup that
+// shows the bus commands and runs the current one.
 #include "mikserstudio/core/CommandBus.h"
 #include "mikserstudio/core/UndoStack.h"
 #include "mikserstudio/ui/CommandPalette.h"
@@ -31,11 +33,11 @@ CommandSpec spec(const QString& id, const QString& title, const QString& categor
 QList<CommandSpec> sampleSpecs()
 {
     return {
-        spec(u"timeline.add_clip"_s, u"Add Clip to Timeline"_s, u"Timeline"_s),
-        spec(u"project.import_media"_s, u"Import Media"_s, u"Project"_s, u"Ctrl+I"_s),
+        spec(u"timeline.add_clip"_s, u"Add clip to timeline"_s, u"Timeline"_s),
+        spec(u"project.import_media"_s, u"Import media"_s, u"Project"_s, u"Ctrl+I"_s),
         spec(u"edit.undo"_s, u"Undo"_s, u"Edit"_s, u"Ctrl+Z"_s),
-        spec(u"ai.upscale_clip"_s, u"Upscale Clip"_s, u"AI"_s),
-        spec(u"timeline.remove_clip"_s, u"Remove Clip"_s, u"Timeline"_s),
+        spec(u"ai.run"_s, u"Run AI operation"_s, u"AI"_s),
+        spec(u"timeline.remove_clip"_s, u"Remove clip"_s, u"Timeline"_s),
     };
 }
 
@@ -45,30 +47,29 @@ TEST_CASE("fuzzyScore matches case-insensitive subsequences", "[palette]")
 {
     CHECK(fuzzyScore(u"", u"anything") == 0);
     CHECK(fuzzyScore(u"tlac", u"timeline.add_clip").has_value());
-    CHECK(fuzzyScore(u"IMPORT", u"Import Media").has_value());
-    CHECK_FALSE(fuzzyScore(u"xyz", u"Import Media").has_value());
-    CHECK_FALSE(fuzzyScore(u"clipp", u"Add Clip").has_value());
+    CHECK(fuzzyScore(u"IMPORT", u"Import media").has_value());
+    CHECK_FALSE(fuzzyScore(u"xyz", u"Import media").has_value());
+    CHECK_FALSE(fuzzyScore(u"clipp", u"Add clip").has_value());
 }
 
 TEST_CASE("fuzzyScore prefers word starts and consecutive runs", "[palette]")
 {
     // "im" at the start of a word beats "im" spread inside words.
-    CHECK(*fuzzyScore(u"im", u"Import Media") > *fuzzyScore(u"im", u"Trim Clip"));
+    CHECK(*fuzzyScore(u"im", u"Import media") > *fuzzyScore(u"im", u"Trim clip"));
     // A run of consecutive characters beats the same characters with gaps.
-    CHECK(*fuzzyScore(u"clip", u"Add Clip") > *fuzzyScore(u"clip", u"Recycle bin trip"));
+    CHECK(*fuzzyScore(u"clip", u"Add clip") > *fuzzyScore(u"clip", u"Recycle bin trip"));
     // Matching from the first character beats matching later.
-    CHECK(*fuzzyScore(u"up", u"Upscale Clip") > *fuzzyScore(u"up", u"Clip Upscale"));
+    CHECK(*fuzzyScore(u"up", u"Upscale clip") > *fuzzyScore(u"up", u"Clip Upscale"));
 }
 
 TEST_CASE("CommandPaletteModel lists everything by category and title for an empty query", "[palette]")
 {
     CommandPaletteModel model;
     model.setSpecs(sampleSpecs());
-    CHECK(model.ids()
-          == QStringList{u"ai.upscale_clip"_s, u"edit.undo"_s, u"project.import_media"_s, u"timeline.add_clip"_s,
-                         u"timeline.remove_clip"_s});
+    CHECK(model.ids() == QStringList{u"ai.run"_s, u"edit.undo"_s, u"project.import_media"_s, u"timeline.add_clip"_s,
+                                     u"timeline.remove_clip"_s});
     const QModelIndex first = model.index(0);
-    CHECK(model.data(first, Qt::DisplayRole) == u"Upscale Clip"_s);
+    CHECK(model.data(first, Qt::DisplayRole) == u"Run AI operation"_s);
     CHECK(model.data(first, CommandPaletteModel::CategoryRole) == u"AI"_s);
     CHECK(model.data(model.index(1), CommandPaletteModel::ShortcutRole).toString().contains(u"Z"_s));
 }
@@ -78,12 +79,12 @@ TEST_CASE("CommandPaletteModel filters and ranks by title, id and category", "[p
     CommandPaletteModel model;
     model.setSpecs(sampleSpecs());
 
-    model.setQuery(u"upsc"_s);
-    CHECK(model.ids() == QStringList{u"ai.upscale_clip"_s});
+    model.setQuery(u"run"_s);
+    CHECK(model.ids() == QStringList{u"ai.run"_s});
 
     model.setQuery(u"clip"_s);
     const QStringList clips = model.ids();
-    CHECK(clips.size() == 3);
+    CHECK(clips.size() == 2);
     CHECK_FALSE(clips.contains(u"project.import_media"_s));
 
     model.setQuery(u"import_media"_s);  // By id.

@@ -1,3 +1,4 @@
+// The timeline panel: a Quick widget with the timeline QML, plus media drops, wheel and key input.
 #pragma once
 
 #include <QQuickWidget>

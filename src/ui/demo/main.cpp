@@ -11,13 +11,15 @@
 #include "Screenshot.h"
 
 #include "mikserstudio/core/CommandBus.h"
+#include "mikserstudio/core/Instance.h"
 #include "mikserstudio/core/PluginManager.h"
 #include "mikserstudio/core/Project.h"
 #include "mikserstudio/core/ProjectCommands.h"
 #include "mikserstudio/core/Transport.h"
 #include "mikserstudio/core/UndoStack.h"
+#include "mikserstudio/core/UserFolders.h"
 #include "mikserstudio/ui/ClipSelection.h"
-#include "mikserstudio/ui/KddwDockHost.h"
+#include "mikserstudio/ui/DockHost.h"
 #include "mikserstudio/ui/PanelIds.h"
 #include "mikserstudio/ui/Shell.h"
 #include "mikserstudio/ui/Theme.h"
@@ -26,7 +28,6 @@
 #include <QCommandLineParser>
 #include <QDir>
 #include <QMainWindow>
-#include <QStandardPaths>
 #include <QTimer>
 
 #include <cstdio>
@@ -39,17 +40,18 @@ namespace {
 constexpr int kSettleMs = 1200;
 constexpr int kFloatSettleMs = 900;
 
-void registerMonitor(ui::KddwDockHost& host, QStringView id, const QString& title, core::Transport& transport,
+void registerMonitor(ui::DockHost& host, QStringView id, const QString& title, core::Transport& transport,
                      const core::ProjectModel& project)
 {
-    host.registerPanel({id.toString(), title, ui::DockArea::Center, true, [title, &transport, &project](QWidget* parent) {
-                            return new ui::demo::DemoMonitorPanel(title, transport, project, parent);
-                        }});
+    host.registerPanel(
+        {id.toString(), title, ui::DockArea::Center, true, [title, &transport, &project](QWidget* parent) {
+             return new ui::demo::DemoMonitorPanel(title, transport, project, parent);
+         }});
 }
 
 void takeScreenshot(ui::Shell& shell, const QString& path, const QString& floatPanel)
 {
-    ui::KddwDockHost& host = shell.dockHost();
+    ui::DockHost& host = shell.dockHost();
     QMainWindow* window = shell.mainWindow();
     if (!floatPanel.isEmpty()) {
         if (!host.isPanelOpen(floatPanel))
@@ -80,14 +82,16 @@ int main(int argc, char** argv)
 {
     ui::prepareApplication();
     QApplication app(argc, argv);
-    QApplication::setApplicationName(u"mikser-studio-ui-demo"_s);
-    QApplication::setOrganizationName(u"Mikser Studio"_s);
+    // The demo is part of a build from source, so it is Mikser Studio Dev and keeps its files in a
+    // folder of its own there: it never touches an installed Mikser Studio, nor the Dev app's workspaces.
+    if (const auto dev = core::instanceNamed(u"dev"_s, core::UnsetInstance::Dev); dev)
+        core::applyInstance(*dev);
     ui::applyTheme(app);
 
     QCommandLineParser parser;
     parser.setApplicationDescription(u"Mikser Studio UI demo with fake media, transport and AI."_s);
     parser.addHelpOption();
-    const QCommandLineOption configOption(u"config"_s, u"Folder for layouts, workspaces and demo files."_s, u"dir"_s);
+    const QCommandLineOption configOption(u"config"_s, u"Folder for workspaces, settings and demo files."_s, u"dir"_s);
     const QCommandLineOption workspaceOption(u"workspace"_s, u"Workspace to load after start."_s, u"name"_s);
     const QCommandLineOption screenshotOption(u"screenshot"_s, u"Save a screenshot to <png> and quit."_s, u"png"_s);
     const QCommandLineOption floatOption(u"float"_s, u"Panel to float before the screenshot."_s, u"panel-id"_s,
@@ -96,8 +100,8 @@ int main(int argc, char** argv)
     parser.process(app);
 
     const QString configDir = parser.isSet(configOption)
-        ? QDir(parser.value(configOption)).absolutePath()
-        : QStandardPaths::writableLocation(QStandardPaths::AppConfigLocation);
+                                  ? QDir(parser.value(configOption)).absolutePath()
+                                  : QDir(core::UserFolders::resolve().config).filePath(u"ui-demo"_s);
 
     core::UndoStack undo;
     core::CommandBus bus(undo);
@@ -108,8 +112,8 @@ int main(int argc, char** argv)
     ui::demo::FakeTransport program(project.frameRate());
     ui::demo::FakeTransport source(project.frameRate());
     source.setDuration(static_cast<core::FramePos>(project.frameRate().toDouble() * 20));
-    core::registerTransportCommands(bus, program, u"program"_s, u"Program Monitor"_s);
-    core::registerTransportCommands(bus, source, u"source"_s, u"Source Monitor"_s);
+    core::registerTransportCommands(bus, program, u"program"_s, u"Program monitor"_s);
+    core::registerTransportCommands(bus, source, u"source"_s, u"Source monitor"_s);
     QObject::connect(&project, &core::ProjectModel::timelineChanged, &program,
                      [&] { program.setDuration(project.duration()); });
     QObject::connect(&project, &core::ProjectModel::projectReset, &program, [&] {
@@ -117,7 +121,7 @@ int main(int argc, char** argv)
         program.setDuration(project.duration());
     });
 
-    ui::demo::FakeAiService ai(bus, project);
+    ui::demo::FakeAiService ai(bus);
 
     core::PluginManager plugins(bus, QDir(configDir).filePath(u"plugins"_s));
     plugins.addSearchPath(QDir(QCoreApplication::applicationDirPath()).filePath(u"plugins"_s));
@@ -125,8 +129,8 @@ int main(int argc, char** argv)
     plugins.activateAll();
 
     ui::Shell shell(bus, project, plugins, configDir);
-    registerMonitor(shell.dockHost(), ui::panel_ids::kSourceMonitor, u"Source Monitor"_s, source, project);
-    registerMonitor(shell.dockHost(), ui::panel_ids::kProgramMonitor, u"Program Monitor"_s, program, project);
+    registerMonitor(shell.dockHost(), ui::panel_ids::kSourceMonitor, u"Source monitor"_s, source, project);
+    registerMonitor(shell.dockHost(), ui::panel_ids::kProgramMonitor, u"Program monitor"_s, program, project);
     shell.setProgramTransport(&program);
 
     const auto clips = ui::demo::populateDemoProject(bus, project, QDir(configDir).filePath(u"demo-media"_s));
@@ -136,7 +140,7 @@ int main(int argc, char** argv)
     }
     undo.clear();
     ai.submit(u"text.generate"_s, u"Generate text: shot ideas for the opening"_s, 1.0);
-    ai.submit(u"video.upscale"_s, u"Upscale \"Interview A\" x2"_s, 0.35);
+    ai.submit(u"image.generate"_s, u"Generate image: the city at dusk, wide shot"_s, 0.35);
     program.seek(static_cast<core::FramePos>(project.frameRate().toDouble() * 11.5));
     if (clips->size() > 1)
         shell.selection().select(clips->at(1));

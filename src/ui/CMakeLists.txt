@@ -60,11 +60,11 @@ add_library(mikserstudio-ui STATIC
     src/PluginsPanel.h
     src/PropertiesPanel.cpp
     src/PropertiesPanel.h
-    src/QuietCommands.cpp
-    src/QuietCommands.h
     src/SchemaEditors.cpp
     src/SchemaEditors.h
     src/SchemaForm.cpp
+    src/SettingsWindow.cpp
+    src/SettingsWindow.h
     src/Shell.cpp
     src/Theme.cpp
     src/ThemeStyleSheet.cpp

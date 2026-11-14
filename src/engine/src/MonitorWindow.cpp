@@ -1,3 +1,4 @@
+// The monitor's video surface: its frame mailbox, its drawing on demand and the swapchain's life with the surface.
 #include "mikserstudio/engine/MonitorWindow.h"
 
 #include "FrameMailbox.h"
@@ -23,8 +24,7 @@ MonitorWindow::MonitorWindow(QWindow* parent)
 
     // Runs on the MLT thread with the mailbox locked; the destructor clears it under the same lock,
     // so the window is alive here. Qt drops the queued call if the window is deleted before it runs.
-    m_mailbox->setListener(
-        [this] { QMetaObject::invokeMethod(this, &QWindow::requestUpdate, Qt::QueuedConnection); });
+    m_mailbox->setListener([this] { QMetaObject::invokeMethod(this, &QWindow::requestUpdate, Qt::QueuedConnection); });
 }
 
 MonitorWindow::~MonitorWindow()
@@ -78,8 +78,8 @@ bool MonitorWindow::event(QEvent* event)
         renderNow();
         return true;
     case QEvent::PlatformSurface:
-        if (static_cast<QPlatformSurfaceEvent*>(event)->surfaceEventType()
-            == QPlatformSurfaceEvent::SurfaceAboutToBeDestroyed) {
+        if (static_cast<QPlatformSurfaceEvent*>(event)->surfaceEventType() ==
+            QPlatformSurfaceEvent::SurfaceAboutToBeDestroyed) {
             qCDebug(lcMonitor) << "Native surface going away; releasing the swapchain";
             m_renderer->releaseSwapChain();
         }

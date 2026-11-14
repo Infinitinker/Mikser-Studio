@@ -1,35 +1,44 @@
+// Everything except the UI, wired together: the core, the playback engine, the AI engine, plugins and the
+// local API.
 #pragma once
 
 #include "mikserstudio/api/ApiServer.h"
 #include "mikserstudio/core/CommandBus.h"
+#include "mikserstudio/core/JobManager.h"
 #include "mikserstudio/core/PluginManager.h"
 #include "mikserstudio/core/Project.h"
 #include "mikserstudio/core/UndoStack.h"
 #include "mikserstudio/engine/ClipPlayer.h"
 #include "mikserstudio/engine/MltMediaProbe.h"
 #include "mikserstudio/engine/TimelinePlayer.h"
-#include "mikserstudio/services/AiClient.h"
-#include "mikserstudio/services/SidecarManager.h"
+#include "mikserstudio/lua/LuaRuntime.h"
+#include "mikserstudio/services/AiEngine.h"
+#include "mikserstudio/services/ComfyUiJobs.h"
+#include "mikserstudio/services/HttpJobs.h"
 
 #include <QString>
 
 #include <memory>
+#include <optional>
 
 namespace mikserstudio::app {
 
 struct AppPaths;
 
 struct StudioOptions {
-    bool audio = true;          // false: players run silent (headless, tests).
+    bool audio = true;  // false: players run silent (headless, tests).
     bool api = true;
-    quint16 apiPort = 0;        // 0: a free port, published in the discovery file.
+    quint16 apiPort = 0;  // 0: a free port, published in the discovery file.
+    bool safeMode = false;  // Only the built-in plugins run.
+    bool pluginHotReload = false;  // A plugin reloads when one of its files changes.
 };
 
-// Everything except the UI: the core, the playback engine, the AI service, plugins and the API.
+// Everything except the UI: the core, the playback engine, the AI engine, plugins and the API.
 //
 // Members are declared in construction order so they are destroyed in reverse: the API and the
-// plugins go before the bus, the players before the project they play. Playback is paused before
-// any of that, and a new or opened project closes the source monitor.
+// plugins go before the Lua host that runs them, and all of them before the bus; the players go
+// before the project they play. Playback is paused before any of that, and a new or opened project
+// closes the source monitor.
 class Studio final {
 public:
     Studio(const AppPaths& paths, StudioOptions options);
@@ -43,9 +52,9 @@ public:
     [[nodiscard]] core::CommandBus& bus() { return m_bus; }
     [[nodiscard]] core::ProjectModel& project() { return m_project; }
     [[nodiscard]] core::PluginManager& plugins() { return m_plugins; }
-    [[nodiscard]] services::SidecarManager& sidecar() { return m_sidecar; }
+    [[nodiscard]] services::AiEngine& ai() { return m_ai; }
 
-    // Null when MLT could not be initialised; engineError() then says why.
+    // Null when MLT could not be initialized; engineError() then says why.
     [[nodiscard]] engine::ClipPlayer* sourcePlayer() const { return m_source.get(); }
     [[nodiscard]] engine::TimelinePlayer* programPlayer() const { return m_program.get(); }
     [[nodiscard]] QString engineError() const { return m_engineError; }
@@ -62,9 +71,14 @@ private:
     std::unique_ptr<engine::ClipPlayer> m_source;
     std::unique_ptr<engine::TimelinePlayer> m_program;
 
-    services::SidecarManager m_sidecar;
-    services::AiClient m_aiClient;
+    services::AiEngine m_ai;
+    core::JobManager m_jobs{m_bus};  // After m_ai: it mirrors the AI engine's jobs.
+    std::optional<quint16> m_apiPort;  // While the API serves; the HTTP jobs never reach it.
+    services::HttpJobs m_http{m_jobs, services::HttpJobOptions{.apiPort = [this] { return m_apiPort; }}};
+    services::ComfyUiJobs m_comfyUi;
+    lua::LuaRuntime m_lua;
 
+    QString m_discoveryFile;
     core::PluginManager m_plugins;
     std::unique_ptr<api::ApiServer> m_api;
 };

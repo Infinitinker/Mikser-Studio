@@ -1,3 +1,5 @@
+// The media bin as a table model (name, duration, kind) over the project's media items; rows can be dragged
+// to the timeline.
 #pragma once
 
 #include <QAbstractTableModel>

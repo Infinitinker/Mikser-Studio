@@ -1,3 +1,4 @@
+// Restricting a file to the current user: file mode on Unix, an access control list on Windows.
 #include "OwnerOnlyPermissions.h"
 
 #include <QDir>
@@ -57,8 +58,8 @@ std::expected<void, QString> restrictToOwner(const QString& path)
 
     std::wstring nativePath = QDir::toNativeSeparators(path).toStdWString();
     const DWORD error = SetNamedSecurityInfoW(nativePath.data(), SE_FILE_OBJECT,
-                                              DACL_SECURITY_INFORMATION | PROTECTED_DACL_SECURITY_INFORMATION,
-                                              nullptr, nullptr, acl, nullptr);
+                                              DACL_SECURITY_INFORMATION | PROTECTED_DACL_SECURITY_INFORMATION, nullptr,
+                                              nullptr, acl, nullptr);
     LocalFree(acl);
     if (error != ERROR_SUCCESS)
         return std::unexpected(windowsError(error));

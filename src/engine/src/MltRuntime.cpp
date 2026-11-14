@@ -1,3 +1,4 @@
+// The MLT factory: initializing MLT, finding its modules and data, and picking the video compositor.
 #include "mikserstudio/engine/MltRuntime.h"
 
 #include "Logging.h"
@@ -54,7 +55,7 @@ std::expected<const MltRuntime*, QString> MltRuntime::create()
     if (!data)
         return std::unexpected(data.error());
 
-    // MLT reads MLT_DATA once, during factory initialisation.
+    // MLT reads MLT_DATA once, during factory initialization.
     if (!data->path.isEmpty())
         qputenv("MLT_DATA", QDir::toNativeSeparators(data->path).toUtf8());
 
@@ -69,7 +70,6 @@ std::expected<const MltRuntime*, QString> MltRuntime::create()
     runtime->m_repositoryPath = QDir::fromNativeSeparators(QString::fromUtf8(mlt_factory_directory()));
     runtime->m_repositorySource = repository->source;
     runtime->m_dataPath = data->path;
-    runtime->m_dataSource = data->source;
     runtime->m_producers = serviceNames(mltRepository->producers());
     runtime->m_consumers = serviceNames(mltRepository->consumers());
     runtime->m_transitions = serviceNames(mltRepository->transitions());
@@ -83,12 +83,12 @@ std::expected<const MltRuntime*, QString> MltRuntime::create()
     QStringList missing;
     for (const QString& producer : {u"avformat"_s, u"color"_s}) {
         if (!runtime->hasProducer(producer))
-            missing.append(u"producer \"%1\""_s.arg(producer));
+            missing.append(u"producer “%1”"_s.arg(producer));
     }
     if (!runtime->hasConsumer(u"null"_s))
-        missing.append(u"consumer \"null\""_s);
+        missing.append(u"consumer “null”"_s);
     if (!runtime->hasTransition(u"mix"_s))
-        missing.append(u"transition \"mix\""_s);
+        missing.append(u"transition “mix”"_s);
     if (runtime->m_videoCompositor.isEmpty())
         missing.append(u"a video compositing transition (qtblend, frei0r.cairoblend or composite)"_s);
     if (!missing.isEmpty()) {
@@ -99,8 +99,8 @@ std::expected<const MltRuntime*, QString> MltRuntime::create()
         return std::unexpected(message);
     }
 
-    qCInfo(lcEngine).noquote() << "MLT" << QString::fromUtf8(mlt_version_get_string()) << "modules:"
-                               << describe(*repository) << "data:" << describe(*data)
+    qCInfo(lcEngine).noquote() << "MLT" << QString::fromUtf8(mlt_version_get_string())
+                               << "modules:" << describe(*repository) << "data:" << describe(*data)
                                << "video compositor:" << runtime->m_videoCompositor;
     return runtime.release();  // Lives for the whole process, like the MLT factory.
 }

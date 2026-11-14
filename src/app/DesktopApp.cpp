@@ -1,10 +1,12 @@
+// Building the desktop front end: registering the monitors as panels, importing files given at start-up and
+// saving a screenshot of the main window.
 #include "DesktopApp.h"
 
 #include "Logging.h"
 #include "Studio.h"
 
 #include "mikserstudio/engine/MonitorPanel.h"
-#include "mikserstudio/ui/KddwDockHost.h"
+#include "mikserstudio/ui/DockHost.h"
 #include "mikserstudio/ui/PanelIds.h"
 #include "mikserstudio/ui/Shell.h"
 
@@ -23,7 +25,7 @@ namespace mikserstudio::app {
 
 namespace {
 
-void registerMonitor(ui::KddwDockHost& host, QStringView id, const QString& title, engine::MltPlayer& player)
+void registerMonitor(ui::DockHost& host, QStringView id, const QString& title, engine::MltPlayer& player)
 {
     host.registerPanel({id.toString(), title, ui::DockArea::Center, true, [&player](QWidget* parent) {
                             auto* panel = new engine::MonitorPanel(player, parent);
@@ -40,8 +42,8 @@ bool saveWindowScreenshot(QWidget* window, const QString& path)
         return false;
     const QRect frame = window->frameGeometry();
     const QPoint origin = screen->geometry().topLeft();
-    const QPixmap pixels =
-        screen->grabWindow(0, frame.x() - origin.x(), frame.y() - origin.y(), frame.width(), frame.height());
+    const QPixmap pixels = screen->grabWindow(0, frame.x() - origin.x(), frame.y() - origin.y(), frame.width(),
+                                              frame.height());
     return pixels.save(path);
 }
 
@@ -55,19 +57,17 @@ DesktopApp::DesktopApp(Studio& studio, const QString& configDir, DesktopOptions 
     registerMonitors();
     if (engine::TimelinePlayer* program = studio.programPlayer())
         m_shell->setProgramTransport(program);
-    QObject::connect(&studio.sidecar(), &services::SidecarManager::errorOccurred, m_shell->mainWindow(),
-                     [](const QString& message) { qCWarning(lcApp) << "AI service:" << message; });
 }
 
 DesktopApp::~DesktopApp() = default;
 
 void DesktopApp::registerMonitors()
 {
-    ui::KddwDockHost& host = m_shell->dockHost();
+    ui::DockHost& host = m_shell->dockHost();
     if (engine::ClipPlayer* source = m_studio.sourcePlayer())
-        registerMonitor(host, ui::panel_ids::kSourceMonitor, u"Source Monitor"_s, *source);
+        registerMonitor(host, ui::panel_ids::kSourceMonitor, u"Source monitor"_s, *source);
     if (engine::TimelinePlayer* program = m_studio.programPlayer())
-        registerMonitor(host, ui::panel_ids::kProgramMonitor, u"Program Monitor"_s, *program);
+        registerMonitor(host, ui::panel_ids::kProgramMonitor, u"Program monitor"_s, *program);
 
     for (engine::MltPlayer* player : {static_cast<engine::MltPlayer*>(m_studio.sourcePlayer()),
                                       static_cast<engine::MltPlayer*>(m_studio.programPlayer())}) {
@@ -109,9 +109,9 @@ void DesktopApp::importStartupFiles()
         }
         const QString mediaId = imported->value(u"mediaId"_s).toString();
         const qint64 end = m_studio.project().duration();
-        const auto placed = bus.execute(u"timeline.add_clip"_s, QJsonObject{{u"mediaId"_s, mediaId},
-                                                                            {u"trackId"_s, u"V1"_s},
-                                                                            {u"position"_s, end}});
+        const auto placed = bus.execute(
+            u"timeline.add_clip"_s,
+            QJsonObject{{u"mediaId"_s, mediaId}, {u"trackId"_s, u"V1"_s}, {u"position"_s, end}});
         if (!placed)
             qCWarning(lcApp) << "Could not place" << path << "on the timeline:" << placed.error().message;
         if (first && bus.contains(u"source.open_media"_s)) {

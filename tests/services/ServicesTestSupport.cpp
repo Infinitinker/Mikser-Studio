@@ -1,3 +1,5 @@
+// Helpers the services tests share: waiting for the event loop, a media probe that needs no engine, and an
+// in-process HTTP server that records requests.
 #include "ServicesTestSupport.h"
 
 #include <QCoreApplication>
@@ -75,17 +77,18 @@ QByteArray methodName(QHttpServerRequest::Method method)
 FakeHttpServer::FakeHttpServer()
     : m_server(std::make_unique<QHttpServer>())
 {
-    m_server->setMissingHandler(m_server.get(), [this](const QHttpServerRequest& request, QHttpServerResponder& responder) {
-        RecordedRequest recorded{
-            .method = methodName(request.method()),
-            .path = request.url().path(QUrl::FullyEncoded),
-            .authorization = request.headers().value(QHttpHeaders::WellKnownHeader::Authorization).toByteArray(),
-            .body = request.body(),
-        };
-        m_requests.append(recorded);
-        responder.sendResponse(m_handler ? m_handler(recorded)
-                                         : QHttpServerResponse(QHttpServerResponse::StatusCode::NotFound));
-    });
+    m_server->setMissingHandler(
+        m_server.get(), [this](const QHttpServerRequest& request, QHttpServerResponder& responder) {
+            RecordedRequest recorded{
+                .method = methodName(request.method()),
+                .path = request.url().path(QUrl::FullyEncoded),
+                .authorization = request.headers().value(QHttpHeaders::WellKnownHeader::Authorization).toByteArray(),
+                .body = request.body(),
+            };
+            m_requests.append(recorded);
+            responder.sendResponse(m_handler ? m_handler(recorded)
+                                             : QHttpServerResponse(QHttpServerResponse::StatusCode::NotFound));
+        });
     auto* tcp = new QTcpServer(m_server.get());
     REQUIRE(tcp->listen(QHostAddress::LocalHost, 0));
     REQUIRE(m_server->bind(tcp));

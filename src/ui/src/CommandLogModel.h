@@ -1,3 +1,5 @@
+// The model of the command log: the commands run and failed on the command bus, newest rows kept, for the
+// Log panel.
 #pragma once
 
 #include "mikserstudio/core/Command.h"
@@ -14,7 +16,7 @@ class CommandBus;
 namespace mikserstudio::ui {
 
 // Chronological list of the commands executed or failed on the bus (except quiet ones: read-only
-// commands and UI bookkeeping, see QuietCommands.h). Identical consecutive successful runs are
+// commands and UI bookkeeping, see isQuietCommand). Identical consecutive successful runs are
 // folded into one row with a repeat count. Keeps the newest kMaxEntries rows.
 class CommandLogModel final : public QAbstractTableModel {
     Q_OBJECT

@@ -1,3 +1,4 @@
+// The monitor panel: the video surface and transport bar, and the playback keys.
 #include "mikserstudio/engine/MonitorPanel.h"
 
 #include "Shuttle.h"

@@ -1,3 +1,4 @@
+// The logging category of the app.
 #include "Logging.h"
 
 namespace mikserstudio::app {

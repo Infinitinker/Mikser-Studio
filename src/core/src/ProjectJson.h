@@ -1,3 +1,4 @@
+// Converting the project and its parts to and from JSON, checking a document against the project schema.
 #pragma once
 
 #include "mikserstudio/core/Project.h"
@@ -24,6 +25,9 @@ struct ProjectDocument {
 [[nodiscard]] QJsonObject mediaToJson(const MediaItem& item);
 [[nodiscard]] QJsonObject trackToJson(const Track& track);
 [[nodiscard]] QJsonObject clipToJson(const Clip& clip);
+// A whole project document, in the current format.
+[[nodiscard]] QJsonObject projectToJson(Rational frameRate, int width, int height, const QList<MediaItem>& media,
+                                        const QList<Track>& tracks, const QList<Clip>& clips);
 
 // Validates a current-format document against the project schema and converts it. Media paths
 // must pass isAllowedMediaPath(). Does not check references or overlaps; ProjectModel does that

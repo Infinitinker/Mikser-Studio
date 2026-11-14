@@ -1,3 +1,4 @@
+// Validating JSON against a schema and applying schema defaults.
 #include "mikserstudio/core/JsonSchema.h"
 
 #include <QJsonArray>
@@ -104,8 +105,7 @@ QString toDisplay(const QJsonValue& value)
         return value.toBool() ? u"true"_s : u"false"_s;
     if (value.isNull())
         return u"null"_s;
-    const QJsonDocument document = value.isArray() ? QJsonDocument(value.toArray())
-                                                   : QJsonDocument(value.toObject());
+    const QJsonDocument document = value.isArray() ? QJsonDocument(value.toArray()) : QJsonDocument(value.toObject());
     return QString::fromUtf8(document.toJson(QJsonDocument::Compact));
 }
 
@@ -151,7 +151,7 @@ private:
         if (typeValue.isString()) {
             types.append(typeValue.toString());
         } else if (typeValue.isArray()) {
-            for (const QJsonValue& entry : typeValue.toArray())
+            for (const QJsonValue entry : typeValue.toArray())
                 types.append(entry.toString());
         } else {
             return true;
@@ -176,12 +176,12 @@ private:
         if (!enumValue.isArray())
             return;
         const QJsonArray options = enumValue.toArray();
-        for (const QJsonValue& option : options) {
+        for (const QJsonValue option : options) {
             if (jsonEqual(value, option))
                 return;
         }
         QStringList described;
-        for (const QJsonValue& option : options)
+        for (const QJsonValue option : options)
             described.append(toDisplay(option));
         add(pointer, u"must be one of: "_s + described.join(u", "_s));
     }
@@ -217,8 +217,8 @@ private:
             return;
         const QRegularExpression expression(pattern.toString());
         if (!expression.isValid()) {
-            add(pointer, u"the schema pattern \"%1\" is not a valid regular expression (%2)"_s
-                             .arg(pattern.toString(), expression.errorString()));
+            add(pointer, u"the schema pattern “%1” is not a valid regular expression (%2)"_s.arg(
+                             pattern.toString(), expression.errorString()));
             return;
         }
         if (!expression.match(text).hasMatch())
@@ -227,7 +227,7 @@ private:
 
     void checkObject(const QJsonObject& object, const QJsonObject& schema, const QString& pointer)
     {
-        for (const QJsonValue& name : schema.value(u"required").toArray()) {
+        for (const QJsonValue name : schema.value(u"required").toArray()) {
             if (name.isString() && !object.contains(name.toString()))
                 add(childPointer(pointer, name.toString()), u"is required"_s);
         }
@@ -289,8 +289,8 @@ QJsonObject JsonSchema::applyDefaults(const QJsonObject& value, const QJsonObjec
             if (!propertySchema.contains(u"default"))
                 continue;
             const QJsonValue fallback = propertySchema.value(u"default");
-            result.insert(it.key(), fallback.isObject() ? applyDefaults(fallback.toObject(), propertySchema)
-                                                        : fallback);
+            result.insert(it.key(),
+                          fallback.isObject() ? applyDefaults(fallback.toObject(), propertySchema) : fallback);
         } else if (const QJsonValue present = result.value(it.key()); present.isObject()) {
             result.insert(it.key(), applyDefaults(present.toObject(), propertySchema));
         }

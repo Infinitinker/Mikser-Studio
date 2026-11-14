@@ -1,3 +1,4 @@
+// The one-slot frame hand-over: storing the newest frame, counting dropped ones, notifying the monitor.
 #include "FrameMailbox.h"
 
 namespace mikserstudio::engine {

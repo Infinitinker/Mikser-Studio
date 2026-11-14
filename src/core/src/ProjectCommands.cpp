@@ -1,3 +1,4 @@
+// Registering the project and timeline commands, and the undo steps they share.
 #include "mikserstudio/core/ProjectCommands.h"
 
 #include "Logging.h"
@@ -73,6 +74,7 @@ void registerProjectCommands(CommandBus& bus, ProjectModel& project, MediaProbe&
 {
     registerMediaCommands(bus, project, probe);
     registerTimelineCommands(bus, project);
+    publishProjectEvents(bus, project);
 }
 
 }  // namespace mikserstudio::core

@@ -1,3 +1,5 @@
+// The project: the media bin and timeline model, the media probe interface and the rules that keep them
+// consistent.
 #pragma once
 
 #include <QJsonObject>
@@ -7,9 +9,13 @@
 
 #include <cstdint>
 #include <expected>
+#include <memory>
+#include <mutex>
 #include <optional>
 
 namespace mikserstudio::core {
+
+struct ProjectSnapshot;
 
 // Frames are the unit of time on the timeline, at the project's frame rate.
 using FramePos = std::int64_t;
@@ -46,12 +52,11 @@ class MediaProbe {
 public:
     virtual ~MediaProbe() = default;
     // `projectFrameRate` is the rate durationFrames must be expressed in.
-    [[nodiscard]] virtual std::expected<MediaInfo, QString> probe(const QString& path,
-                                                                  Rational projectFrameRate) = 0;
+    [[nodiscard]] virtual std::expected<MediaInfo, QString> probe(const QString& path, Rational projectFrameRate) = 0;
 };
 
 struct MediaItem {
-    QString id;    // Stable unique id ("media-<uuid>").
+    QString id;  // Stable unique id ("media-<uuid>").
     QString path;  // Absolute path, '/' separators (see isAllowedMediaPath()).
     QString name;  // Display name, defaults to the file name.
     MediaInfo info;
@@ -70,12 +75,12 @@ struct Track {
 };
 
 struct Clip {
-    QString id;       // "clip-<uuid>".
+    QString id;  // "clip-<uuid>".
     QString mediaId;
     QString trackId;
     FramePos position = 0;  // Timeline frame where the clip starts.
-    FramePos in = 0;        // First source frame used (inclusive).
-    FramePos out = 0;       // Source frame after the last one used (exclusive).
+    FramePos in = 0;  // First source frame used (inclusive).
+    FramePos out = 0;  // Source frame after the last one used (exclusive).
     [[nodiscard]] FramePos length() const { return out - in; }
     [[nodiscard]] FramePos end() const { return position + length(); }
 };
@@ -93,6 +98,9 @@ struct Clip {
 // Mutating methods validate their input and return an English error message on failure; they
 // never leave the model half-changed. They do not record undo history: commands do that
 // (see ProjectCommands.h), so scripts, the API and the UI all get undo through the CommandBus.
+//
+// After every change the model publishes a ProjectSnapshot: an immutable copy with a revision
+// number, which any thread may read through snapshot().
 class ProjectModel final : public QObject {
     Q_OBJECT
 
@@ -132,10 +140,18 @@ public:
     std::expected<Track, QString> removeTrack(const QString& id);
     std::expected<void, QString> setTrackFlags(const QString& id, bool muted, bool hidden);
 
-    // Creates a new empty project with tracks V1, V2, A1, A2.
+    // The project's own file: the one it was opened from or last saved to, as an absolute path;
+    // empty for a project that has never been saved. reset() empties it; loadJson() leaves it to
+    // the caller, which knows where the project came from.
+    [[nodiscard]] const QString& filePath() const { return m_filePath; }
+    void setFilePath(const QString& path);
+
+    // Creates a new empty project with tracks V1, V2, A1, A2, and no file.
     void reset(Rational frameRate = {30, 1}, int width = 1920, int height = 1080);
 
     [[nodiscard]] QJsonObject toJson() const;
+    // The project after its latest change. Safe to call on any thread.
+    [[nodiscard]] std::shared_ptr<const ProjectSnapshot> snapshot() const;
     // Migrates older versions (see "version"), validates everything and only then replaces the
     // current project; on failure the current project is unchanged.
     std::expected<void, QString> loadJson(const QJsonObject& json);
@@ -153,10 +169,13 @@ Q_SIGNALS:
     void trackChanged(const QString& id);  // Muted or hidden changed.
     void projectReset();  // Everything changed (new project or load).
     void timelineChanged();  // Any clip/track change; coalesce rebuilds on this.
+    void filePathChanged(const QString& path);
 
 private:
     [[nodiscard]] std::optional<QString> checkPlacement(const Clip& clip, const QString& ignoreClipId) const;
     void sortClips();
+    // Publishes a snapshot of the project as it is now, with the next revision.
+    void publishSnapshot();
 
     Rational m_frameRate{30, 1};
     int m_width = 1920;
@@ -164,10 +183,15 @@ private:
     QList<MediaItem> m_media;
     QList<Track> m_tracks;
     QList<Clip> m_clips;
+    QString m_filePath;
+    QString m_session;  // A new one for each new or opened project.
+    quint64 m_revision = 0;
+    mutable std::mutex m_snapshotMutex;
+    std::shared_ptr<const ProjectSnapshot> m_snapshot;
 };
 
 // True for an absolute path to a file on this computer (not a URL or a network share such as
-// "//server/share") and for MLT colour resources ("color:#ff0000", "color:red"). Project files
+// "//server/share") and for MLT color resources ("color:#ff0000", "color:red"). Project files
 // and imports accept only these, so a shared project cannot make Mikser Studio open other resources.
 [[nodiscard]] bool isAllowedMediaPath(const QString& path);
 
