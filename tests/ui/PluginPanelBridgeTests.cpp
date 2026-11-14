@@ -3,14 +3,17 @@
 #include "mikserstudio/core/PluginManager.h"
 #include "mikserstudio/core/UndoStack.h"
 
+#include "PanelTestSupport.h"
 #include "PluginPanelBridge.h"
 #include "TestCommands.h"
 
 #include <catch2/catch_test_macros.hpp>
 
+#include <QJSEngine>
 #include <QJsonDocument>
 #include <QTemporaryDir>
 
+using mikserstudio::ui::test::executeInPanel;
 using namespace Qt::StringLiterals;
 
 TEST_CASE("PluginPanelBridge runs commands with the plugin QML contract", "[plugin-panels]")
@@ -30,22 +33,23 @@ TEST_CASE("PluginPanelBridge runs commands with the plugin QML contract", "[plug
                              .object()},
         &runs));
 
-    mikserstudio::ui::PluginPanelBridge bridge(bus, plugins, u"com.example.demo"_s);
+    QJSEngine engine;
+    mikserstudio::ui::PluginPanelBridge bridge(bus, plugins, u"com.example.demo"_s, engine);
     CHECK(bridge.pluginId() == u"com.example.demo"_s);
     CHECK(bridge.settings().isEmpty());  // The plugin is not installed: no settings.
 
-    const QVariantMap ok = bridge.execute(u"demo.rename"_s, {{u"name"_s, u"Intro"_s}});
+    const QVariantMap ok = executeInPanel(bridge, engine, u"demo.rename"_s, {{u"name"_s, u"Intro"_s}});
     CHECK(ok.value(u"ok"_s) == true);
     CHECK(ok.value(u"result"_s).toMap().value(u"ran"_s) == u"demo.rename"_s);
     CHECK(runs == 1);
 
-    const QVariantMap invalid = bridge.execute(u"demo.rename"_s);
+    const QVariantMap invalid = executeInPanel(bridge, engine, u"demo.rename"_s);
     CHECK(invalid.value(u"ok"_s) == false);
     const QVariantMap error = invalid.value(u"error"_s).toMap();
     CHECK(error.value(u"code"_s) == u"invalid_params"_s);
     CHECK_FALSE(error.value(u"message"_s).toString().isEmpty());
     CHECK(runs == 1);
 
-    const QVariantMap unknown = bridge.execute(u"demo.missing"_s);
+    const QVariantMap unknown = executeInPanel(bridge, engine, u"demo.missing"_s);
     CHECK(unknown.value(u"error"_s).toMap().value(u"code"_s) == u"unknown_command"_s);
 }

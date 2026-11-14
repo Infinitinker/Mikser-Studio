@@ -28,8 +28,8 @@ public:
 private:
     void showError(const QString& message);
 
-    PluginPanelBridge* m_bridge;
     QQuickWidget* m_quick;
+    PluginPanelBridge* m_bridge;  // Made after m_quick: it uses the widget's QML engine.
     QLabel* m_error;
 };
 

@@ -6,7 +6,9 @@
 
 #include <QJsonObject>
 #include <QObject>
+#include <QPointer>
 
+#include <atomic>
 #include <initializer_list>
 #include <map>
 #include <utility>
@@ -43,6 +45,8 @@ public:
 
     // Fails (returns false and logs) when the id is already taken or the spec is malformed.
     bool registerCommand(CommandSpec spec, CommandHandler handler);
+    // Registers a command whose handler answers later; it sets CommandSpec::async.
+    bool registerAsyncCommand(CommandSpec spec, AsyncCommandHandler handler);
     void unregisterCommand(const QString& id);
     // Unregisters every command whose spec names `owner`, such as a plugin that stops.
     void unregisterOwnedBy(const QString& owner);
@@ -60,13 +64,29 @@ public:
     // edit to the undo stack and emits executed() (with the defaulted params) or failed(); a run
     // that needs confirmation (NeedsConfirmation) emits neither.
     // A handler that throws is reported as Failed. The handler may unregister commands. A caller
-    // without the spec's permission gets PermissionDenied, and the handler doesn't run.
+    // without the spec's permission gets PermissionDenied, and the handler doesn't run. An async
+    // command answers NotAvailable: it runs only through executeAsync.
     std::expected<QJsonObject, CommandError> execute(const QString& id, const QJsonObject& params,
                                                      const CallContext& context);
     // Runs with the context of the command that is running, so a handler's commands keep their
     // caller's origin and permissions (but not the person's agreement), and with CallContext::ui()
     // when none is running.
     std::expected<QJsonObject, CommandError> execute(const QString& id, const QJsonObject& params = {});
+
+    using RunId = quint64;
+    using ExecuteDone = std::function<void(std::expected<QJsonObject, CommandError> result)>;
+    // Runs a command, async or not, from any thread. The run happens on the bus's thread, as
+    // execute() does, and `done` is called once on `receiver`'s thread, or not at all when the
+    // receiver is null or has been destroyed by then (a receiver on another thread must outlive its
+    // runs). Called on the bus's thread, a command that isn't async answers before this returns.
+    RunId executeAsync(const QString& id, const QJsonObject& params, const CallContext& context, QObject* receiver,
+                       ExecuteDone done);
+    // Stops waiting for a pending async run, on the bus's thread: it fails with Canceled and
+    // `reason` at once, and its handler's later answer is dropped. Does nothing for a run that has
+    // answered.
+    void cancel(RunId run, const QString& reason);
+    // Whether an async run started on the bus's thread is still waiting for its handler's answer.
+    [[nodiscard]] bool isPending(RunId run) const { return m_pending.contains(run); }
 
     // The context of the innermost command that is running, or nullptr.
     [[nodiscard]] const CallContext* runningContext() const;
@@ -87,12 +107,38 @@ Q_SIGNALS:
 private:
     struct Entry {
         CommandSpec spec;
-        CommandHandler handler;
+        CommandHandler handler;  // Null for an async command.
+        AsyncCommandHandler asyncHandler;  // Null for any other.
     };
+    struct Reply {
+        QPointer<QObject> receiver;
+        ExecuteDone done;
+    };
+    // An async run that hasn't answered yet.
+    struct PendingRun {
+        QString id;
+        QJsonObject params;  // With the defaults applied.
+        CallContext context;
+        bool undoable = false;
+        Reply reply;
+    };
+
+    bool add(CommandSpec spec, CommandHandler handler, AsyncCommandHandler asyncHandler);
+    // The params with their defaults, or why the run may not start: the depth, the permission or
+    // the params.
+    std::expected<QJsonObject, CommandError> admit(const Entry& entry, const QJsonObject& params,
+                                                   const CallContext& context) const;
+    // Logs the failure and emits failed(), except for a question to ask (NeedsConfirmation).
+    void report(const QString& id, const QJsonObject& params, const CommandError& error, const CallContext& context);
+    void start(RunId run, const QString& id, const QJsonObject& params, const CallContext& context, Reply reply);
+    void finish(RunId run, CommandResult outcome);
+    static void deliver(const Reply& reply, std::expected<QJsonObject, CommandError> result);
 
     UndoStack& m_undoStack;
     std::map<QString, Entry> m_commands;
     std::vector<CallContext> m_running;  // The contexts of the commands running, innermost last.
+    std::map<RunId, PendingRun> m_pending;
+    std::atomic<RunId> m_nextRun{1};
 };
 
 // Converts a spec to the JSON published by the API and used by the command palette.

@@ -12,6 +12,7 @@
 #include "CommandMenus.h"
 #include "CommandStatus.h"
 #include "MessageBoxAnswer.h"
+#include "PanelTestSupport.h"
 #include "PluginPanelBridge.h"
 #include "TestCommands.h"
 
@@ -20,6 +21,7 @@
 #include <QAction>
 #include <QApplication>
 #include <QDialog>
+#include <QJSEngine>
 #include <QLabel>
 #include <QMenuBar>
 #include <QPushButton>
@@ -30,11 +32,22 @@
 
 using namespace Qt::StringLiterals;
 using mikserstudio::ui::test::answerNextMessageBox;
+using mikserstudio::ui::test::executeInPanel;
 using mikserstudio::ui::test::registerTestCommand;
 
 namespace {
 
 const auto kQuestion = u"Start a new project? Unsaved changes will be lost."_s;
+
+// invokeCommand's reply, for commands that answer before it returns.
+mikserstudio::ui::InteractiveResult invoke(mikserstudio::core::CommandBus& bus, const QString& id, QWidget* parent)
+{
+    std::optional<mikserstudio::ui::InteractiveResult> reply;
+    mikserstudio::ui::invokeCommand(
+        bus, id, parent, [&reply](mikserstudio::ui::InteractiveResult result) { reply = std::move(result); });
+    REQUIRE(reply.has_value());
+    return *reply;
+}
 
 struct BusFixture {
     mikserstudio::core::UndoStack undo;
@@ -65,12 +78,12 @@ TEST_CASE("Commands with a confirmation ask before an interactive run; Cancel ru
 
     QString shown;
     answerNextMessageBox(QMessageBox::RejectRole, &shown);
-    CHECK_FALSE(mikserstudio::ui::invokeCommand(f.bus, u"project.new"_s, &f.window).has_value());
+    CHECK_FALSE(invoke(f.bus, u"project.new"_s, &f.window).has_value());
     CHECK(shown == kQuestion);
     CHECK(f.guardedRuns == 0);
 
     answerNextMessageBox(QMessageBox::AcceptRole);
-    const auto accepted = mikserstudio::ui::invokeCommand(f.bus, u"project.new"_s, &f.window);
+    const auto accepted = invoke(f.bus, u"project.new"_s, &f.window);
     REQUIRE(accepted.has_value());
     CHECK(accepted->has_value());
     CHECK(f.guardedRuns == 1);
@@ -84,7 +97,7 @@ TEST_CASE("Commands with a confirmation ask before an interactive run; Cancel ru
 
     // Without a confirmation nothing asks.
     CHECK(mikserstudio::ui::confirmCommand(f.bus, u"demo.plain"_s, &f.window));
-    REQUIRE(mikserstudio::ui::invokeCommand(f.bus, u"demo.plain"_s, &f.window).has_value());
+    REQUIRE(invoke(f.bus, u"demo.plain"_s, &f.window).has_value());
     CHECK(f.plainRuns == 1);
 }
 
@@ -189,7 +202,7 @@ TEST_CASE("A command that needs an optional param gets the dialog, which asks be
         REQUIRE(run != buttons.end());
         (*run)->click();
     });
-    const auto saved = mikserstudio::ui::invokeCommand(bus, u"demo.save"_s, &window);
+    const auto saved = invoke(bus, u"demo.save"_s, &window);
     CHECK(dialogShown);
     REQUIRE(saved.has_value());
     CHECK(saved->has_value());
@@ -217,21 +230,60 @@ TEST_CASE("Menu actions and their shortcuts ask before running a command with a 
     CHECK(f.guardedRuns == 1);
 }
 
+TEST_CASE("Menus and plugin panels run commands that answer later", "[invoker][async]")
+{
+    BusFixture f;
+    mikserstudio::core::CommandDone held;
+    mikserstudio::core::CommandSpec later;
+    later.id = u"demo.later"_s;
+    later.title = u"Later"_s;
+    later.category = u"Demo"_s;
+    REQUIRE(
+        f.bus.registerAsyncCommand(later, [&held](const QJsonObject&, const mikserstudio::core::CallContext&,
+                                                  mikserstudio::core::CommandDone done) { held = std::move(done); }));
+
+    std::optional<mikserstudio::ui::InteractiveResult> reply;
+    mikserstudio::ui::invokeCommand(
+        f.bus, u"demo.later"_s, &f.window,
+        [&reply](mikserstudio::ui::InteractiveResult result) { reply = std::move(result); });
+    REQUIRE(held);
+    CHECK_FALSE(reply.has_value());
+    held(mikserstudio::core::CommandOutcome{QJsonObject{{u"ran"_s, u"demo.later"_s}}, nullptr});
+    REQUIRE(reply.has_value());
+    REQUIRE(reply->has_value());
+    CHECK((*reply)->value()[u"ran"_s] == u"demo.later"_s);
+
+    QTemporaryDir dir;
+    mikserstudio::core::PluginManager plugins(f.bus, dir.filePath(u"plugins"_s));
+    QJSEngine engine;
+    mikserstudio::ui::PluginPanelBridge bridge(f.bus, plugins, u"com.example.demo"_s, engine);
+    held = nullptr;
+    QJSValue holder = engine.newObject();
+    bridge.execute(u"demo.later"_s, {},
+                   engine.evaluate(u"(function (holder) { return function (reply) { holder.reply = reply; }; })"_s)
+                       .call({holder}));
+    REQUIRE(held);
+    CHECK(holder.property(u"reply"_s).isUndefined());
+    held(mikserstudio::core::CommandOutcome{QJsonObject{{u"ran"_s, u"demo.later"_s}}, nullptr});
+    CHECK(holder.property(u"reply"_s).property(u"ok"_s).toBool());
+}
+
 TEST_CASE("Plugin panels get a canceled error when the user declines the confirmation", "[invoker][plugin-panels]")
 {
     BusFixture f;
     QTemporaryDir dir;
     mikserstudio::core::PluginManager plugins(f.bus, dir.filePath(u"plugins"_s));
-    mikserstudio::ui::PluginPanelBridge bridge(f.bus, plugins, u"com.example.demo"_s);
+    QJSEngine engine;
+    mikserstudio::ui::PluginPanelBridge bridge(f.bus, plugins, u"com.example.demo"_s, engine);
 
     answerNextMessageBox(QMessageBox::RejectRole);
-    const QVariantMap canceled = bridge.execute(u"project.new"_s);
+    const QVariantMap canceled = executeInPanel(bridge, engine, u"project.new"_s);
     CHECK(canceled.value(u"ok"_s) == false);
     CHECK(canceled.value(u"error"_s).toMap().value(u"code"_s) == u"canceled"_s);
     CHECK(f.guardedRuns == 0);
 
     answerNextMessageBox(QMessageBox::AcceptRole);
-    CHECK(bridge.execute(u"project.new"_s).value(u"ok"_s) == true);
+    CHECK(executeInPanel(bridge, engine, u"project.new"_s).value(u"ok"_s) == true);
     CHECK(f.guardedRuns == 1);
 }
 

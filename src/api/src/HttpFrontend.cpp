@@ -14,6 +14,8 @@
 #include <QHttpServerResponder>
 #include <QMetaEnum>
 
+#include <memory>
+
 using namespace Qt::StringLiterals;
 
 namespace mikserstudio::api {
@@ -54,11 +56,14 @@ bool HttpFrontend::handleRequest(const QHttpServerRequest& request, QHttpServerR
 {
     QElapsedTimer timer;
     timer.start();
-    ApiResponse response = m_router.handle(request);
-    response.headers.append(QHttpHeaders::WellKnownHeader::CacheControl, "no-store");
-    responder.write(response.body, response.headers, response.status);
-    qCDebug(lcApi).noquote() << describe(request) << "->" << static_cast<int>(response.status) << "in"
-                             << timer.elapsed() << "ms";
+    // Kept until the answer comes, which for a command that answers later is after this returns.
+    auto kept = std::make_shared<QHttpServerResponder>(std::move(responder));
+    m_router.handle(request, this, [kept, timer, what = describe(request)](ApiResponse response) {
+        response.headers.append(QHttpHeaders::WellKnownHeader::CacheControl, "no-store");
+        kept->write(response.body, response.headers, response.status);
+        qCDebug(lcApi).noquote() << what << "->" << static_cast<int>(response.status) << "in" << timer.elapsed()
+                                 << "ms";
+    });
     return true;
 }
 

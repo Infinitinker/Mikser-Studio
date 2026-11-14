@@ -5,6 +5,8 @@
 #include "mikserstudio/api/ApiServer.h"
 
 #include <QHostAddress>
+#include <QNetworkAccessManager>
+#include <QNetworkReply>
 #include <QTcpSocket>
 
 using namespace Qt::StringLiterals;
@@ -182,6 +184,36 @@ TEST_CASE("Command errors map to HTTP status codes", "[api][http]")
         CHECK(reply.object().value(u"error"_s).toObject().value(u"message"_s).toString() ==
               u"The test command failed on purpose."_s);
     }
+}
+
+TEST_CASE("A command that answers later is answered when it finishes, and other requests go on meanwhile",
+          "[api][http][async]")
+{
+    ApiFixture fixture;
+    mikserstudio::core::CommandDone held;
+    mikserstudio::core::CommandSpec later;
+    later.id = u"test.later"_s;
+    later.title = u"Later"_s;
+    REQUIRE(fixture.bus.registerAsyncCommand(
+        later, [&held](const QJsonObject&, const mikserstudio::core::CallContext&,
+                       mikserstudio::core::CommandDone done) { held = std::move(done); }));
+
+    QNetworkAccessManager manager;
+    QNetworkRequest request(fixture.url(u"/v1/commands/test.later"_s));
+    request.setRawHeader("Authorization", fixture.bearer());
+    request.setHeader(QNetworkRequest::ContentTypeHeader, u"application/json"_s);
+    std::unique_ptr<QNetworkReply> pending(manager.post(request, QByteArray("{}")));
+    REQUIRE(mikserstudio::tests::waitFor([&] { return static_cast<bool>(held); }));
+
+    const auto echo = fixture.post(u"/v1/commands/test.echo"_s, R"({"text": "meanwhile"})");
+    CHECK(echo.status == 200);
+    CHECK_FALSE(pending->isFinished());
+
+    held(mikserstudio::core::CommandOutcome{QJsonObject{{u"answered"_s, true}}, nullptr});
+    REQUIRE(mikserstudio::tests::waitFor([&] { return pending->isFinished(); }));
+    CHECK(pending->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt() == 200);
+    CHECK(QJsonDocument::fromJson(pending->readAll()).object() ==
+          QJsonObject{{u"result"_s, QJsonObject{{u"answered"_s, true}}}});
 }
 
 TEST_CASE("Unknown routes and wrong methods are rejected", "[api][http]")

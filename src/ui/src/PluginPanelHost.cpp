@@ -11,6 +11,7 @@
 #include <QFileInfo>
 #include <QLabel>
 #include <QQmlContext>
+#include <QQmlEngine>
 #include <QQmlError>
 #include <QQuickWidget>
 #include <QVBoxLayout>
@@ -22,8 +23,8 @@ namespace mikserstudio::ui {
 PluginPanelHost::PluginPanelHost(core::CommandBus& bus, const core::PluginManager& plugins, const QString& pluginId,
                                  const QString& pluginDirectory, const core::PanelContribution& panel, QWidget* parent)
     : QWidget(parent)
-    , m_bridge(new PluginPanelBridge(bus, plugins, pluginId, this))
     , m_quick(new QQuickWidget(this))
+    , m_bridge(new PluginPanelBridge(bus, plugins, pluginId, *m_quick->engine(), this))
     , m_error(new QLabel(this))
 {
     setProperty("role", u"panel"_s);

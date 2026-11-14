@@ -8,6 +8,8 @@
 
 #include <QJsonArray>
 
+#include <QThread>
+
 #include <exception>
 
 using namespace Qt::StringLiterals;
@@ -144,13 +146,29 @@ CommandBus::~CommandBus() = default;
 
 bool CommandBus::registerCommand(CommandSpec spec, CommandHandler handler)
 {
+    spec.async = false;
+    if (!handler) {
+        qCWarning(lcCommands).noquote() << "Rejected command" << spec.id << "because it has no handler";
+        return false;
+    }
+    return add(std::move(spec), std::move(handler), {});
+}
+
+bool CommandBus::registerAsyncCommand(CommandSpec spec, AsyncCommandHandler handler)
+{
+    spec.async = true;
+    if (!handler) {
+        qCWarning(lcCommands).noquote() << "Rejected command" << spec.id << "because it has no handler";
+        return false;
+    }
+    return add(std::move(spec), {}, std::move(handler));
+}
+
+bool CommandBus::add(CommandSpec spec, CommandHandler handler, AsyncCommandHandler asyncHandler)
+{
     auto normalized = normalizeCommandSpec(std::move(spec));
     if (!normalized) {
         qCWarning(lcCommands).noquote() << "Rejected command:" << normalized.error();
-        return false;
-    }
-    if (!handler) {
-        qCWarning(lcCommands).noquote() << "Rejected command" << normalized->id << "because it has no handler";
         return false;
     }
     const QString id = normalized->id;
@@ -166,7 +184,7 @@ bool CommandBus::registerCommand(CommandSpec spec, CommandHandler handler)
             return false;
         }
     }
-    m_commands.emplace(id, Entry{std::move(*normalized), std::move(handler)});
+    m_commands.emplace(id, Entry{std::move(*normalized), std::move(handler), std::move(asyncHandler)});
     qCDebug(lcCommands).noquote() << "Registered" << id;
     Q_EMIT commandRegistered(id);
     return true;
@@ -203,6 +221,7 @@ bool CommandBus::updateSpec(CommandSpec spec)
                                         << it->second.spec.owner << ", not" << spec.owner;
         return false;
     }
+    spec.async = it->second.spec.async;  // The handler decides it.
     auto normalized = normalizeCommandSpec(std::move(spec));
     if (!normalized) {
         qCWarning(lcCommands).noquote() << "Did not update a command:" << normalized.error();
@@ -248,17 +267,48 @@ std::expected<QJsonObject, CommandError> CommandBus::execute(const QString& id, 
     return execute(id, params, inherited);
 }
 
+std::expected<QJsonObject, CommandError> CommandBus::admit(const Entry& entry, const QJsonObject& params,
+                                                           const CallContext& context) const
+{
+    const QString& id = entry.spec.id;
+    if (m_running.size() >= kMaxDepth) {
+        return std::unexpected(
+            CommandError{CommandErrorCode::Failed,
+                         u"“%1” was not run: commands ran other commands more than %2 levels deep, as in a "
+                         u"loop. Report this problem, with Mikser Studio’s log."_s.arg(id)
+                             .arg(kMaxDepth)});
+    }
+    if (const QString& permission = entry.spec.permission; !context.permissions.contains(permission)) {
+        return std::unexpected(CommandError{
+            CommandErrorCode::PermissionDenied,
+            u"“%1” needs the “%2” permission, and %3 doesn’t have it. Grant it, or run the command yourself."_s.arg(
+                id, permission, describeOrigin(context.origins.constLast()))});
+    }
+    QJsonObject effective = JsonSchema::applyDefaults(params, entry.spec.paramsSchema);
+    if (const QStringList problems = JsonSchema::validate(effective, entry.spec.paramsSchema); !problems.isEmpty()) {
+        return std::unexpected(CommandError{CommandErrorCode::InvalidParams,
+                                            u"Invalid parameters for “%1”: %2"_s.arg(id, problems.join(u"; "_s))});
+    }
+    return effective;
+}
+
+void CommandBus::report(const QString& id, const QJsonObject& params, const CommandError& error,
+                        const CallContext& context)
+{
+    if (error.code == CommandErrorCode::NeedsConfirmation) {
+        // A question for the caller to ask, not a failure to report.
+        qCDebug(lcCommands).noquote() << id << "needs confirmation:" << error.message;
+        return;
+    }
+    qCInfo(lcCommands).noquote() << id << "failed:" << error.message;
+    Q_EMIT failed(id, params, error, context);
+}
+
 std::expected<QJsonObject, CommandError> CommandBus::execute(const QString& id, const QJsonObject& params,
                                                              const CallContext& context)
 {
     const auto fail = [&](CommandError error) -> std::expected<QJsonObject, CommandError> {
-        if (error.code == CommandErrorCode::NeedsConfirmation) {
-            // A question for the caller to ask, not a failure to report.
-            qCDebug(lcCommands).noquote() << id << "needs confirmation:" << error.message;
-            return std::unexpected(std::move(error));
-        }
-        qCInfo(lcCommands).noquote() << id << "failed:" << error.message;
-        Q_EMIT failed(id, params, error, context);
+        report(id, params, error, context);
         return std::unexpected(std::move(error));
     };
 
@@ -269,31 +319,21 @@ std::expected<QJsonObject, CommandError> CommandBus::execute(const QString& id, 
              u"Unknown command “%1”. Open the command palette or call GET /v1/commands to see the available commands."_s
                  .arg(id)});
     }
-    if (m_running.size() >= kMaxDepth) {
-        return fail({CommandErrorCode::Failed,
-                     u"“%1” was not run: commands ran other commands more than %2 levels deep, as in a loop. "
-                     u"Report this problem, with Mikser Studio’s log."_s.arg(id)
-                         .arg(kMaxDepth)});
+    if (it->second.spec.async) {
+        return fail({CommandErrorCode::NotAvailable,
+                     u"“%1” answers later, and this caller can’t wait for it. Run it from a menu, the command palette "
+                     u"or the API."_s.arg(id)});
     }
-    if (const QString& permission = it->second.spec.permission; !context.permissions.contains(permission)) {
-        return fail({CommandErrorCode::PermissionDenied,
-                     u"“%1” needs the “%2” permission, and %3 doesn’t have it. Grant it, or run the command "
-                     u"yourself."_s.arg(id, permission, describeOrigin(context.origins.constLast()))});
-    }
+    auto effective = admit(it->second, params, context);
+    if (!effective)
+        return fail(std::move(effective.error()));
     // Copies, because a handler may unregister commands (e.g. a plugin deactivating itself).
     const bool undoable = it->second.spec.undoable;
     const CommandHandler handler = it->second.handler;
-    const QJsonObject effective = JsonSchema::applyDefaults(params, it->second.spec.paramsSchema);
-
-    if (const QStringList problems = JsonSchema::validate(effective, it->second.spec.paramsSchema);
-        !problems.isEmpty()) {
-        return fail(
-            {CommandErrorCode::InvalidParams, u"Invalid parameters for “%1”: %2"_s.arg(id, problems.join(u"; "_s))});
-    }
 
     CommandResult outcome = [&] {
         const RunningContext running(m_running, context);
-        return runHandler(handler, id, effective);
+        return runHandler(handler, id, *effective);
     }();
     if (!outcome)
         return fail(std::move(outcome.error()));
@@ -304,8 +344,107 @@ std::expected<QJsonObject, CommandError> CommandBus::execute(const QString& id, 
         m_undoStack.push(std::move(outcome->edit));
     }
     qCDebug(lcCommands).noquote() << "Executed" << id;
-    Q_EMIT executed(id, effective, outcome->result, context);
+    Q_EMIT executed(id, *effective, outcome->result, context);
     return std::move(outcome->result);
+}
+
+CommandBus::RunId CommandBus::executeAsync(const QString& id, const QJsonObject& params, const CallContext& context,
+                                           QObject* receiver, ExecuteDone done)
+{
+    const RunId run = m_nextRun.fetch_add(1);
+    Reply reply{receiver, std::move(done)};
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(
+            this, [this, run, id, params, context, reply] { start(run, id, params, context, reply); },
+            Qt::QueuedConnection);
+        return run;
+    }
+    start(run, id, params, context, std::move(reply));
+    return run;
+}
+
+void CommandBus::start(RunId run, const QString& id, const QJsonObject& params, const CallContext& context, Reply reply)
+{
+    const auto it = m_commands.find(id);
+    if (it == m_commands.end() || !it->second.spec.async) {
+        deliver(reply, execute(id, params, context));
+        return;
+    }
+    auto effective = admit(it->second, params, context);
+    if (!effective) {
+        report(id, params, effective.error(), context);
+        deliver(reply, std::unexpected(std::move(effective.error())));
+        return;
+    }
+    // Copied, because the handler may unregister the command.
+    const AsyncCommandHandler handler = it->second.asyncHandler;
+    m_pending.emplace(run, PendingRun{id, *effective, context, it->second.spec.undoable, std::move(reply)});
+    CommandDone done = [bus = QPointer<CommandBus>(this), run](CommandResult outcome) {
+        if (!bus)
+            return;
+        if (QThread::currentThread() == bus->thread()) {
+            bus->finish(run, std::move(outcome));
+            return;
+        }
+        auto shared = std::make_shared<CommandResult>(std::move(outcome));
+        QMetaObject::invokeMethod(
+            bus.data(), [bus, run, shared] { bus->finish(run, std::move(*shared)); }, Qt::QueuedConnection);
+    };
+    const RunningContext running(m_running, context);
+    try {
+        handler(*effective, context, done);
+    } catch (const std::exception& exception) {
+        done(commandFailure(
+            CommandErrorCode::Failed,
+            u"Command “%1” stopped with an internal error: %2. Report this problem, with Mikser Studio’s log."_s.arg(
+                id, QString::fromLocal8Bit(exception.what()))));
+    }
+}
+
+void CommandBus::finish(RunId run, CommandResult outcome)
+{
+    auto node = m_pending.extract(run);
+    if (node.empty())
+        return;  // Canceled, or answered already.
+    PendingRun& pending = node.mapped();
+    if (!outcome) {
+        report(pending.id, pending.params, outcome.error(), pending.context);
+        deliver(pending.reply, std::unexpected(std::move(outcome.error())));
+        return;
+    }
+    if (outcome->edit) {
+        if (!pending.undoable)
+            qCWarning(lcCommands).noquote() << pending.id << "returned an undo edit but is not declared undoable";
+        m_undoStack.push(std::move(outcome->edit));
+    }
+    qCDebug(lcCommands).noquote() << "Executed" << pending.id;
+    Q_EMIT executed(pending.id, pending.params, outcome->result, pending.context);
+    deliver(pending.reply, std::move(outcome->result));
+}
+
+void CommandBus::cancel(RunId run, const QString& reason)
+{
+    auto node = m_pending.extract(run);
+    if (node.empty())
+        return;
+    const PendingRun& pending = node.mapped();
+    const CommandError error{CommandErrorCode::Canceled, reason};
+    report(pending.id, pending.params, error, pending.context);
+    deliver(pending.reply, std::unexpected(error));
+}
+
+void CommandBus::deliver(const Reply& reply, std::expected<QJsonObject, CommandError> result)
+{
+    QObject* receiver = reply.receiver.data();
+    if (!receiver || !reply.done)
+        return;
+    if (receiver->thread() == QThread::currentThread()) {
+        reply.done(std::move(result));
+        return;
+    }
+    auto shared = std::make_shared<std::expected<QJsonObject, CommandError>>(std::move(result));
+    QMetaObject::invokeMethod(
+        receiver, [done = reply.done, shared] { done(std::move(*shared)); }, Qt::QueuedConnection);
 }
 
 QJsonObject toJson(const CommandSpec& spec)
@@ -327,6 +466,7 @@ QJsonObject toJson(const CommandSpec& spec)
         {u"startsJob"_s, spec.startsJob},
         {u"openWorld"_s, spec.openWorld},
         {u"quiet"_s, spec.quiet},
+        {u"async"_s, spec.async},
     };
 }
 

@@ -87,7 +87,7 @@ TOKEN=$(jq -r .token "$HOME/.local/share/Mikser Studio/api.json")
 | 405 | `method_not_allowed` | Wrong HTTP method (the `Allow` header lists the right ones). |
 | 409 | `not_available` | The command exists but cannot run now (e.g. nothing to undo). |
 | 409 | `needs_confirmation` | This run needs the person's agreement; the message is the question (see `confirmationParam`). |
-| 409 | `canceled` | The run was stopped before it finished. |
+| 409 | `canceled` | The run was stopped before it finished, such as a command that answers later and didn't within 60 seconds. |
 | 413 | `payload_too_large` | The body is larger than 1 MiB (1 048 576 bytes). |
 | 426 | `upgrade_required` | A plain GET on `/v1/events`, which is a WebSocket. |
 | 500 | `failed` | The command ran and failed; the message says why. |
@@ -140,7 +140,8 @@ curl -s -H "Authorization: Bearer $TOKEN" "$API/v1/commands"
         "permission": "project.write",
         "startsJob": false,
         "openWorld": false,
-        "quiet": false
+        "quiet": false,
+        "async": false
     },
     ...
 ]
@@ -169,7 +170,9 @@ listed but not enforced. `startsJob` is true when the work goes on in a job that
 (`ai.run` answers `{jobId}`; `ai.jobs` follows it). `openWorld` is true when the command reaches
 outside the app, to an AI tool that may be on another computer or online. `quiet` is true for
 bookkeeping that the command log and the status bar leave out, as they leave out read-only commands:
-the seeks of `program.seek` and `source.seek`, which scrubbing sends many times.
+the seeks of `program.seek` and `source.seek`, which scrubbing sends many times. `async` is true for
+a command that answers later, after work that takes a while, such as a plugin's call to a tool;
+`POST` waits for it (see below).
 Plugins add and remove commands at run time; the events socket reports those changes.
 
 ### `GET /v1/commands/<id>`
@@ -193,6 +196,10 @@ curl -s -X POST -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/
 ```json
 {"result": {"mediaId": "media-43f78b2b-a279-419f-9256-c92174caf7aa"}}
 ```
+
+A command whose spec has `async` answers later; the request waits for it. When it hasn't finished
+within 60 seconds, the API stops waiting and answers `409 canceled`: its work may go on, and
+`/v1/events` tells when it ends.
 
 Undo and redo are commands too:
 

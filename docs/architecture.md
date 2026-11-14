@@ -137,6 +137,11 @@ messages.
 ## Threads and processes
 
 - **Main thread:** UI, core, command execution, project model. (built)
+- **Commands that answer later:** a command marked `async` hands its handler a `done` callback
+  instead of returning. `CommandBus::executeAsync` can be called from any thread: it queues the run
+  to the main thread and the answer to the caller's. Menus, the palette, shortcuts, plugin panels and
+  `/v1` use it; `/v1` stops waiting after 60 seconds. A synchronous `execute` of such a command
+  answers `not_available`. (built)
 - **MLT threads:** decoding and the RtAudio consumer. The audio device clock is the master clock:
   video frames are shown when the audio says so. Frames reach the monitor through
   `engine::FrameSink` without going through the Qt event queue. (built)

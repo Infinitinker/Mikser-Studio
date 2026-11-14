@@ -45,9 +45,9 @@ ParamsDialog::ParamsDialog(core::CommandBus& bus, const core::CommandSpec& spec,
     m_error->hide();
 
     auto* buttons = new QDialogButtonBox(QDialogButtonBox::Cancel, this);
-    QPushButton* runButton = buttons->addButton(u"Run"_s, QDialogButtonBox::AcceptRole);
-    runButton->setProperty("role", u"primary"_s);
-    runButton->setDefault(true);
+    m_runButton = buttons->addButton(u"Run"_s, QDialogButtonBox::AcceptRole);
+    m_runButton->setProperty("role", u"primary"_s);
+    m_runButton->setDefault(true);
     connect(buttons, &QDialogButtonBox::accepted, this, &ParamsDialog::run);
     connect(buttons, &QDialogButtonBox::rejected, this, &QDialog::reject);
 
@@ -68,16 +68,19 @@ void ParamsDialog::run()
     m_error->hide();
     if (!m_form->validate().isEmpty())
         return;
-    const auto run = executeAsking(m_bus, m_commandId, m_form->value(), this);
-    if (!run)
-        return;  // The user did not agree; they may change the params.
-    m_result = *run;
-    if (m_result) {
-        accept();
-        return;
-    }
-    m_error->setText(m_result.error().message);
-    m_error->show();
+    m_runButton->setEnabled(false);  // Until the run, which may answer later, has finished.
+    executeAskingLater(m_bus, m_commandId, m_form->value(), this, [this](InteractiveResult run) {
+        m_runButton->setEnabled(true);
+        if (!run)
+            return;  // The user did not agree; they may change the params.
+        m_result = *run;
+        if (m_result) {
+            accept();
+            return;
+        }
+        m_error->setText(m_result.error().message);
+        m_error->show();
+    });
 }
 
 }  // namespace mikserstudio::ui

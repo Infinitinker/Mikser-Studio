@@ -104,9 +104,11 @@ while the plugin is active.
 The UI loads the panel's QML file and gives its root item one context property, `mikserstudio`:
 
 ```qml
-mikserstudio.execute(commandId: string, params: object) -> object
+mikserstudio.execute(commandId: string, params: object, callback: function)
+    // Runs the command, which may answer later, and calls callback(reply) once:
     // {ok: true, result: {...}}  or  {ok: false, error: {code, message}}
-    // code is "unknown_command", "invalid_params", "failed" or "not_available"
+    // code is "unknown_command", "invalid_params", "failed", "not_available", "permission_denied"
+    // or "canceled" (also when the person declines the command's question)
 mikserstudio.settings   // object: the plugin's current settings
 mikserstudio.pluginId   // string
 ```

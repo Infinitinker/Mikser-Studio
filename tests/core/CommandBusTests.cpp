@@ -8,7 +8,9 @@
 #include <catch2/catch_test_macros.hpp>
 
 #include <QCoreApplication>
+#include <QDeadlineTimer>
 #include <QMap>
+#include <QThread>
 
 #include <stdexcept>
 
@@ -555,6 +557,133 @@ TEST_CASE("CommandBus unregisters an owner's commands and updates a spec for its
     bus.unregisterOwnedBy(u"hello"_s);
     CHECK(unregistered == QStringList{u"hello.greet"_s, u"hello.wave"_s});
     CHECK(bus.contains(u"test.set_value"_s));
+}
+
+TEST_CASE("An async command answers later through executeAsync", "[commands][async]")
+{
+    UndoStack stack;
+    CommandBus bus(stack);
+    QObject receiver;
+    CommandDone held;
+    CommandSpec later = setSpec();
+    later.id = u"test.later"_s;
+    REQUIRE(bus.registerAsyncCommand(
+        later, [&held](const QJsonObject&, const CallContext&, CommandDone done) { held = std::move(done); }));
+    REQUIRE(bus.spec(u"test.later"_s)->async);
+    CHECK(toJson(*bus.spec(u"test.later"_s)).value(u"async").toBool());
+
+    // execute() can't wait for it.
+    const auto refused = bus.execute(u"test.later"_s, json(R"({"value": 1})"));
+    REQUIRE_FALSE(refused.has_value());
+    CHECK(refused.error().code == CommandErrorCode::NotAvailable);
+
+    QStringList executed;
+    QObject::connect(
+        &bus, &CommandBus::executed,
+        [&](const QString& id, const QJsonObject&, const QJsonObject&, const CallContext&) { executed.append(id); });
+    std::optional<std::expected<QJsonObject, CommandError>> answer;
+    const auto run = bus.executeAsync(u"test.later"_s, json(R"({"value": 1})"), CallContext::api(), &receiver,
+                                      [&answer](auto result) { answer = std::move(result); });
+    REQUIRE(held);
+    CHECK(bus.isPending(run));
+    CHECK_FALSE(answer.has_value());
+    int value = 0;
+    held(CommandOutcome{QJsonObject{{u"done"_s, true}}, std::make_unique<SetEdit>(value, 0, 4)});
+    REQUIRE(answer.has_value());
+    REQUIRE(answer->has_value());
+    CHECK((*answer)->value(u"done"_s).toBool());
+    CHECK(executed == QStringList{u"test.later"_s});
+    CHECK(stack.canUndo());
+    CHECK_FALSE(bus.isPending(run));
+
+    // A second answer from the handler is dropped.
+    held(CommandOutcome{QJsonObject{{u"again"_s, true}}, nullptr});
+    CHECK(executed.size() == 1);
+
+    // Commands that aren't async answer before executeAsync returns.
+    answer.reset();
+    int set = 0;
+    REQUIRE(bus.registerCommand(setSpec(), setHandler(set)));
+    bus.executeAsync(u"test.set_value"_s, json(R"({"value": 2})"), CallContext::ui(), &receiver,
+                     [&answer](auto result) { answer = std::move(result); });
+    REQUIRE(answer.has_value());
+    CHECK(answer->has_value());
+    CHECK(set == 2);
+}
+
+TEST_CASE("Canceling an async run answers Canceled and drops the handler's answer", "[commands][async]")
+{
+    UndoStack stack;
+    CommandBus bus(stack);
+    QObject receiver;
+    CommandDone held;
+    CommandSpec later = setSpec();
+    later.id = u"test.later"_s;
+    REQUIRE(bus.registerAsyncCommand(
+        later, [&held](const QJsonObject&, const CallContext&, CommandDone done) { held = std::move(done); }));
+    QList<CommandError> failures;
+    QObject::connect(&bus, &CommandBus::failed,
+                     [&](const QString&, const QJsonObject&, const CommandError& error, const CallContext&) {
+                         failures.append(error);
+                     });
+    std::optional<std::expected<QJsonObject, CommandError>> answer;
+    const auto run = bus.executeAsync(u"test.later"_s, json(R"({"value": 1})"), CallContext::ui(), &receiver,
+                                      [&answer](auto result) { answer = std::move(result); });
+    bus.cancel(run, u"Stopped waiting."_s);
+    REQUIRE(answer.has_value());
+    REQUIRE_FALSE(answer->has_value());
+    CHECK(answer->error().code == CommandErrorCode::Canceled);
+    CHECK(answer->error().message == u"Stopped waiting."_s);
+    REQUIRE(failures.size() == 1);
+
+    answer.reset();
+    held(CommandOutcome{});
+    CHECK_FALSE(answer.has_value());
+    CHECK(failures.size() == 1);
+
+    // Invalid params fail at once, before the handler runs.
+    held = nullptr;
+    bus.executeAsync(u"test.later"_s, json(R"({"value": -1})"), CallContext::ui(), &receiver,
+                     [&answer](auto result) { answer = std::move(result); });
+    REQUIRE(answer.has_value());
+    CHECK(answer->error().code == CommandErrorCode::InvalidParams);
+    CHECK_FALSE(held);
+}
+
+TEST_CASE("executeAsync from another thread runs on the bus's thread and answers on the receiver's",
+          "[commands][async]")
+{
+    int argc = 0;
+    QCoreApplication app(argc, nullptr);  // Queued calls need an event dispatcher.
+    UndoStack stack;
+    CommandBus bus(stack);
+    int value = 0;
+    QThread* ranOn = nullptr;
+    CommandSpec spec = setSpec();
+    REQUIRE(bus.registerCommand(spec, [&value, &ranOn](const QJsonObject& params) -> CommandResult {
+        ranOn = QThread::currentThread();
+        value = params.value(u"value").toInt();
+        return CommandOutcome{};
+    }));
+
+    QThread worker;
+    QObject receiver;
+    receiver.moveToThread(&worker);
+    worker.start();
+    std::atomic<QThread*> answeredOn = nullptr;
+    QMetaObject::invokeMethod(&receiver, [&] {
+        bus.executeAsync(u"test.set_value"_s, json(R"({"value": 7})"), CallContext::ui(), &receiver,
+                         [&answeredOn](auto) { answeredOn = QThread::currentThread(); });
+    });
+    const QDeadlineTimer deadline(std::chrono::seconds(10));
+    while (answeredOn.load() == nullptr && !deadline.hasExpired())
+        QCoreApplication::processEvents(QEventLoop::AllEvents, 20);
+    REQUIRE(answeredOn.load() != nullptr);
+    CHECK(ranOn == bus.thread());
+    CHECK(answeredOn.load() == &worker);
+    CHECK(value == 7);
+    worker.quit();
+    worker.wait();
 }
 
 TEST_CASE("A handler can unregister its own command while running", "[commands]")

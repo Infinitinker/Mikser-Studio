@@ -50,6 +50,9 @@ struct CommandSpec {
     // Logs and status messages leave it out, as they leave out read-only commands: bookkeeping such
     // as the many seeks of scrubbing the playhead.
     bool quiet = false;
+    // Its handler answers later (AsyncCommandHandler), so it runs only through
+    // CommandBus::executeAsync. Set by CommandBus::registerAsyncCommand.
+    bool async = false;
 };
 
 // A change that can be reverted. Created by a command handler after it has applied the change.
@@ -110,6 +113,14 @@ using CommandResult = std::expected<CommandOutcome, CommandError>;
 // Params have already been validated against CommandSpec::paramsSchema when this runs.
 // Handlers run on the thread that owns the CommandBus (the main thread).
 using CommandHandler = std::function<CommandResult(const QJsonObject& params)>;
+
+// Called once with an async command's outcome, from any thread.
+using CommandDone = std::function<void(CommandResult outcome)>;
+// An async command's handler (CommandSpec::async). It runs on the CommandBus's thread, starts the
+// work and calls `done` once when the work has finished. A command answers fast, with a small
+// result or {jobId}: callers stop waiting after a while (the API after 60 seconds).
+using AsyncCommandHandler =
+    std::function<void(const QJsonObject& params, const CallContext& context, CommandDone done)>;
 
 [[nodiscard]] inline std::unexpected<CommandError> commandFailure(CommandErrorCode code, QString message)
 {

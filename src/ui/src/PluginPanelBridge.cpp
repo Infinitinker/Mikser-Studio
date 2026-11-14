@@ -2,35 +2,22 @@
 #include "PluginPanelBridge.h"
 
 #include "CommandInvoker.h"
+#include "Logging.h"
 
 #include "mikserstudio/core/CommandBus.h"
 #include "mikserstudio/core/PluginManager.h"
 
+#include <QJSEngine>
 #include <QJsonObject>
 
 using namespace Qt::StringLiterals;
 
 namespace mikserstudio::ui {
 
-PluginPanelBridge::PluginPanelBridge(core::CommandBus& bus, const core::PluginManager& plugins, QString pluginId,
-                                     QObject* parent)
-    : QObject(parent)
-    , m_bus(bus)
-    , m_pluginId(std::move(pluginId))
-    , m_settings(plugins.settings(m_pluginId).toVariantMap())
-{
-    connect(&plugins, &core::PluginManager::settingsChanged, this,
-            [this](const QString& id, const QJsonObject& settings) {
-                if (id != m_pluginId)
-                    return;
-                m_settings = settings.toVariantMap();
-                Q_EMIT settingsChanged();
-            });
-}
+namespace {
 
-QVariantMap PluginPanelBridge::execute(const QString& commandId, const QVariantMap& params)
+QVariantMap reply(const InteractiveResult& run)
 {
-    const auto run = executeInteractive(m_bus, commandId, QJsonObject::fromVariantMap(params), nullptr);
     if (!run) {
         return {
             {u"ok"_s, false},
@@ -45,6 +32,38 @@ QVariantMap PluginPanelBridge::execute(const QString& commandId, const QVariantM
         {u"error"_s,
          QVariantMap{{u"code"_s, core::toString(result.error().code)}, {u"message"_s, result.error().message}}},
     };
+}
+
+}  // namespace
+
+PluginPanelBridge::PluginPanelBridge(core::CommandBus& bus, const core::PluginManager& plugins, QString pluginId,
+                                     QJSEngine& engine, QObject* parent)
+    : QObject(parent)
+    , m_bus(bus)
+    , m_engine(engine)
+    , m_pluginId(std::move(pluginId))
+    , m_settings(plugins.settings(m_pluginId).toVariantMap())
+{
+    connect(&plugins, &core::PluginManager::settingsChanged, this,
+            [this](const QString& id, const QJsonObject& settings) {
+                if (id != m_pluginId)
+                    return;
+                m_settings = settings.toVariantMap();
+                Q_EMIT settingsChanged();
+            });
+}
+
+void PluginPanelBridge::execute(const QString& commandId, const QVariantMap& params, const QJSValue& callback)
+{
+    if (!callback.isCallable()) {
+        qCWarning(lcPanels).noquote() << "Plugin" << m_pluginId << "ran" << commandId
+                                      << "without a callback: mikserstudio.execute(commandId, params, callback)";
+    }
+    executeInteractiveLater(m_bus, commandId, QJsonObject::fromVariantMap(params), nullptr,
+                            [this, callback](const InteractiveResult& run) mutable {
+                                if (callback.isCallable())
+                                    callback.call({m_engine.toScriptValue(reply(run))});
+                            });
 }
 
 }  // namespace mikserstudio::ui

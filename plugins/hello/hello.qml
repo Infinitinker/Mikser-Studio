@@ -1,7 +1,8 @@
 // "Greeter" panel of the Hello example plugin.
 //
 // Uses only the plugin panel contract (docs/plugins.md): the context property `mikserstudio` with
-// mikserstudio.execute(commandId, params) -> {ok, result} | {ok: false, error: {code, message}},
+// mikserstudio.execute(commandId, params, callback), which calls callback with {ok, result} or
+// {ok: false, error: {code, message}},
 // mikserstudio.settings and mikserstudio.pluginId.
 import QtQuick
 import QtQuick.Controls
@@ -16,9 +17,10 @@ Pane {
     function greet() {
         const params = nameField.text.trim().length > 0 ? { name: nameField.text.trim() } : {}
         // Under the plugin's own id, as the host requires: mikserstudio.examples.hello.greet here.
-        const reply = mikserstudio.execute(mikserstudio.pluginId + ".greet", params)
-        root.lastCallFailed = !reply.ok
-        resultLabel.text = reply.ok ? reply.result.message : reply.error.message
+        mikserstudio.execute(mikserstudio.pluginId + ".greet", params, function (reply) {
+            root.lastCallFailed = !reply.ok
+            resultLabel.text = reply.ok ? reply.result.message : reply.error.message
+        })
     }
 
     padding: 12

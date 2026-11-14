@@ -10,6 +10,7 @@
 #include <optional>
 
 class QLabel;
+class QPushButton;
 
 namespace mikserstudio::core {
 class CommandBus;
@@ -38,6 +39,7 @@ private:
     QString m_commandId;
     SchemaForm* m_form = nullptr;
     QLabel* m_error = nullptr;
+    QPushButton* m_runButton = nullptr;
     std::expected<QJsonObject, core::CommandError> m_result;
 };
 
