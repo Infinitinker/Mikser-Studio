@@ -57,8 +57,8 @@ for _, copied in ipairs({
 }) do
     msys2.COPIED[#msys2.COPIED + 1] = copied
 end
---- The MSYS2 libraries mikser-studio.exe and the bundled plugins import. tools/build_release.lua fails
---- when the program or a plugin it built imports one that is not listed, so the notices, which are
+--- The MSYS2 libraries mikser-studio.exe imports. tools/build_release.lua fails when the program or the
+--- MCP bridge imports one that is not listed, so the notices, which are
 --- written without a build, never miss a library.
 msys2.PROGRAM_LIBRARIES = {
     "Qt6Core.dll",

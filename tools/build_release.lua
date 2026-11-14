@@ -8,8 +8,8 @@
 --   built with Inno Setup 7's ISCC.exe, found through ISCC or in Program Files;
 -- - MikserStudio-<version>-third-party-notices.md: THIRD-PARTY-NOTICES.md, to read without the app.
 --
--- It fails unless THIRD-PARTY-NOTICES.md covers exactly what ships: when the program, the MCP bridge or a
--- bundled plugin imports an MSYS2 library that PROGRAM_LIBRARIES in tools/msys2_packages.lua does not
+-- It fails unless THIRD-PARTY-NOTICES.md covers exactly what ships: when the program or the MCP bridge
+-- imports an MSYS2 library that PROGRAM_LIBRARIES in tools/msys2_packages.lua does not
 -- list, when what it copies is not what tools/notices.lua walks, or when the committed notices are not
 -- what tools/notices.lua writes from this MSYS2.
 --
@@ -76,7 +76,7 @@ local function names(packages)
     return table.concat(found, "\n")
 end
 
---- The libraries the program and plugins need, once THIRD-PARTY-NOTICES.md is known to cover them:
+--- The libraries the program and the MCP bridge need, once THIRD-PARTY-NOTICES.md is known to cover them:
 --- every MSYS2 library they import is in PROGRAM_LIBRARIES, so tools/notices.lua, which walks from that
 --- list without a build, walks to the same libraries; and the committed notices are what it writes now.
 local function check_notices(programs, root)
@@ -121,16 +121,10 @@ local function check_notices(programs, root)
     return shipped.libraries
 end
 
---- The libraries from MSYS2 the program, the MCP bridge and the plugins need, and MLT's and Qt's files.
+--- The libraries from MSYS2 the program and the MCP bridge need, and MLT's and Qt's files.
 local function add_runtime()
     local root = msys2.root()
-    local programs = { PROGRAM, MCP_BRIDGE }
-    for _, path in ipairs(files.walk(STAGE .. "/bin/plugins")) do
-        if path:lower():sub(-4) == ".dll" then
-            programs[#programs + 1] = path
-        end
-    end
-    for _, library in ipairs(check_notices(programs, root)) do
+    for _, library in ipairs(check_notices({ PROGRAM, MCP_BRIDGE }, root)) do
         files.copy(library, STAGE .. "/bin/" .. files.name(library))
     end
     for _, file in ipairs(msys2.copied_files(files.join(root, msys2.ENVIRONMENT))) do

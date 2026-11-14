@@ -28,13 +28,12 @@ test("an include against the directions is named", function()
     })
 end)
 
-test("public headers take quotes and the plugin ABI angle brackets", function()
-    equal(problems("src/core/src/PluginHost.h", "#include <mikserstudio/plugin_api.h>\n"), {})
+test("public headers take quotes", function()
     equal(problems("src/ui/src/Shell.cpp", "#include <mikserstudio/core/CommandBus.h>\n"), {
         "src/ui/src/Shell.cpp:1: <mikserstudio/core/CommandBus.h> is a public header: include it in quotes",
     })
-    equal(problems("src/core/src/PluginHost.h", '#include "mikserstudio/plugin_api.h"\n'), {
-        'src/core/src/PluginHost.h:1: "mikserstudio/plugin_api.h" is the plugin ABI: include it in angle brackets',
+    equal(problems("src/ui/src/Shell.cpp", '#include "mikserstudio/scripting/Lua.h"\n'), {
+        'src/ui/src/Shell.cpp:1: "mikserstudio/scripting/Lua.h" names no module',
     })
 end)
 
@@ -76,21 +75,22 @@ test("the end-to-end tests include only the modules they name", function()
     })
 end)
 
-test("the plugins' tests include the core, but the plugins only the ABI", function()
+test("the plugins' tests include the core and the Lua host", function()
     local tracked = { "tests/core/TestSupport.h" }
     local plugin_test = "tests/plugins/hello/HelloPluginTests.cpp"
     equal(problems(plugin_test, '#include "mikserstudio/core/PluginManager.h"\n'), {})
+    equal(problems(plugin_test, '#include "mikserstudio/lua/LuaRuntime.h"\n'), {})
     equal(problems(plugin_test, '#include "TestSupport.h"\n', tracked), {})
-    local plugin = "plugins/hello/src/HelloPlugin.cpp"
-    equal(problems(plugin, "#include <mikserstudio/plugin_api.h>\n"), {})
-    equal(problems(plugin, '#include "mikserstudio/core/PluginManager.h"\n'), {
-        plugin .. ':1: "mikserstudio/core/PluginManager.h" goes from plugins to core',
+    equal(problems(plugin_test, '#include "mikserstudio/ui/Shell.h"\n'), {
+        plugin_test .. ':1: "mikserstudio/ui/Shell.h" goes from plugins to ui',
     })
 end)
 
 test("a file in a folder the check does not know is a problem", function()
     for _, path in ipairs({
         "tests/benchmarks/Bench.cpp",
+        "plugins/examples/hello/native.cpp",
+        "sdk/include/mikserstudio/plugin_api.h",
         "src/scripting/Lua.cpp",
         "tools/native/helper.cpp",
         "tests/Main.cpp",

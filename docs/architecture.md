@@ -67,7 +67,6 @@ The rules between them:
 | `src/mcp/` | `mikser-studio-mcp` | Qt Network/WebSockets | The MCP bridge, a program of its own: offers the commands to agents as MCP tools through the local API. | built |
 | `plugins/` | Lua plugins | the Lua API | Built-in plugins in `plugins/builtin/<name>/`, the example in `plugins/examples/hello/`. | built (the example; no built-in plugins yet) |
 | `effects/` | GLSL effects | — | One folder per effect: `effect.frag` and `effect.json`. | planned |
-| `sdk/` | `MikserStudio::sdk` | — | The C ABI of native plugins (`plugin_api.h`, MIT). Native plugins go away when the Lua host is in, and `sdk/` with them. | built, to be removed |
 | `tools/` | development scripts | — | The release build, the third-party notices, the license and include checks and what they read from MSYS2, in Lua 5.4 with LuaFileSystem and lua-cjson, with their tests in `tools/tests/`; never shipped. Checked with StyLua and selene, with the settings in `tools/stylua.toml` and `tools/selene.toml`. | built |
 | `tests/` | `*-tests` | Catch2 | Tests mirroring `src/` and `plugins/`, and the end-to-end tests. | built |
 
@@ -76,7 +75,7 @@ The rules between them:
 Code includes and imports only in these directions, so each module can be built, tested and replaced
 on its own. `tools/check_includes.lua` checks them, and the `Checks` workflow runs it.
 
-- `src/core/` includes only itself (and, until native plugins go, the plugin ABI).
+- `src/core/` includes only itself.
 - `src/engine/`, `src/api/`, `src/services/` and `src/ui/` include only themselves and `core`. The UI
   never includes the engine: the app creates the engine's monitor panels and hands them to the UI,
   and the UI controls playback through `core::Transport`.
@@ -89,10 +88,11 @@ on its own. `tools/check_includes.lua` checks them, and the `Checks` workflow ru
   headers are included in quotes by name, and only by the module itself and its tests in
   `tests/<module>/`.
 - `tests/e2e/` includes only the core: the end-to-end tests run the app and the MCP bridge as
-  processes, and use the services tests' fake AI tools and the API tests' HTTP helpers. Every C++ file is in a folder the check
-  knows, so a new folder has to be added to it before its includes pass.
+  processes, and use the services tests' fake AI tools and the API tests' HTTP helpers.
 - `tests/plugins/` includes only the core and the Lua host, and the shared support files of their
-  tests. Until it is removed, `sdk/` includes nothing of Mikser Studio.
+  tests.
+- Every C++ file is in a folder the check knows, so a new folder has to be added to it before its
+  includes pass. The plugins in `plugins/` are Lua and have no C++.
 
 ## Terms
 
@@ -114,7 +114,7 @@ messages.
 | workspace | A saved arrangement of the panels. | layout, perspective (in the code, *layout* is only KDDockWidgets' saved form of a workspace, as in `LayoutSaver` and `layout.json`) |
 | command | An action with an id such as `project.import_media`, run the same way from menus, shortcuts, the command palette, the API and plugins. | action, operation |
 | command palette | The popup that finds and runs commands (Ctrl+K). | quick open |
-| plugin | A folder with a `mikserstudio-plugin.json` manifest that adds commands, settings and panels. Today a native shared library; planned: a Lua plugin. | extension, add-on, module |
+| plugin | A folder with a `mikserstudio-plugin.json` manifest that adds commands, settings and panels. Its code is Lua. | extension, add-on, module |
 | Lua plugin | A plugin whose code is Lua (`entry` is a `.lua` file), run by the Lua host in a sandbox. | script, mod |
 | built-in plugin | A Lua plugin shipped with the app in `plugins/builtin/`, granted its permissions automatically. Most features are built-in plugins. | core plugin, bundled extension |
 | Lua host | The C++ module (`src/lua`) that runs Lua plugins: one state per plugin, each on its own thread. | interpreter, runtime, VM |

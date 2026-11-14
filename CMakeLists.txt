@@ -45,7 +45,6 @@ if(MIKSERSTUDIO_BUILD_TESTS)
     include(Catch)
 endif()
 
-add_subdirectory(sdk)
 add_subdirectory(src/core)
 
 if(MIKSERSTUDIO_WITH_ENGINE)

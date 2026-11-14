@@ -2,16 +2,15 @@
 -- in docs/architecture.md writes down:
 --
 -- - a module includes the public headers ("mikserstudio/<module>/...", in quotes) only of itself and
---   of the modules it depends on, as ALLOWED lists them, and the plugin ABI (<mikserstudio/plugin_api.h>,
---   in angle brackets, as a plugin built apart from Mikser Studio includes it) only where ALLOWED names
---   sdk;
+--   of the modules it depends on, as ALLOWED lists them;
 -- - any other header in quotes ("Logging.h") is the module's own: it is found next to the including
 --   file, in the module's src/ or in its public include folder. A module's tests may include the
 --   private headers of the module they test, and the tests' shared support files;
 -- - the tests in a folder of TEST_FOLDERS include only the modules it names, and the shared support
 --   files of those modules' tests;
--- - every C++ file is in a folder the check knows: sdk/, plugins/, src/<module>/, tests/<module>/ or a
---   folder of TEST_FOLDERS. A file anywhere else is a problem, so a new folder is never skipped.
+-- - every C++ file is in a folder the check knows: src/<module>/, tests/<module>/ or a folder of
+--   TEST_FOLDERS. A file anywhere else is a problem, so a new folder is never skipped; the plugins in
+--   plugins/ are Lua and have none.
 --
 -- Run it from the repository root:
 --     lua5.4 tools/check_includes.lua
@@ -24,14 +23,12 @@ local text = require("text")
 
 local check = {}
 
---- The modules, each with its folder: sdk/ and src/<module>/.
-check.MODULES = { "sdk", "core", "engine", "api", "services", "lua", "ui", "app", "mcp" }
---- The modules each module may include from, besides itself. plugins/ holds the bundled plugins, which
---- see only the plugin ABI. mcp, the MCP bridge, drives the app only through its local API, so it
---- includes no other module.
+--- The modules, each with its folder in src/.
+check.MODULES = { "core", "engine", "api", "services", "lua", "ui", "app", "mcp" }
+--- The modules each module may include from, besides itself. mcp, the MCP bridge, drives the app only
+--- through its local API, so it includes no other module.
 check.ALLOWED = {
-    sdk = {},
-    core = { "sdk" },
+    core = {},
     engine = { "core" },
     api = { "core" },
     services = { "core" },
@@ -39,11 +36,10 @@ check.ALLOWED = {
     ui = { "core" },
     app = { "core", "engine", "api", "services", "lua", "ui" },
     mcp = {},
-    plugins = { "sdk" },
 }
 --- The folders of tests/ that test no single module, with the modules they may include. The end-to-end
 --- tests run the app and the MCP bridge as processes, with the services tests' fake AI tools; the
---- bundled plugins' tests load them through the core's PluginManager.
+--- plugins' tests run them in the Lua host.
 check.TEST_FOLDERS = {
     e2e = { "core", "services" },
     plugins = { "core", "lua" },
@@ -136,11 +132,7 @@ end
 --- TEST_FOLDERS it is in; nil in a folder the check does not know.
 function check.module_of(path)
     local found = parts(path)
-    if found[1] == "sdk" then
-        return "sdk", false
-    elseif found[1] == "plugins" then
-        return "plugins", false
-    elseif (found[1] == "src" or found[1] == "tests") and #found > 2 and contains(check.MODULES, found[2]) then
+    if (found[1] == "src" or found[1] == "tests") and #found > 2 and contains(check.MODULES, found[2]) then
         return found[2], found[1] == "tests"
     elseif found[1] == "tests" and #found > 2 and check.TEST_FOLDERS[found[2]] then
         return found[2], true
@@ -150,9 +142,6 @@ end
 
 --- Where a quoted include of this file may be found.
 local function own_folders(module, is_test, path)
-    if module == "sdk" then
-        return { parent(path), "sdk/include" }
-    end
     if is_test and check.TEST_FOLDERS[module] then
         local folders = { parent(path) }
         local named = { table.unpack(check.TEST_FOLDERS[module]) }
@@ -164,9 +153,6 @@ local function own_folders(module, is_test, path)
             folders[#folders + 1] = "tests/" .. name
         end
         return folders
-    end
-    if module == "plugins" then
-        return { parent(path) }
     end
     local folders = { parent(path), "src/" .. module .. "/src", "src/" .. module }
     if is_test then
@@ -195,13 +181,9 @@ function check.check_file(path, contents, tracked)
         local bracket, name = line:match('^%s*#%s*include%s*([<"])([^>"]+)[>"]')
         if bracket then
             local written = bracket == "<" and "<" .. name .. ">" or '"' .. name .. '"'
-            local public_module = name:match("^mikserstudio/([a-z]+)/")
-            local abi = not public_module and name == "mikserstudio/plugin_api.h"
-            if public_module or abi then
-                local target = public_module or "sdk"
-                if abi and bracket == '"' then
-                    add(number, written, "is the plugin ABI: include it in angle brackets")
-                elseif public_module and bracket == "<" then
+            local target = name:match("^mikserstudio/([a-z]+)/")
+            if target then
+                if bracket == "<" then
                     add(number, written, "is a public header: include it in quotes")
                 elseif not contains(check.MODULES, target) then
                     add(number, written, "names no module")

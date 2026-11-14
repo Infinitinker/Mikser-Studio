@@ -25,10 +25,6 @@ add_library(mikserstudio-core STATIC
     src/Logging.cpp
     src/Logging.h
     src/MediaCommands.cpp
-    src/NativePlugin.cpp
-    src/NativePlugin.h
-    src/PluginHost.cpp
-    src/PluginHost.h
     src/PluginCommands.cpp
     src/PluginManager.cpp
     src/PluginManifest.cpp
@@ -53,7 +49,7 @@ add_library(MikserStudio::core ALIAS mikserstudio-core)
 target_include_directories(mikserstudio-core
     PUBLIC include
     PRIVATE src)
-target_link_libraries(mikserstudio-core PUBLIC Qt6::Core MikserStudio::sdk)
+target_link_libraries(mikserstudio-core PUBLIC Qt6::Core)
 # The public headers use std::expected.
 target_compile_features(mikserstudio-core PUBLIC cxx_std_23)
 mikserstudio_target_defaults(mikserstudio-core)

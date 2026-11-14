@@ -124,10 +124,8 @@ Checks: >
 WarningsAsErrors: '*'
 
 # Only the project's own headers: not those of Qt, MLT, KDDockWidgets or the system.
-HeaderFilterRegex: '.*[/\\](src|sdk|plugins|tests)[/\\].*'
+HeaderFilterRegex: '.*[/\\](src|tests)[/\\].*'
 
 CheckOptions:
   # A result discarded with (void) is discarded on purpose.
   bugprone-unused-return-value.AllowCastToVoid: true
-  # The plugin ABI is a C header: its version and entry point's name are macros.
-  cppcoreguidelines-macro-usage.AllowedRegexp: '^MIKSERSTUDIO_PLUGIN_'
