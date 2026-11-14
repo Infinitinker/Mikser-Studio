@@ -42,6 +42,7 @@ struct JobSpec {
     // one's progress shows on it. Empty for a job of its own.
     QString parent = {};
     // The host:port entries the job may connect to (core::NetworkEntry): its owner's manifest's.
+    // NOLINTNEXTLINE(readability-redundant-member-init): GCC wants it for designated initializers.
     QStringList network = {};
 };
 

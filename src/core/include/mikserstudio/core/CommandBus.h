@@ -165,8 +165,8 @@ private:
 
     bool add(CommandSpec spec, CommandHandler handler, AsyncCommandHandler asyncHandler);
     void publishOwnEvents();
-    // Whether a run of `entry` by `context` must wait for the open transaction.
-    [[nodiscard]] bool mustWait(const Entry& entry, const CallContext& context) const;
+    // The open transaction that a run of `entry` by `context` must wait for, or null.
+    [[nodiscard]] const Transaction* blockingTransaction(const Entry& entry, const CallContext& context) const;
     // Closes the open transaction and starts the runs that waited for it.
     void endTransaction();
     // The params with their defaults, or why the run may not start: the depth, the permission or

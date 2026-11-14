@@ -9,7 +9,6 @@
 
 using namespace Qt::StringLiterals;
 using namespace std::chrono_literals;
-using mikserstudio::core::CommandErrorCode;
 using mikserstudio::tests::LogCapture;
 using mikserstudio::tests::LuaFixture;
 using mikserstudio::tests::waitFor;

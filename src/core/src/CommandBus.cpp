@@ -239,10 +239,12 @@ void CommandBus::rollBackTransaction(TransactionId transaction, const QString& r
     Q_EMIT transactionRolledBack(transaction, reason);
 }
 
-bool CommandBus::mustWait(const Entry& entry, const CallContext& context) const
+const CommandBus::Transaction* CommandBus::blockingTransaction(const Entry& entry, const CallContext& context) const
 {
-    return m_transaction && !entry.spec.readOnly && m_running.empty() &&
-           context.origins.constLast() != m_transaction->holder;
+    if (!m_transaction || entry.spec.readOnly || !m_running.empty() ||
+        context.origins.constLast() == m_transaction->holder)
+        return nullptr;
+    return &*m_transaction;
 }
 
 void CommandBus::endTransaction()
@@ -454,10 +456,10 @@ std::expected<QJsonObject, CommandError> CommandBus::execute(const QString& id, 
                      u"“%1” answers later, and this caller can’t wait for it. Run it from a menu, the command palette "
                      u"or the API."_s.arg(id)});
     }
-    if (mustWait(it->second, context)) {
+    if (const Transaction* transaction = blockingTransaction(it->second, context)) {
         return fail({CommandErrorCode::NotAvailable,
                      u"“%1” can’t run now: %2 is changing the project (“%3”). Try again in a moment."_s.arg(
-                         id, describeOrigin(m_transaction->holder), m_transaction->name)});
+                         id, describeOrigin(transaction->holder), transaction->name)});
     }
     auto effective = admit(it->second, params, context);
     if (!effective)
@@ -501,8 +503,9 @@ CommandBus::RunId CommandBus::executeAsync(const QString& id, const QJsonObject&
 void CommandBus::start(RunId run, const QString& id, const QJsonObject& params, const CallContext& context, Reply reply)
 {
     const auto it = m_commands.find(id);
-    if (it != m_commands.end() && mustWait(it->second, context)) {
-        qCDebug(lcCommands).noquote() << id << "waits for the transaction" << m_transaction->name;
+    const Transaction* transaction = it != m_commands.end() ? blockingTransaction(it->second, context) : nullptr;
+    if (transaction) {
+        qCDebug(lcCommands).noquote() << id << "waits for the transaction" << transaction->name;
         m_waiting.push_back({run, id, params, context, std::move(reply)});
         return;
     }
