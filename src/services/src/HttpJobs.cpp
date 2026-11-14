@@ -105,7 +105,7 @@ QString unreachable(const QNetworkReply& reply, const HttpCall& call)
 QString tooLarge(const HttpCall& call)
 {
     return u"The answer from %1 is larger than %2 MB."_s.arg(shown(call.url))
-        .arg(HttpJobs::kMaxAnswerBytes / (1024 * 1024));
+        .arg(HttpJobs::kMaxAnswerBytes / (qint64{1024} * 1024));
 }
 
 bool isSuccess(int status)
