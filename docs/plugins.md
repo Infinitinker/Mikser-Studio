@@ -143,7 +143,7 @@ itself.
 
 ### Job kinds
 
-The app's job kinds, which `ms.jobs.start` starts. Both need the `network` permission and connect
+The app's job kinds, which `ms.jobs.start` starts. They need the `network` permission and connect
 only where the plugin's [network entries](#the-network) allow. Their `body`, when there is one, is
 sent as JSON; redirects aren't followed, and answers over 16 MB fail.
 
@@ -158,6 +158,18 @@ sent as JSON; redirects aren't followed, and answers over 16 MB fail.
   `{response = "Writing ({count})"}`, with the lines so far for `{count}`. It fails with the tool's
   own message for an answer that isn't 2xx or a line with an `error`, and when nothing comes for
   `timeout` seconds, which allows for a model that takes minutes to load.
+- `comfyui.run_prompt {url, workflow, outputNode, stages, title}` runs `workflow`, a graph in
+  ComfyUI's API format, in the ComfyUI at `url`, and answers `{promptId, outputs, provenance}`:
+  `outputs` lists the files that the node `outputNode` saved, `{path, kind}` with `kind` one of
+  `image`, `video` or `audio`, copied into a folder of the job's own in the app's cache; `provenance`
+  is `{promptId, comfyui}`, what the job saw itself, for the plugin to add to its own. While the
+  prompt runs, the job shows its steps as progress and, as its message, the text that `stages` gives
+  for the node that runs (a table of node id to text). When ComfyUI doesn't take the workflow, the job
+  answers `{refused = {status, body, json}}` instead, so the plugin can word ComfyUI's reasons.
+  It fails when ComfyUI can't be reached (10 s), when it takes more than 30 s to accept the workflow,
+  when its socket says nothing for 10 minutes, or when it reports an error. Canceling the job takes
+  only its own prompt off ComfyUI's queue, if it hasn't started: the job never interrupts ComfyUI or
+  frees its memory, so a prompt that already runs goes on in ComfyUI.
 
 ### Errors
 

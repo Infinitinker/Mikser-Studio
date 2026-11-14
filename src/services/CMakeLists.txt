@@ -6,6 +6,7 @@ add_library(mikserstudio-services STATIC
     include/mikserstudio/services/AiEngine.h
     include/mikserstudio/services/AiSettings.h
     include/mikserstudio/services/AiTypes.h
+    include/mikserstudio/services/ComfyUiJobs.h
     include/mikserstudio/services/HttpJobs.h
     src/AiBackend.h
     src/AiCommands.cpp
@@ -17,6 +18,7 @@ add_library(mikserstudio-services STATIC
     src/AiTypes.cpp
     src/ComfyUiBackend.cpp
     src/ComfyUiBackend.h
+    src/ComfyUiJobs.cpp
     src/ComfyUiWorkflow.cpp
     src/ComfyUiWorkflow.h
     src/HttpJobs.cpp

@@ -1,11 +1,13 @@
-# Services tests: the AI engine, its ComfyUI backend, the AI commands and the HTTP job kinds against a
-# fake ComfyUI and an HTTP server in the test process; the fake Ollama is for the Ollama plugin's specs.
+# Services tests: the AI engine, its ComfyUI backend, the AI commands, the HTTP job kinds and
+# comfyui.run_prompt against a fake ComfyUI and an HTTP server in the test process; the fake Ollama is
+# for the Ollama plugin's specs.
 # The whole path through the app is tested in tests/e2e.
 find_package(Qt6 6.8 REQUIRED COMPONENTS HttpServer Network WebSockets)
 
 add_executable(mikserstudio-services-tests
     AiCommandsTests.cpp
     AiEngineTests.cpp
+    ComfyUiJobsTests.cpp
     FakeAiTools.cpp
     FakeAiTools.h
     HttpJobsTests.cpp

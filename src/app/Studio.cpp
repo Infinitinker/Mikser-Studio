@@ -35,6 +35,8 @@ services::AiEngineOptions aiOptions(const AppPaths& paths)
 Studio::Studio(const AppPaths& paths, StudioOptions options)
     : m_options(options)
     , m_ai(aiOptions(paths))
+    , m_comfyUi(m_jobs, {.apiPort = [this] { return m_apiPort; },
+                         .outputDirectory = QDir(paths.user.cache).filePath(u"jobs"_s)})
     , m_lua({.bus = &m_bus,
              .jobs = &m_jobs,
              .snapshot = [this] { return m_project.snapshot(); },
