@@ -1,6 +1,6 @@
 # Security
 
-Mikser Studio opens media files from anywhere, loads native plugins, connects to the AI tools the user runs and serves a local API that other programs on the computer can reach, so security problems in it matter. Thank you for reporting them.
+Mikser Studio opens media files from anywhere, runs Lua plugins, connects to the AI tools the user runs and serves a local API that other programs on the computer can reach, so security problems in it matter. Thank you for reporting them.
 
 ## Reporting a vulnerability
 
@@ -12,7 +12,7 @@ Please do not open a public issue. Report it privately through GitHub instead: o
 - The AI engine's connections to the AI tools the user runs (Ollama, ComfyUI), and what their answers can make Mikser Studio do.
 - The MCP bridge, which offers the app's commands to agents through the local API.
 - Project files (`.msproj`) and media files: anything a crafted file can make Mikser Studio do.
-- Plugins: how they are found, loaded and given access to the app.
+- Plugins: how they are found and turned on, the Lua sandbox they run in (each in a state and thread of its own, without files, processes or bytecode, with limits on memory and run time), and the permissions that give them access to the app.
 
 ## Supported versions
 
