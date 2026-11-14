@@ -1,0 +1,18 @@
+# Lua 5.4's standard library for selene (selene.toml), which builds in the libraries up to Lua 5.3:
+# Lua 5.3's, with what Lua 5.4 adds that the scripts may use, and the command-line arguments the
+# standalone interpreter gives a script.
+---
+base: lua53
+name: lua54
+lua_versions:
+  - lua54
+globals:
+  arg:
+    property: read-only
+  warn:
+    args:
+      - type: string
+      - type: "..."
+  coroutine.close:
+    args:
+      - type: any

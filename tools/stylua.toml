@@ -1,0 +1,9 @@
+# StyLua's settings for the scripts in tools/ ("Checks" in docs/development.md): Lua 5.4, four spaces,
+# lines of up to 120 characters, like the C++ code.
+syntax = "Lua54"
+column_width = 120
+line_endings = "Unix"
+indent_type = "Spaces"
+indent_width = 4
+quote_style = "AutoPreferDouble"
+call_parentheses = "Always"
