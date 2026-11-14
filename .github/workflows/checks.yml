@@ -77,6 +77,12 @@ jobs:
         env:
           MIKSERSTUDIO_AUDIO_OUTPUT: silent
         run: ctest --preset ci -j4
+      # Tests that measure time run alone, after the rest, with up to two more tries.
+      - name: Timing tests
+        shell: msys2 {0}
+        env:
+          MIKSERSTUDIO_AUDIO_OUTPUT: silent
+        run: ctest --preset timing
 
   # What a release ships from MSYS2, read from MSYS2's package database (tools/msys2_packages.py), with
   # MSYS2's own Python: THIRD-PARTY-NOTICES.md must be up to date, and every license must be one that

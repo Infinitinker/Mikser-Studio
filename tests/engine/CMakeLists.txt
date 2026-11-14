@@ -27,7 +27,12 @@ set(MIKSERSTUDIO_SAMPLE_VIDEO "D:/samples/sample-30s.mp4" CACHE FILEPATH "Sample
 target_compile_definitions(mikserstudio-engine-tests PRIVATE MIKSERSTUDIO_SAMPLE_VIDEO="${MIKSERSTUDIO_SAMPLE_VIDEO}")
 mikserstudio_target_defaults(mikserstudio-engine-tests)
 
-catch_discover_tests(mikserstudio-engine-tests DISCOVERY_MODE PRE_TEST)
+# Tests tagged [timing] measure wall-clock time, so a busy machine can fail them. They get the timing
+# label, which the debug and ci test presets leave out; the timing preset runs them alone, one at a
+# time, after the rest, and runs a failed one again up to twice (docs/development.md, "Checks").
+catch_discover_tests(mikserstudio-engine-tests DISCOVERY_MODE PRE_TEST TEST_SPEC "~[timing]")
+catch_discover_tests(mikserstudio-engine-tests DISCOVERY_MODE PRE_TEST TEST_SPEC "[timing]"
+    PROPERTIES LABELS timing RUN_SERIAL TRUE)
 
 # The GPU test: the monitor on the machine's own platform and GPU, with the sample video. Labeled gpu,
 # which the debug and ci test presets leave out; the gpu preset runs it (docs/development.md, "GPU test").

@@ -55,13 +55,21 @@
       "name": "debug",
       "configurePreset": "debug",
       "output": { "outputOnFailure": true },
-      "filter": { "exclude": { "label": "e2e|gpu" } }
+      "filter": { "exclude": { "label": "e2e|gpu|timing" } }
     },
     {
       "name": "ci",
       "configurePreset": "ci",
       "output": { "outputOnFailure": true },
-      "filter": { "exclude": { "label": "e2e|gpu" } }
+      "filter": { "exclude": { "label": "e2e|gpu|timing" } }
+    },
+    {
+      "name": "timing",
+      "displayName": "Timing tests",
+      "configurePreset": "ci",
+      "output": { "outputOnFailure": true },
+      "filter": { "include": { "label": "timing" } },
+      "execution": { "repeat": { "mode": "until-pass", "count": 3 } }
     },
     {
       "name": "e2e",

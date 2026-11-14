@@ -10,7 +10,7 @@ using mikserstudio::core::Rational;
 using mikserstudio::engine::SilentPacer;
 using Clock = std::chrono::steady_clock;
 
-TEST_CASE("The silent pacer spaces frames one frame period apart", "[pacer]")
+TEST_CASE("The silent pacer spaces frames one frame period apart", "[pacer][timing]")
 {
     SilentPacer pacer(Rational{50, 1});  // 20 ms per frame.
     const auto start = Clock::now();
@@ -21,7 +21,7 @@ TEST_CASE("The silent pacer spaces frames one frame period apart", "[pacer]")
     CHECK(elapsed < std::chrono::milliseconds(600));
 }
 
-TEST_CASE("The silent pacer waits for a refresh while paused and can be canceled", "[pacer]")
+TEST_CASE("The silent pacer waits for a refresh while paused and can be canceled", "[pacer][timing]")
 {
     SilentPacer pacer(Rational{25, 1});
 

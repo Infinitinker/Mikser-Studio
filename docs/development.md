@@ -127,11 +127,14 @@ Run them before committing, from Git Bash with the UCRT64 tools first on `PATH` 
 group.
 
 **Tests** (job `Tests`): the build with the `ci` preset, where warnings are errors, and its tests,
-the MCP bridge's among them.
+the MCP bridge's among them. Tests that measure wall-clock time, tagged `[timing]` in Catch2 and
+labeled `timing` in CTest, fail on a busy machine, so the `debug` and `ci` test presets leave them out.
+The `timing` preset runs them afterwards, one at a time, and runs a failed one up to twice more.
 
 ```sh
 cmake --preset ci && cmake --build --preset ci
 ctest --preset ci -j8
+ctest --preset timing
 ```
 
 **C++ checks** (job `C++ checks`): clang-format and clang-tidy, set up by `.clang-format` and
