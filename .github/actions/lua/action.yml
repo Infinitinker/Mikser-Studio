@@ -1,0 +1,15 @@
+# Installs Lua 5.4 from Ubuntu's packages, for the jobs on Linux runners that run scripts in tools/
+# needing Lua alone: the include check (checks.yml) and reading the version (build-windows.yml,
+# release.yml). Jobs on Windows get Lua with MSYS2 (.github/actions/msys2). Needs a checkout first, as
+# every local action does.
+name: Lua
+description: Installs Lua 5.4 on an Ubuntu runner.
+
+runs:
+  using: composite
+  steps:
+    - name: Install Lua 5.4
+      shell: bash
+      run: |
+        sudo apt-get update -q
+        sudo apt-get install -y -q --no-install-recommends lua5.4

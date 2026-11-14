@@ -26,7 +26,7 @@
     },
     {
       "name": "package",
-      "displayName": "Package (the installed app, for tools/build_release.py)",
+      "displayName": "Package (the installed app, for tools/build_release.lua)",
       "inherits": "base",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "RelWithDebInfo",

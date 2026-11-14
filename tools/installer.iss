@@ -1,17 +1,17 @@
-; The Mikser Studio installer, compiled by tools/build_release.py with Inno Setup 7 (ISCC.exe) from the
+; The Mikser Studio installer, compiled by tools/build_release.lua with Inno Setup 7 (ISCC.exe) from the
 ; same folder as the Windows zip. It installs for the current user, with no admin rights, into
 ; %LOCALAPPDATA%\Programs\Mikser Studio, or, if the user chooses and is an administrator, for all users
 ; into Program Files. Either way each user's settings and cache stay in their own
 ; %LOCALAPPDATA%\Mikser Studio.
 ;
-; build_release.py passes:
+; build_release.lua passes:
 ;   AppVersion      the release, e.g. 0.1.0
 ;   NumericVersion  its four numbers for the Windows version resource, e.g. 0.1.0.0
 ;   SourceDir       the folder the release was assembled in, as in the Windows zip
 ;   OutputDir       where the installer is written
 
 #if !Defined(AppVersion) || !Defined(NumericVersion) || !Defined(SourceDir) || !Defined(OutputDir)
-  #error Build the installer with tools/build_release.py, which passes the values this script needs.
+  #error Build the installer with tools/build_release.lua, which passes the values this script needs.
 #endif
 
 #define AppName "Mikser Studio"

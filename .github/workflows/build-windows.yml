@@ -39,10 +39,8 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      # tools/build_release.py runs with MSYS2's own Python, which finds MSYS2 through cygpath.
+      # tools/build_release.lua runs with MSYS2's Lua, and finds MSYS2 through cygpath.
       - uses: ./.github/actions/msys2
-        with:
-          packages: python:p
 
       - name: Install Inno Setup
         shell: pwsh
@@ -57,10 +55,10 @@ jobs:
           "ISCC=$(Join-Path $folder 'ISCC.exe')" | Out-File $env:GITHUB_ENV -Append -Encoding utf8
 
       # Before the long build: the committed notices must match this runner's MSYS2, which moves on
-      # (update: true). tools/build_release.py checks again that they cover exactly what it copies.
+      # (update: true). tools/build_release.lua checks again that they cover exactly what it copies.
       - name: Notices
         shell: msys2 {0}
-        run: python tools/notices.py --check
+        run: lua5.4 tools/notices.lua --check
       - name: Build
         shell: msys2 {0}
         # The package preset is the one build that runs as the installed app when MIKSERSTUDIO_INSTANCE
@@ -70,7 +68,7 @@ jobs:
           cmake --build --preset package
       - name: Build the release
         shell: msys2 {0}
-        run: python tools/build_release.py
+        run: lua5.4 tools/build_release.lua
 
       # Each file on its own and unzipped, so the run's page offers the files themselves. Each step
       # fails unless its pattern matches exactly one file.
@@ -102,13 +100,15 @@ jobs:
       - uses: actions/checkout@v7
         with:
           sparse-checkout: |
+            .github/actions/lua
             CMakeLists.txt
             tools
           sparse-checkout-cone-mode: false
+      - uses: ./.github/actions/lua
       - name: Read the version
         id: version
         run: |
-          version=$(python3 tools/build_release.py --version)
+          version=$(lua5.4 tools/build_release.lua --version)
           echo "version=$version" >> "$GITHUB_OUTPUT"
       # skip-decompress keeps each file as uploaded: otherwise the zip would arrive unpacked.
       - uses: actions/download-artifact@v8
