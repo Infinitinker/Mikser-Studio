@@ -17,7 +17,7 @@ All the multiplatform media apps you listed as references ship on this foundatio
 | Video engine | MLT 7.42 on FFmpeg 9, with hardware decoding (D3D11VA/D3D12VA, VideoToolbox, VAAPI/Vulkan). A custom MLT consumer feeds a lock-free ring buffer. OpenTimelineIO handles project interchange. The libplacebo module only covers scaling and tonemapping for now. A **GPU compositor sits behind an engine interface from day one** so MLT's CPU compositing can be replaced step by step. |
 | Audio engine | Our own C++ real-time graph. Device I/O through RtAudio 6 (WASAPI/ASIO, CoreAudio, PipeWire/JACK/ALSA). Hosts CLAP, VST3 SDK 3.8 (MIT) and LV2 via lilv. MIDI through libremidi. **The audio device clock is the master clock** for all playback. |
 | Core / API | `mikserstudio-core` is a C++ library with a command bus: every action is a typed, undoable command described in JSON Schema. That one registry feeds undo, the command palette, macros, shortcuts, the /v1 HTTP+WebSocket API on 127.0.0.1 (with a session token) and an MCP bridge, a separate program that offers the commands to agents such as Claude Code through that API. `mikser-studio --headless` runs the core with no UI. |
-| Scripting | No embedded interpreter: macros are commands on the command bus, and scripts in any language drive the app through the /v1 API. |
+| Scripting | Lua 5.4.9, embedded through sol2 3.5.0: one sandboxed state per plugin, each on its own worker thread, never on the UI thread. Most features ship as built-in Lua plugins that use only the public API (commands, events, jobs and read-only project views); heavy work stays in C++ jobs that Lua starts and awaits. Scripts and agents outside the app still drive it through the /v1 API and the MCP bridge. |
 | AI | Mikser Studio runs no AI models itself and ships none. The AI engine, in the app's C++ services module, connects to the AI tools the user runs, local and offline first, through their own APIs, one backend per API: Ollama, ComfyUI, later InvokeAI and Strata. An online service is used only when the user sets it up. |
 | Other domains | Later, each as a module or plugin, when the user decides to start it: images and graphics, presentations and documents, 3D. More kinds of files come from libraries such as FFmpeg and libarchive, behind plugins that import them, not from parsers of our own. |
 | Packaging | GitHub Actions. Windows builds run in MSYS2's UCRT64 environment, whose packages setup-msys2 caches, with ccache through the CMake presets and pip's download cache for the checks of the scripts in `tools/`; macOS arm64 and Ubuntu builds come later. Windows: `tools/build_release.py` copies the program with the MSYS2 libraries it imports, MLT's modules and Qt's plugins and QML modules, then makes a zip and an Inno Setup 7 installer. macOS: macdeployqt, notarization, DMG. Linux: Flatpak on the KDE runtime, plus AppImage. A release ships no Python. The AI engine downloads no models: it uses the AI tools the user has installed. |
@@ -35,25 +35,24 @@ A module is not a process: separate processes only for isolation or heavy resour
 
 ## Plugin model
 
-Each plugin has a `mikserstudio-plugin.json` manifest: id, SemVer version, supported API range, capabilities and a settings JSON Schema. Plugins are discovered without loading their code and activated lazily.
+Each plugin has a `mikserstudio-plugin.json` manifest: id, SemVer version, API version, entry (a `.lua` file), permissions, a settings JSON Schema and what it contributes (commands, menus, shortcuts, panels). Plugins are discovered without loading their code and activated lazily.
 
-1. **Native C/C++ plugins:** stable C ABI (`sdk/include/mikserstudio/plugin_api.h`, the same approach as OBS's libobs), loaded with QPluginLoader.
+1. **Lua plugins:** Lua 5.4 through sol2, one sandboxed state per plugin on its own worker thread, with declared permissions (`project.read`, `project.write`, `files`, `network` with explicit hosts, `ui`). The app's own features are built-in Lua plugins with the same API, so the API is used and tested every day. Native C/C++ plugins are not offered: a crash in one would take the app down, and a C ABI would freeze internals that are still moving.
 2. **Standard formats:** OFX, frei0r, CLAP/VST3/LV2, OCIO configs, ComfyUI workflows and nodes.
 
 How plugins contribute UI:
 - Settings forms are generated automatically from the JSON Schema.
-- Plugins that run as programs of their own can ship QML panels. The host binds them to a proxy object that forwards to the plugin's /v1 endpoints, so plugin UI does not depend on the Qt binary version.
+- Lua plugins describe their UI as data (JSON Schema forms, menus, panels with lists and buttons) and the shell draws it. Only built-in plugins may bring a custom QML panel, because QML runs JavaScript with network access on the UI thread.
 - Every panel is registered as `<plugin-id>/<panel-id>`. A missing plugin's panel becomes a placeholder, so saved workspaces survive plugin removal.
 
-The public contract ships as a separate, versioned `mikserstudio-sdk` with CI checks for breaking changes. CI also runs the UI test suite against an out-of-process core to prove the UI never bypasses the API.
+The public contract is the versioned Lua API (`ms.*`), with LuaLS type definitions generated from the app and CI checks for breaking changes. CI also runs the UI test suite against an out-of-process core to prove the UI never bypasses the API.
 
 Possible later addition: WASM components (wasmtime) as a sandboxed tier for non-real-time effects, importers and analyzers.
 
 ## Licensing
 
 - **App:** GPL-3.0-or-later. KDDockWidgets, QtHttpServer, GPL FFmpeg encoders, the ASIO SDK (now GPLv3) and borrowed Kdenlive/Shotcut code all point there anyway.
-- **SDK:** the C header and manifest schema under MIT/Apache-2.0.
-- **Plugin exception:** you can add one for your own code, but it cannot cover third-party GPL parts like KDDockWidgets. Closed-source plugins should therefore talk to Mikser Studio over /v1 or run as programs of their own.
+- **Lua plugins:** the licence third-party Lua plugins may use is an open question; Lua 5.4 itself is MIT and sol2 is MIT. Closed-source tools can always talk to Mikser Studio over /v1 or MCP as programs of their own.
 - **License gating in CI:** `tools/licenses.py` checks the licenses of the MSYS2 packages a release ships against an allow list, and `tools/notices.py` writes their notices, so no AGPL or GPL-only dependency slips in unnoticed.
 - **FFmpeg build switch:** choose per channel between LGPL FFmpeg with OS/hardware encoders and a GPL build with x264/x265. Codec patents are a separate distribution question.
 - **Model weights:** Mikser Studio ships none; where it lists the models an AI tool offers, it shows each model's license when the tool reports it.
@@ -87,7 +86,7 @@ Pass criteria: no visible A/V drift, under two frames of latency from scrub to s
 
 ## Why the other options lost
 
-- **python-first (21.7):** Same Qt/MLT foundation, but the Python core shares its interpreter lock with the UI thread, so a busy plugin freezes the UI. It also needs three binding technologies (shiboken6, nanobind, PyO3), and shipping a relocatable interpreter makes macOS signing and installers harder. It also planned around an outdated Qt ADS 4.5. Its isolation ideas were adopted above.
+- **python-first (21.7):** Same Qt/MLT foundation, but the Python core shares its interpreter lock with the UI thread, so a busy plugin freezes the UI. Lua avoids that by design: each plugin has a state of its own on its own worker thread, with no lock shared between states or with the UI thread. It also needs three binding technologies (shiboken6, nanobind, PyO3), and shipping a relocatable interpreter makes macOS signing and installers harder. It also planned around an outdated Qt ADS 4.5. Its isolation ideas were adopted above.
 - **rust-native (14.9):** No Rust toolkit can tear panels off into native windows on other monitors (egui_dock's multi-viewport work is still open), so the main docking requirement would be custom work on a toolkit that breaks its API every quarter. It also has no OCIO, OFX, OTIO or VST3 support, and plugins would need an invented UI protocol.
 - **tauri-web (13.0):** A webview cannot show the engine's GPU output natively, so every docked monitor frame needs a GPU readback and a copy. The proposal itself admits 4K60 in-panel playback is not achievable on macOS/Linux, and WebKitGTK makes Linux the weakest platform. Two comparable projects moved off Tauri for this kind of work: Graphite (to CEF with a native viewport) and Cap (to a native GPUI app).
 
