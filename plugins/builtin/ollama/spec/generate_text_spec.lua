@@ -81,7 +81,10 @@ equal(result.model, "llama3:latest")
 
 ok, result = generate({ prompt = "Hi", model = "nope" })
 equal(ok, false)
-contains(result.message, "The model “nope” is not installed in Ollama (installed: vision-only:latest, llama3:latest)")
+contains(
+    result.message,
+    "The model “nope” is not installed in Ollama (installed: vision-only:latest, llama3:latest)"
+)
 
 ok, result = generate({ prompt = "Hi", model = "vision-only" })
 equal(ok, false)

@@ -10,6 +10,8 @@ local SILENCE = 600 -- loading a large model before the first token can take min
 local NO_MODELS = 'Ollama has no models. Download one with "ollama pull <model>" and try again.'
 local RAN_OUT = "The model ran out of room before it answered; allow it more tokens or use a model that doesn’t "
     .. "think first."
+local STOPPED = "Ollama stopped answering with %s. Check that Ollama is still running and that the model works in "
+    .. "Ollama itself, then try again; Mikser Studio’s log has Ollama’s message."
 
 local function trim(text)
     return (text:gsub("^%s+", ""):gsub("%s+$", ""))
@@ -219,12 +221,7 @@ function M.generate(base, params, job)
     if not ok then
         rethrow_cancel(answer)
         ms.log.warning(("Ollama failed while answering with %s - %s"):format(model.name, message_of(answer)))
-        error(
-            ("Ollama stopped answering with %s. Check that Ollama is still running and that the model works in "):format(
-                model.name
-            ) .. "Ollama itself, then try again; Mikser Studio’s log has Ollama’s message.",
-            0
-        )
+        error(STOPPED:format(model.name), 0)
     end
     local text = M.strip_reasoning(answer.fields.response)
     local cut_off = answer.last.done_reason == "length"

@@ -18,11 +18,13 @@ local function contains(text, part)
 end
 
 local function control(path, body)
-    local answer = ms.jobs.start("http.request", {
-        url = fake .. path,
-        method = body and "POST" or "GET",
-        body = body,
-    }):await()
+    local answer = ms.jobs
+        .start("http.request", {
+            url = fake .. path,
+            method = body and "POST" or "GET",
+            body = body,
+        })
+        :await()
     return answer.json
 end
 

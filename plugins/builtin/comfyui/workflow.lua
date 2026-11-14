@@ -32,7 +32,7 @@ M.STAGES = {
 
 -- A width or height as the model takes it: rounded down to a multiple of 16.
 function M.model_size(pixels)
-    return math.floor(pixels / 16) * 16
+    return pixels // 16 * 16
 end
 
 local function node(class_type, inputs)

@@ -7,7 +7,7 @@ local M = {}
 
 local QUICK = 5 -- seconds: a missing ComfyUI is noticed quickly
 -- The seed's range, as ComfyUI's KSampler takes it.
-M.MAX_SEED = math.tointeger(2 ^ 48) - 1
+M.MAX_SEED = (1 << 48) - 1
 
 local REPLACED = "The project was replaced before the image was done, so it was not added. Its file is in "
     .. "Mikser Studio’s cache; open the original project and generate it again."
@@ -80,10 +80,10 @@ function M.inspect(base)
     return info
 end
 
+local LACKS = "ComfyUI lacks %s. Add them in ComfyUI, for example from its Qwen Image 2.1 template, and try again."
+
 function M.lacks(lacking)
-    return ("ComfyUI lacks %s. Add them in ComfyUI, for example from its Qwen Image 2.1 template, and try again."):format(
-        table.concat(lacking, ", ")
-    )
+    return LACKS:format(table.concat(lacking, ", "))
 end
 
 -- What ComfyUI said when it refused the workflow: its message and the first node error.
@@ -189,7 +189,8 @@ function M.generate(base, params, job, session, app)
         end
         for i, output in ipairs(ran.outputs) do
             local named = #ran.outputs == 1 and name or ("%s (%d)"):format(name, i)
-            local imported = ms.run("project.import_media", { path = output.path, name = named, provenance = provenance })
+            local imported =
+                ms.run("project.import_media", { path = output.path, name = named, provenance = provenance })
             table.insert(media, imported.mediaId)
         end
     end)
