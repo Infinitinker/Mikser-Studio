@@ -16,6 +16,7 @@
 #include <expected>
 #include <functional>
 #include <map>
+#include <optional>
 
 namespace mikserstudio::core {
 
@@ -34,6 +35,9 @@ struct JobSpec {
     // Jobs of one lane run one at a time, in the order they came; jobs of different lanes run side
     // by side. An empty lane runs the job at once.
     QString lane;
+    // The origins of whoever started the job (CallContext::origins); nullopt takes the running
+    // command's.
+    std::optional<QStringList> origins = std::nullopt;
 };
 
 // Starts a job's work, on the main thread. The work reports through JobManager::progress and ends
@@ -42,6 +46,17 @@ using JobRun = std::function<void(const QString& jobId)>;
 // Stops a job's work, or forgets it when it hasn't started (a queued job). The job is canceled
 // already; what the work reports afterwards is ignored.
 using JobCancel = std::function<void(const QString& jobId)>;
+
+class JobManager;
+
+// A kind of job that code which can't reach C++, such as a Lua plugin, starts by name with an
+// input (JobManager::start).
+struct JobKind {
+    QString permission;  // The permission a caller needs to start one, such as "network".
+    // Checks the input and submits the job with `spec`, whose kind, owner and origins are set, and
+    // returns its id (JobManager::submit), or fails with InvalidParams when the input doesn't fit.
+    std::function<std::expected<QString, CommandError>(JobManager& jobs, JobSpec spec, const QJsonObject& input)> start;
+};
 
 // The app's jobs, on the main thread. Each change is published on the bus's events, with the
 // origins of the command that started the job: "job.created" {jobId, kind, title, owner, lane},
@@ -60,6 +75,13 @@ public:
     // Queues a job in its lane and returns its id; `run` starts it when the lane is free. Fails
     // when `spec.id` is taken.
     std::expected<QString, CommandError> submit(JobSpec spec, JobRun run, JobCancel cancel = {});
+    // Registers a kind of job under its name, such as "http.request"; a later one replaces it.
+    void registerKind(const QString& kind, JobKind jobKind);
+    // Starts a job of a registered kind for the caller of `context`, who owns it: the plugin of
+    // its last origin, or "core". Fails with InvalidParams for a kind that isn't registered and
+    // with PermissionDenied when the caller lacks the kind's permission.
+    std::expected<QString, CommandError> start(const QString& kind, const QJsonObject& input,
+                                               const CallContext& context);
     // `progress` runs from 0 to 1. Ignored for a job that isn't running. succeed() and fail() are
     // ignored for a job that has finished.
     void progress(const QString& jobId, double progress, const QString& message = {});
@@ -102,6 +124,7 @@ private:
     [[nodiscard]] static QJsonObject toJson(const Job& job);
 
     CommandBus& m_bus;
+    std::map<QString, JobKind> m_kinds;
     std::deque<Job> m_jobs;  // Oldest first.
     std::map<QString, QString> m_running;  // Lane -> the job running in it.
 };

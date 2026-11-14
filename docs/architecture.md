@@ -168,8 +168,10 @@ messages.
 - **Jobs:** long work runs as a job in `core::JobManager`: jobs of one lane run one at a time, in
   order, and lanes run side by side; each has an owner, progress, cancel and a result, and the last
   200 finished ones are kept. The AI engine's jobs are mirrored onto it until its backends move to
-  plugins. (built) Work runs off the main thread where it can, and Lua awaits a job without holding
-  its thread. (planned)
+  plugins. Code that can't reach C++, such as a Lua plugin, starts a job of a registered kind
+  (`core::JobKind`, such as `http.request`) by its name with a JSON input, and owns it; the kind
+  names the permission a caller needs. (built) Work runs off the main thread where it can, and Lua
+  awaits a job without holding its thread. (planned)
 
 ## Undo for groups of changes
 

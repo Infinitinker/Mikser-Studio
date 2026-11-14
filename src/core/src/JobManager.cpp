@@ -62,12 +62,12 @@ std::expected<QString, CommandError> JobManager::submit(JobSpec spec, JobRun run
     }
     const CallContext* running = m_bus.runningContext();
     Job& job = m_jobs.emplace_back();
+    job.origins = spec.origins.value_or(running ? running->origins : QStringList());
     job.spec = std::move(spec);
     job.run = std::move(run);
     job.cancel = std::move(cancel);
-    job.origins = running ? running->origins : QStringList();
     job.createdAt = QDateTime::currentDateTimeUtc();
-    const QString id = job.spec.id;
+    QString id = job.spec.id;
     const QString lane = job.spec.lane;
     qCInfo(lcJobs).noquote() << "Job" << id << "(" << job.spec.kind << ") queued in lane" << lane;
     publish(
@@ -85,6 +85,38 @@ std::expected<QString, CommandError> JobManager::submit(JobSpec spec, JobRun run
         startNext(lane);
     }
     return id;
+}
+
+void JobManager::registerKind(const QString& kind, JobKind jobKind)
+{
+    m_kinds.insert_or_assign(kind, std::move(jobKind));
+}
+
+std::expected<QString, CommandError> JobManager::start(const QString& kind, const QJsonObject& input,
+                                                       const CallContext& context)
+{
+    const auto it = m_kinds.find(kind);
+    if (it == m_kinds.end())
+        return std::unexpected(
+            CommandError{CommandErrorCode::InvalidParams, u"There is no job kind “%1”."_s.arg(kind)});
+    if (!it->second.permission.isEmpty() && !context.permissions.contains(it->second.permission)) {
+        return std::unexpected(
+            CommandError{CommandErrorCode::PermissionDenied,
+                         u"Starting a “%1” job needs the “%2” permission, which the caller doesn't have."_s.arg(
+                             kind, it->second.permission)});
+    }
+    const QString& caller = context.origins.constLast();
+    JobSpec spec{
+        .id = {},
+        .kind = kind,
+        .title = kind,
+        .owner = caller.startsWith(u"plugin:"_s) ? caller.mid(7) : u"core"_s,
+        .lane = {},
+        .origins = context.origins,
+    };
+    // Copied: the kind may register kinds while it starts.
+    const JobKind jobKind = it->second;
+    return jobKind.start(*this, std::move(spec), input);
 }
 
 void JobManager::progress(const QString& jobId, double progress, const QString& message)

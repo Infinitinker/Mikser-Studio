@@ -162,3 +162,35 @@ TEST_CASE("The job manager keeps the last finished jobs and every unfinished one
     CHECK(list.size() == static_cast<qsizetype>(JobManager::kMaxFinishedJobs + 1));
     CHECK(list.at(0).toObject().value(u"id"_s) == waiting);
 }
+
+TEST_CASE("A job of a registered kind starts for its caller, who owns it")
+{
+    UndoStack undo;
+    CommandBus bus(undo);
+    JobManager jobs(bus);
+    QJsonObject given;
+    jobs.registerKind(u"test.echo"_s,
+                      JobKind{.permission = u"network"_s,
+                              .start = [&given](JobManager& manager, JobSpec spec, const QJsonObject& input) {
+                                  given = input;
+                                  spec.title = u"Echo"_s;
+                                  return manager.submit(std::move(spec), [&manager](const QString& id) {
+                                      manager.succeed(id, {{u"ok"_s, true}});
+                                  });
+                              }});
+    const CallContext plugin{.origins = {u"api"_s, u"plugin:test.echo"_s}, .permissions = {u"network"_s}};
+
+    const auto id = jobs.start(u"test.echo"_s, {{u"text"_s, u"hi"_s}}, plugin);
+    REQUIRE(id);
+    CHECK(given.value(u"text"_s).toString() == u"hi"_s);
+    const QJsonObject job = jobs.jobsJson().first().toObject();
+    CHECK(job.value(u"kind"_s).toString() == u"test.echo"_s);
+    CHECK(job.value(u"owner"_s).toString() == u"test.echo"_s);
+    CHECK(job.value(u"origins"_s).toArray() == QJsonArray{u"api"_s, u"plugin:test.echo"_s});
+    CHECK(job.value(u"state"_s).toString() == u"succeeded"_s);
+
+    const CallContext without{.origins = {u"plugin:test.other"_s}, .permissions = {u"project.read"_s}};
+    CHECK(jobs.start(u"test.echo"_s, {}, without).error().code == CommandErrorCode::PermissionDenied);
+    CHECK(jobs.start(u"test.missing"_s, {}, plugin).error().code == CommandErrorCode::InvalidParams);
+    CHECK(jobs.jobsJson().size() == 1);
+}
