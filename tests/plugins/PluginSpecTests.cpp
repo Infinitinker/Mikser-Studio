@@ -1,7 +1,10 @@
 // The plugins' specs: each Lua file in the spec/ folder of a built-in plugin or of the example runs,
-// with every permission, once the Lua host has started its plugin. A spec passes when it runs to its
-// end, and fails with the error it raises (docs/plugins.md, "Tests").
-#include "LuaTestSupport.h"
+// with every permission and its plugin's network entries, once the Lua host has started its plugin.
+// A spec passes when it runs to its end, and fails with the error it raises (docs/plugins.md,
+// "Tests"). The HTTP job kinds run, and a fake Ollama and ComfyUI listen on this computer: a spec
+// finds their addresses in its settings, {fakes: {ollama, comfyui}}.
+#include "FakeAiTools.h"
+#include "ServicesTestSupport.h"
 
 #include "mikserstudio/core/CommandBus.h"
 #include "mikserstudio/core/JobManager.h"
@@ -11,6 +14,7 @@
 #include "mikserstudio/core/ProjectSnapshot.h"
 #include "mikserstudio/core/UndoStack.h"
 #include "mikserstudio/lua/LuaRuntime.h"
+#include "mikserstudio/services/HttpJobs.h"
 
 #include <catch2/catch_test_macros.hpp>
 
@@ -59,14 +63,16 @@ struct Environment {
     {
         manager.setRuntime(&runtime);
         registerPluginCommands(bus, manager);
+        registerJobCommands(bus, jobs);
     }
 
-    int argc = 0;
-    QCoreApplication app{argc, nullptr};
     QTemporaryDir settings;
     UndoStack undo;
     CommandBus bus{undo};
     JobManager jobs{bus};
+    mikserstudio::services::HttpJobs http{jobs, {.apiPort = [] { return std::optional<quint16>(); }}};
+    mikserstudio::tests::FakeOllama ollama;
+    mikserstudio::tests::FakeComfyUi comfyui;
     ProjectModel project;
     mikserstudio::lua::LuaRuntime runtime{
         {.bus = &bus, .jobs = &jobs, .snapshot = [this] { return project.snapshot(); }, .hotReload = false}};
@@ -99,12 +105,14 @@ std::optional<QString> run(Environment& env, const Spec& spec)
     manifest.apiVersion = kPluginApiVersion;
     manifest.entry = spec.entry;
     manifest.permissions = allPermissions();
+    manifest.network = env.manager.plugin(id)->manifest.network;
     manifest.directory = spec.pluginFolder;
+    const QJsonObject fakes{{u"ollama"_s, env.ollama.url().toString()}, {u"comfyui"_s, env.comfyui.url().toString()}};
     bool done = false;
     std::optional<QString> failure;
     const auto instance = env.runtime.activate(manifest,
                                                PluginActivation{.granted = allPermissions(),
-                                                                .settings = {},
+                                                                .settings = {{u"fakes"_s, fakes}},
                                                                 .started = [&done] { done = true; },
                                                                 .failed =
                                                                     [&done, &failure](const QString& message) {

@@ -52,8 +52,10 @@ QList<QJsonObject> FakeOllama::generateRequests() const
     return bodies;
 }
 
-QHttpServerResponse FakeOllama::respond(const RecordedRequest& request) const
+QHttpServerResponse FakeOllama::respond(const RecordedRequest& request)
 {
+    if (request.path.startsWith(u"/fake/"))
+        return control(request);
     if (request.path == u"/api/version")
         return json(QJsonObject{{u"version"_s, u"0.12.3"_s}});
     if (request.path == u"/api/tags") {
@@ -80,6 +82,41 @@ QHttpServerResponse FakeOllama::respond(const RecordedRequest& request) const
     }
     if (request.path == u"/api/generate")
         return QHttpServerResponse("application/x-ndjson", answer.join('\n') + '\n');
+    return notFound();
+}
+
+QHttpServerResponse FakeOllama::control(const RecordedRequest& request)
+{
+    if (request.path == u"/fake/setup") {
+        const QJsonObject setup = bodyOf(request);
+        if (setup.contains(u"models")) {
+            models.clear();
+            for (const QJsonValue item : setup.value(u"models").toArray()) {
+                QStringList capabilities;
+                for (const QJsonValue capability : item.toObject().value(u"capabilities").toArray())
+                    capabilities.append(capability.toString());
+                models.append({item.toObject().value(u"name").toString(), capabilities});
+            }
+        }
+        if (setup.contains(u"answer")) {
+            answer.clear();
+            for (const QJsonValue line : setup.value(u"answer").toArray())
+                answer.append(line.toString().toUtf8());
+        }
+        return json(QJsonObject{});
+    }
+    if (request.path == u"/fake/requests") {
+        QJsonArray list;
+        for (const RecordedRequest& asked : m_http.requests()) {
+            if (asked.path.startsWith(u"/fake/"))
+                continue;
+            const QJsonDocument body = QJsonDocument::fromJson(asked.body);
+            list.append(QJsonObject{{u"method"_s, QString::fromLatin1(asked.method)},
+                                    {u"path"_s, asked.path},
+                                    {u"body"_s, body.isObject() ? QJsonValue(body.object()) : QJsonValue()}});
+        }
+        return json(QJsonObject{{u"requests"_s, list}});
+    }
     return notFound();
 }
 

@@ -274,8 +274,12 @@ local ok, problem = pcall(ms.run, "yourname.word_count.count", { text = 3 })
 assert(not ok and problem.code == "invalid_params")
 ```
 
-`require` in a spec loads the plugin's own files, so a spec can also test them one by one.
-`spec/` is never staged or installed. The Lua host's own tests are in `tests/lua/`.
+`require` in a spec loads the plugin's own files, so a spec can also test them one by one. A
+plugin that talks to an AI tool is tested against the fake tools of `tests/services`, which the test
+starts on this computer: `ms.settings().fakes` holds their addresses (`ollama`, `comfyui`), and a
+spec points the plugin's settings at them. A spec has the plugin's network entries, and the job
+kinds of the app, such as `http.request`. `spec/` is never staged or installed. The Lua host's own
+tests are in `tests/lua/`.
 
 ## Tooling
 

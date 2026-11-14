@@ -19,7 +19,10 @@ class QWebSocket;
 
 namespace mikserstudio::tests {
 
-// /api/version, /api/tags, /api/show and a streamed /api/generate.
+// /api/version, /api/tags, /api/show and a streamed /api/generate. For specs, which reach it only over
+// HTTP: POST /fake/setup {models?: [{name, capabilities}], answer?: [line]} replaces its models and the
+// lines of its answer, and GET /fake/requests answers {requests: [{method, path, body}]}, what it was
+// asked before.
 class FakeOllama {
 public:
     struct Model {
@@ -44,7 +47,8 @@ public:
     };
 
 private:
-    QHttpServerResponse respond(const RecordedRequest& request) const;
+    QHttpServerResponse respond(const RecordedRequest& request);
+    QHttpServerResponse control(const RecordedRequest& request);
 
     FakeHttpServer m_http;
 };

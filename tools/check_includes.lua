@@ -39,10 +39,10 @@ check.ALLOWED = {
 }
 --- The folders of tests/ that test no single module, with the modules they may include. The end-to-end
 --- tests run the app and the MCP bridge as processes, with the services tests' fake AI tools; the
---- plugins' tests run them in the Lua host.
+--- plugins' tests run them in the Lua host, with the services' job kinds and fake AI tools.
 check.TEST_FOLDERS = {
     e2e = { "core", "services" },
-    plugins = { "core", "lua" },
+    plugins = { "core", "lua", "services" },
 }
 --- Other tests' folders whose own headers a TEST_FOLDERS folder may include, without the modules
 --- they test: the end-to-end tests send their requests with the API tests' HTTP helpers.

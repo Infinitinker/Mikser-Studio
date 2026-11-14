@@ -42,6 +42,13 @@ globals:
   coroutine.close:
     args:
       - type: any
+  utf8.offset:
+    must_use: true
+    args:
+      - type: string
+      - type: number
+      - required: false
+        type: number
   ms.plugin_id:
     property: read-only
   ms.null:
@@ -67,6 +74,14 @@ globals:
       - type: string
       - required: false
         type: table
+  ms.jobs.run:
+    args:
+      - type: table
+      - type: function
+  ms.jobs.get:
+    must_use: true
+    args:
+      - type: string
   ms.project:
     must_use: true
     args: []
