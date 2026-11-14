@@ -12,7 +12,7 @@ class CommandBus;
 namespace mikserstudio::ui {
 
 // Whether the command log and the status bar leave the command out: a read-only command, such as
-// the "ai.jobs" polls, or a quiet one, such as the many seeks of scrubbing the playhead
+// the "jobs.list" polls, or a quiet one, such as the many seeks of scrubbing the playhead
 // (CommandSpec::readOnly and CommandSpec::quiet).
 [[nodiscard]] bool isQuietCommand(const core::CommandBus& bus, const QString& id);
 // The command's title, or its id when it is not registered (any more).

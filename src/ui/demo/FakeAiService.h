@@ -12,10 +12,11 @@ class CommandBus;
 
 namespace mikserstudio::ui::demo {
 
-// Stand-in for the services module's AI commands, with the same names and result shapes (ai.run,
-// ai.jobs, ai.cancel_job) and the operations image.generate and text.generate, so the AI panel can
-// be tried without the AI tools. Jobs only advance a progress value; nothing is generated: image
-// jobs finish with a note saying so and text jobs answer with a canned sentence.
+// Stand-in for the commands the AI panel runs, with the same names and result shapes: ai.run with
+// image.generate, the Ollama plugin's mikserstudio.ollama.generate_text, and the job commands
+// jobs.list and jobs.cancel, so the AI panel can be tried without the AI tools. Jobs only advance a
+// progress value; nothing is generated: image jobs finish with a note saying so and text jobs answer
+// with a canned sentence.
 class FakeAiService final : public QObject {
     Q_OBJECT
 

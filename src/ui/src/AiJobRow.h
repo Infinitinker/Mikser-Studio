@@ -11,7 +11,7 @@ class QPushButton;
 namespace mikserstudio::ui {
 
 // One AI job in the AI panel: title, state, progress, message or error, result text and Cancel.
-// `job` is an entry of the "ai.jobs" result.
+// `job` is an entry of the "jobs.list" result.
 class AiJobRow final : public QFrame {
     Q_OBJECT
 

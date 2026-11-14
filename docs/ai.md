@@ -24,7 +24,8 @@ bridge all use them the same way. No other process is started.
 
 `ai.run` checks the parameters against the operation's JSON Schema, applies its defaults and queues a
 job at once. It answers with the job id (`aijob-<uuid>`); `ai.jobs` then shows how the job goes. The
-AI panel polls `ai.jobs` to list the jobs.
+AI panel polls `jobs.list`, the core's list of every job, and shows the AI engine's jobs and the
+plugins' own (such as the Ollama plugin's text jobs) that are part of no other job.
 
 - **One at a time per backend.** Jobs of one backend run in order, one at a time, since AI tools on
   one GPU don't share it well. Jobs of different backends run side by side.

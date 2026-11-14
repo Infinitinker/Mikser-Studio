@@ -1,4 +1,4 @@
-// The AI panel's job row: shows one entry of the "ai.jobs" result and offers Cancel.
+// The AI panel's job row: shows one entry of the "jobs.list" result and offers Cancel.
 #include "AiJobRow.h"
 
 #include "mikserstudio/ui/Theme.h"
@@ -57,7 +57,7 @@ AiJobRow::AiJobRow(QWidget* parent)
     m_result->setWordWrap(true);
     m_result->setTextInteractionFlags(Qt::TextSelectableByMouse);
     m_result->hide();
-    m_cancel->setToolTip(u"Stops the job (ai.cancel_job)."_s);
+    m_cancel->setToolTip(u"Stops the job (jobs.cancel)."_s);
     connect(m_cancel, &QPushButton::clicked, this, [this] { Q_EMIT cancelRequested(m_jobId); });
 
     auto* layout = new QGridLayout(this);

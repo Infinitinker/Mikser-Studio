@@ -19,7 +19,8 @@ constexpr double kProgressPerTick = 0.02;
 constexpr qsizetype kTitleChars = 40;
 
 const auto kImageOp = u"image.generate"_s;
-const auto kTextOp = u"text.generate"_s;
+const auto kTextOp = u"text.generate"_s;  // This stand-in's name for the Ollama plugin's generate_text.
+const auto kOllama = u"mikserstudio.ollama"_s;
 
 QJsonObject stringParam(const QString& description)
 {
@@ -48,10 +49,12 @@ core::CommandResult ok(QJsonObject result)
     return core::CommandOutcome{std::move(result), nullptr};
 }
 
-// The backend that runs `op` in the real app.
-QString backendOf(const QString& op)
+// A prompt as a job's title shows it.
+QString shortened(QString prompt)
 {
-    return op == kImageOp ? u"comfyui"_s : u"ollama"_s;
+    if (prompt.size() > kTitleChars)
+        prompt = prompt.left(kTitleChars - 1) + u"…"_s;
+    return prompt;
 }
 
 }  // namespace
@@ -65,12 +68,12 @@ FakeAiService::FakeAiService(core::CommandBus& bus, QObject* parent)
         if (m_bus.registerCommand(std::move(spec), std::move(handler)))
             m_commandIds.append(id);
     };
-    core::CommandSpec jobs = aiSpec(u"ai.jobs"_s, u"List AI jobs"_s,
-                                    u"Lists the AI jobs of this session with their progress and results."_s);
+    core::CommandSpec jobs = aiSpec(u"jobs.list"_s, u"List jobs"_s,
+                                    u"Lists the jobs of this session with their progress and results."_s);
     jobs.readOnly = true;
     add(std::move(jobs), [this](const QJsonObject&) { return ok(QJsonObject{{u"jobs"_s, jobsJson()}}); });
-    add(aiSpec(u"ai.cancel_job"_s, u"Cancel AI job"_s, u"Stops a queued or running AI job."_s,
-               QJsonObject{{u"jobId"_s, stringParam(u"Id of the job, from ai.jobs."_s)}}, {u"jobId"_s}),
+    add(aiSpec(u"jobs.cancel"_s, u"Cancel job"_s, u"Stops a queued or running job."_s,
+               QJsonObject{{u"jobId"_s, stringParam(u"Id of the job, from jobs.list."_s)}}, {u"jobId"_s}),
         [this](const QJsonObject& params) -> core::CommandResult {
             const QString id = params.value(u"jobId").toString();
             for (Job& job : m_jobs) {
@@ -80,16 +83,16 @@ FakeAiService::FakeAiService(core::CommandBus& bus, QObject* parent)
                     job.state = u"canceled"_s;
                     job.message = u"Canceled"_s;
                 }
-                return ok(QJsonObject{{u"jobId"_s, id}, {u"state"_s, job.state}});
+                return ok(QJsonObject{{u"state"_s, job.state}});
             }
-            return core::commandFailure(core::CommandErrorCode::Failed, u"There is no AI job “%1”."_s.arg(id));
+            return core::commandFailure(core::CommandErrorCode::InvalidParams, u"There is no job “%1”."_s.arg(id));
         });
     add(aiSpec(
             u"ai.run"_s, u"Run AI operation"_s,
-            u"Runs an AI operation, such as image.generate or text.generate, in the AI tool of its backend; images, video and audio it makes come into the project."_s,
+            u"Runs an AI operation, such as image.generate, in the AI tool of its backend; images, video and audio it makes come into the project."_s,
             QJsonObject{
                 {u"op"_s, QJsonObject{{u"type"_s, u"string"_s},
-                                      {u"enum"_s, QJsonArray{kImageOp, kTextOp}},
+                                      {u"enum"_s, QJsonArray{kImageOp}},
                                       {u"description"_s, u"The operation, from ai.backends."_s}}},
                 {u"params"_s,
                  QJsonObject{{u"type"_s, u"object"_s},
@@ -98,17 +101,19 @@ FakeAiService::FakeAiService(core::CommandBus& bus, QObject* parent)
                 {u"backend"_s, stringParam(u"The backend to run it on; the first that offers it when omitted."_s)}},
             {u"op"_s}),
         [this](const QJsonObject& params) -> core::CommandResult {
-            const QString op = params.value(u"op").toString();
-            QString prompt = params.value(u"params").toObject().value(u"prompt").toString().simplified();
+            const QString prompt = params.value(u"params").toObject().value(u"prompt").toString().simplified();
             if (prompt.isEmpty()) {
                 return core::commandFailure(core::CommandErrorCode::InvalidParams,
-                                            u"Invalid parameters for “%1”: “prompt” is required."_s.arg(op));
+                                            u"Invalid parameters for “image.generate”: “prompt” is required."_s);
             }
-            if (prompt.size() > kTitleChars)
-                prompt = prompt.left(kTitleChars - 1) + u"…"_s;
-            const QString title = op == kImageOp ? u"Generate image: %1"_s.arg(prompt)
-                                                 : u"Generate text: %1"_s.arg(prompt);
-            return ok(QJsonObject{{u"jobId"_s, submit(op, title, 0.0)}});
+            return ok(QJsonObject{{u"jobId"_s, submit(kImageOp, u"Generate image: %1"_s.arg(shortened(prompt)), 0.0)}});
+        });
+    add(aiSpec(u"mikserstudio.ollama.generate_text"_s, u"Generate text"_s,
+               u"Answers a prompt with a language model that Ollama serves."_s,
+               QJsonObject{{u"prompt"_s, stringParam(u"What to ask the model."_s)}}, {u"prompt"_s}),
+        [this](const QJsonObject& params) -> core::CommandResult {
+            const QString prompt = params.value(u"prompt").toString().simplified();
+            return ok(QJsonObject{{u"jobId"_s, submit(kTextOp, u"Generate text: %1"_s.arg(shortened(prompt)), 0.0)}});
         });
 
     m_timer.setInterval(kTickMs);
@@ -125,7 +130,7 @@ FakeAiService::~FakeAiService()
 QString FakeAiService::submit(const QString& op, const QString& title, double progress)
 {
     Job job;
-    job.id = u"aijob-"_s + QUuid::createUuid().toString(QUuid::WithoutBraces);
+    job.id = u"job-"_s + QUuid::createUuid().toString(QUuid::WithoutBraces);
     job.op = op;
     job.title = title;
     job.progress = std::clamp(progress, 0.0, 1.0);
@@ -166,10 +171,12 @@ QJsonArray FakeAiService::jobsJson() const
         QJsonObject result;
         if (!job.resultText.isEmpty())
             result.insert(u"text"_s, job.resultText);
+        const bool image = job.op == kImageOp;
         list.append(QJsonObject{
             {u"id"_s, job.id},
-            {u"op"_s, job.op},
-            {u"backend"_s, backendOf(job.op)},
+            {u"kind"_s, image ? u"ai.image.generate"_s : kOllama + u".generate_text"_s},
+            {u"owner"_s, image ? u"core"_s : kOllama},
+            {u"parent"_s, QString()},
             {u"title"_s, job.title},
             {u"state"_s, job.state},
             {u"progress"_s, job.progress},

@@ -1,5 +1,5 @@
-// The AI panel: the prompt cards that run AI operations, the job list polled from "ai.jobs" and the unavailable
-// state.
+// The AI panel: the prompt cards that run AI operations, the job list polled from "jobs.list" and the
+// unavailable state.
 #include "AiPanel.h"
 
 #include "AiJobRow.h"
@@ -25,10 +25,21 @@ namespace mikserstudio::ui {
 namespace {
 
 const auto kRun = u"ai.run"_s;
-const auto kJobs = u"ai.jobs"_s;
-const auto kCancel = u"ai.cancel_job"_s;
+const auto kText = u"mikserstudio.ollama.generate_text"_s;
+const auto kJobs = u"jobs.list"_s;
+const auto kCancel = u"jobs.cancel"_s;
 const auto kImageOp = u"image.generate"_s;
-const auto kTextOp = u"text.generate"_s;
+
+// A job of the AI engine, or a plugin's own, that is part of no other: one of the person's AI jobs. The
+// jobs a plugin's job starts, such as its HTTP requests, show on it.
+bool isAiJob(const QJsonObject& job)
+{
+    if (!job.value(u"parent").toString().isEmpty())
+        return false;
+    const QString kind = job.value(u"kind").toString();
+    const QString owner = job.value(u"owner").toString();
+    return kind.startsWith(u"ai."_s) || (owner != u"core" && kind.startsWith(owner + u"."_s));
+}
 
 // A card with a heading, a prompt editor and a primary Generate button.
 struct PromptCard {
@@ -82,11 +93,12 @@ AiPanel::AiPanel(core::CommandBus& bus, QWidget* parent)
     m_generateImage->setToolTip(u"Makes the image in ComfyUI and adds it to the media bin."_s);
     layout->addWidget(imageCard.frame);
 
-    const PromptCard textCard = makePromptCard(u"Generate text"_s, u"Ask the local language model…"_s, this);
+    const PromptCard textCard = makePromptCard(u"Generate text"_s, u"Ask a language model in Ollama…"_s, this);
     m_prompt = textCard.prompt;
     m_prompt->setObjectName(u"prompt"_s);
     m_generate = textCard.button;
     m_generate->setObjectName(u"generate"_s);
+    m_generate->setToolTip(u"Asks a language model in Ollama; the answer shows in its job below."_s);
     layout->addWidget(textCard.frame);
 
     m_error = makeLabel({}, u"error"_s, this);
@@ -126,21 +138,24 @@ AiPanel::AiPanel(core::CommandBus& bus, QWidget* parent)
 
 void AiPanel::generateImage()
 {
-    runOperation(kImageOp, m_imagePrompt);
+    if (!m_imageAvailable)
+        return;
+    const QString prompt = m_imagePrompt->toPlainText().trimmed();
+    runPrompt(kRun, QJsonObject{{u"op"_s, kImageOp}, {u"params"_s, QJsonObject{{u"prompt"_s, prompt}}}}, m_imagePrompt);
 }
 
 void AiPanel::generateText()
 {
-    runOperation(kTextOp, m_prompt);
+    if (!m_textAvailable)
+        return;
+    runPrompt(kText, QJsonObject{{u"prompt"_s, m_prompt->toPlainText().trimmed()}}, m_prompt);
 }
 
-void AiPanel::runOperation(const QString& op, QPlainTextEdit* editor)
+void AiPanel::runPrompt(const QString& command, const QJsonObject& params, QPlainTextEdit* editor)
 {
-    const QString prompt = editor->toPlainText().trimmed();
-    if (!m_available || prompt.isEmpty())
+    if (!m_available || editor->toPlainText().trimmed().isEmpty())
         return;
-    const auto run = executeInteractive(
-        m_bus, kRun, QJsonObject{{u"op"_s, op}, {u"params"_s, QJsonObject{{u"prompt"_s, prompt}}}}, this);
+    const auto run = executeInteractive(m_bus, command, params, this);
     if (!run)
         return;
     if (const auto& result = *run; !result) {
@@ -156,10 +171,16 @@ void AiPanel::refreshJobs()
 {
     if (!m_bus.contains(kJobs))
         return;
-    // ai.jobs is read-only, so these polls stay out of the log and the status bar.
+    // jobs.list is read-only, so these polls stay out of the log and the status bar.
     const auto result = m_bus.execute(kJobs);
-    if (result)
-        showJobs(result->value(u"jobs").toArray());
+    if (!result)
+        return;
+    QJsonArray jobs;
+    for (const QJsonValue job : result->value(u"jobs").toArray()) {
+        if (isAiJob(job.toObject()))
+            jobs.append(job);
+    }
+    showJobs(jobs);
 }
 
 void AiPanel::showEvent(QShowEvent* event)
@@ -177,19 +198,21 @@ void AiPanel::hideEvent(QHideEvent* event)
 
 void AiPanel::updateAvailability()
 {
-    const bool available = m_bus.contains(kRun) && m_bus.contains(kJobs);
-    m_available = available;
-    m_unavailable->setVisible(!available);
+    const bool jobs = m_bus.contains(kJobs) && m_bus.contains(kCancel);
+    m_imageAvailable = jobs && m_bus.contains(kRun);
+    m_textAvailable = jobs && m_bus.contains(kText);
+    m_available = m_imageAvailable || m_textAvailable;
+    m_unavailable->setVisible(!m_available);
     updateControls();
     updatePolling();
 }
 
 void AiPanel::updateControls()
 {
-    m_imagePrompt->setEnabled(m_available);
-    m_generateImage->setEnabled(m_available && !m_imagePrompt->toPlainText().trimmed().isEmpty());
-    m_prompt->setEnabled(m_available);
-    m_generate->setEnabled(m_available && !m_prompt->toPlainText().trimmed().isEmpty());
+    m_imagePrompt->setEnabled(m_imageAvailable);
+    m_generateImage->setEnabled(m_imageAvailable && !m_imagePrompt->toPlainText().trimmed().isEmpty());
+    m_prompt->setEnabled(m_textAvailable);
+    m_generate->setEnabled(m_textAvailable && !m_prompt->toPlainText().trimmed().isEmpty());
 }
 
 void AiPanel::updatePolling()

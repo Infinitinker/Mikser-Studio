@@ -1,4 +1,4 @@
-// The AI panel: runs the AI operations (generate an image, generate text) and lists the session's AI jobs with
+// The AI panel: generates an image or text with the AI tools the person runs and lists the AI jobs with
 // progress and Cancel.
 #pragma once
 
@@ -21,10 +21,12 @@ namespace mikserstudio::ui {
 class AiJobRow;
 
 // "AI" panel: "Generate image" (ai.run {op: image.generate, params: {prompt}}; the image comes into the
-// media bin), "Generate text" (ai.run {op: text.generate, params: {prompt}}) and the session's jobs with
-// progress, state and Cancel (ai.cancel_job). The job list polls "ai.jobs" every 500 ms while the panel is
-// visible; it is a read-only command, so polls are not logged. Without ai.run and ai.jobs the panel says
-// "The AI commands are not available." and disables its controls until they are registered.
+// media bin), "Generate text" (mikserstudio.ollama.generate_text {prompt}, the Ollama plugin's) and the AI
+// jobs with progress, state and Cancel (jobs.cancel). The AI jobs are those of jobs.list that are part of
+// no other job and are the AI engine's ("ai.*") or a plugin's own ("<owner>.*"). The list polls jobs.list
+// every 500 ms while the panel is visible; it is a read-only command, so polls are not logged. A card
+// whose command isn't registered is disabled; with neither, or without jobs.list, the panel says "The AI
+// commands are not available." until they are registered.
 class AiPanel final : public QWidget {
     Q_OBJECT
 
@@ -35,15 +37,15 @@ public:
 
     void generateImage();
     void generateText();
-    void refreshJobs();  // One poll of "ai.jobs".
+    void refreshJobs();  // One poll of "jobs.list".
 
 protected:
     void showEvent(QShowEvent* event) override;
     void hideEvent(QHideEvent* event) override;
 
 private:
-    // Runs ai.run with `op` and the prompt of `editor`, which is cleared once the job is queued.
-    void runOperation(const QString& op, QPlainTextEdit* editor);
+    // Runs `command` with `params` and the prompt of `editor`, which is cleared once the job is queued.
+    void runPrompt(const QString& command, const QJsonObject& params, QPlainTextEdit* editor);
     void updateAvailability();
     void updateControls();
     void updatePolling();
@@ -53,6 +55,8 @@ private:
 
     core::CommandBus& m_bus;
     bool m_available = false;
+    bool m_imageAvailable = false;
+    bool m_textAvailable = false;
 
     QLabel* m_unavailable = nullptr;
     QPlainTextEdit* m_imagePrompt = nullptr;
