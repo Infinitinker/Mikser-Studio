@@ -33,6 +33,7 @@ struct PanelContribution {
 //   "apiVersion": 1,                       // Must equal kPluginApiVersion
 //   "entry": "main.lua",                   // The Lua file that starts the plugin
 //   "permissions": ["project.read", "ui"], // What the plugin may do (docs/architecture.md)
+//   "network": ["127.0.0.1:11434"],        // Where its jobs may connect (NetworkEntry), with "network"
 //   "settingsSchema": { JSON Schema },
 //   "panels": [ { "id", "title", "qml", "defaultArea" } ]
 // }
@@ -47,6 +48,7 @@ struct PluginManifest {
     int apiVersion = 0;
     QString entry;
     QStringList permissions;
+    QStringList network;  // Lower case.
     QJsonObject settingsSchema;
     QList<PanelContribution> panels;
     QString directory;  // Absolute directory that contained the manifest.
@@ -56,8 +58,8 @@ inline constexpr int kPluginApiVersion = 1;
 inline constexpr auto kPluginManifestFileName = "mikserstudio-plugin.json";
 
 // Validates the manifest (required fields, id/version format, apiVersion, entry, permissions,
-// settingsSchema, panels) and fills defaults: description "", permissions [], panel defaultArea
-// "right".
+// network, settingsSchema, panels) and fills defaults: description "", permissions [], network [],
+// panel defaultArea "right".
 [[nodiscard]] std::expected<PluginManifest, QString> parsePluginManifest(const QJsonObject& json,
                                                                          const QString& directory);
 

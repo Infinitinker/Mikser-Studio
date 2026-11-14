@@ -11,6 +11,7 @@
 #include <QDir>
 #include <QDirIterator>
 #include <QJsonArray>
+#include <QRegularExpression>
 
 #include <tuple>
 #include <utility>
@@ -154,6 +155,7 @@ void LuaPlugin::stopWorker(const QString& reason)
     for (const QString& job : std::as_const(m_jobs))
         std::ignore = m_options.jobs->cancel(job);
     m_jobs.clear();
+    m_jobTasks.clear();
     m_topics.clear();
 
     LuaWorker* worker = std::exchange(m_worker, nullptr);
@@ -197,7 +199,24 @@ core::CallContext LuaPlugin::contextFor(qint64 run) const
 {
     if (const auto it = m_runs.find(run); it != m_runs.end())
         return it->second.context.through(m_origin, m_activation.granted);
+    // A job's code calls as the run that started the job did.
+    if (const auto it = m_jobTasks.find(run); it != m_jobTasks.end())
+        return it->second.context;
     return core::CallContext{.origins = {m_origin}, .permissions = m_activation.granted, .confirmed = false};
+}
+
+QString LuaPlugin::jobOf(qint64 run) const
+{
+    const auto it = m_jobTasks.find(run);
+    return it == m_jobTasks.end() ? QString() : it->second.jobId;
+}
+
+std::optional<core::CommandError> LuaPlugin::endedJob(qint64 run) const
+{
+    const QString job = jobOf(run);
+    if (job.isEmpty() || m_options.jobs->state(job).value_or(core::JobState::Canceled) <= core::JobState::Running)
+        return std::nullopt;
+    return core::CommandError{core::CommandErrorCode::Canceled, u"The job “%1” has ended."_s.arg(job)};
 }
 
 void LuaPlugin::answer(qint64 call, const std::expected<QJsonValue, core::CommandError>& outcome)
@@ -244,6 +263,10 @@ void LuaPlugin::run(quint64 generation, qint64 call, qint64 run, const QString& 
 {
     if (!current(generation))
         return;
+    if (const auto ended = endedJob(run)) {
+        answer(call, std::unexpected(*ended));
+        return;
+    }
     m_options.bus->executeAsync(id, params, contextFor(run), this,
                                 [this, generation, call](std::expected<QJsonObject, core::CommandError> result) {
                                     if (!current(generation))
@@ -279,8 +302,13 @@ void LuaPlugin::subscribe(quint64 generation, const QString& topic)
 
 void LuaPlugin::deliver(const core::Event& event)
 {
-    if (event.topic == u"job.finished")
-        m_jobs.remove(event.payload.value(u"jobId").toString());
+    if (event.topic == u"job.finished") {
+        const QString job = event.payload.value(u"jobId").toString();
+        m_jobs.remove(job);
+        // The code of a job that ends before it starts never runs; one that runs ends as a task.
+        std::erase_if(m_jobTasks,
+                      [&job](const auto& task) { return task.second.jobId == job && !task.second.started; });
+    }
     if (!m_worker || !matches(m_topics, event.topic))
         return;
     m_shared->inbox.push(event);
@@ -294,6 +322,10 @@ void LuaPlugin::beginTransaction(quint64 generation, qint64 call, qint64 run, co
 {
     if (!current(generation))
         return;
+    if (const auto ended = endedJob(run)) {
+        answer(call, std::unexpected(*ended));
+        return;
+    }
     auto transaction = m_options.bus->beginTransaction(name, contextFor(run));
     if (!transaction) {
         answer(call, std::unexpected(transaction.error()));
@@ -334,7 +366,8 @@ void LuaPlugin::startJob(quint64 generation, qint64 call, qint64 run, const QStr
 {
     if (!current(generation))
         return;
-    auto job = m_options.jobs->start(kind, input, contextFor(run));
+    auto job = m_options.jobs->start(kind, input, contextFor(run),
+                                     core::JobRequest{.parent = jobOf(run), .network = m_manifest.network});
     if (!job) {
         answer(call, std::unexpected(job.error()));
         return;
@@ -342,6 +375,87 @@ void LuaPlugin::startJob(quint64 generation, qint64 call, qint64 run, const QStr
     if (m_options.jobs->state(*job).value_or(core::JobState::Succeeded) <= core::JobState::Running)
         m_jobs.insert(*job);
     answer(call, QJsonValue(*job));
+}
+
+void LuaPlugin::runJob(quint64 generation, qint64 call, qint64 run, const QJsonObject& spec)
+{
+    if (!current(generation))
+        return;
+    static const QRegularExpression kindPattern(uR"(^[a-z0-9_]+(\.[a-z0-9_]+)*$)"_s);
+    const QString kind = spec.value(u"kind").toString();
+    const QString title = spec.value(u"title").toString().trimmed();
+    const QJsonValue lane = spec.value(u"lane");
+    if (!kindPattern.match(kind).hasMatch() || title.isEmpty() || !(lane.isUndefined() || lane.isString())) {
+        answer(call, std::unexpected(core::CommandError{
+                         core::CommandErrorCode::InvalidParams,
+                         u"ms.jobs.run takes {kind, title, lane}: a kind of lower-case words joined by dots, such as "
+                         "“generate_text”, a title for the person and, to run such jobs one at a time, a lane."_s}));
+        return;
+    }
+    const core::CallContext context = contextFor(run);
+    const QString parent = jobOf(run);
+    const qint64 task = ++m_nextRun;
+    m_jobTasks.emplace(task, JobTask{.jobId = {}, .context = context, .started = false});
+    auto job = m_options.jobs->submit(
+        core::JobSpec{
+            .id = {},
+            .kind = m_manifest.id + u"."_s + kind,
+            .title = title,
+            .owner = m_manifest.id,
+            .lane = lane.toString().isEmpty() ? QString() : m_manifest.id + u"/"_s + lane.toString(),
+            .origins = context.origins,
+            .parent = parent,
+        },
+        [this, generation, task](const QString& id) {
+            // Once the plugin has heard the job's id, with which it keeps the job's code.
+            QMetaObject::invokeMethod(
+                this, [this, generation, task, id] { startTask(generation, task, id); }, Qt::QueuedConnection);
+        });
+    if (!job) {
+        m_jobTasks.erase(task);
+        answer(call, std::unexpected(job.error()));
+        return;
+    }
+    m_jobTasks.at(task).jobId = *job;
+    m_jobs.insert(*job);
+    answer(call, QJsonValue(*job));
+}
+
+void LuaPlugin::startTask(quint64 generation, qint64 task, const QString& jobId)
+{
+    const auto it = m_jobTasks.find(task);
+    if (!current(generation) || it == m_jobTasks.end())
+        return;
+    if (m_options.jobs->state(jobId) != core::JobState::Running) {
+        m_jobTasks.erase(it);
+        return;
+    }
+    it->second.started = true;
+    LuaWorker* worker = m_worker;
+    QMetaObject::invokeMethod(worker, [worker, task, jobId] { worker->runJob(task, jobId); }, Qt::QueuedConnection);
+}
+
+void LuaPlugin::jobProgress(quint64 generation, qint64 task, double fraction, const QString& message)
+{
+    if (!current(generation))
+        return;
+    if (const QString job = jobOf(task); !job.isEmpty())
+        m_options.jobs->progress(job, fraction, message);
+}
+
+void LuaPlugin::jobDone(quint64 generation, qint64 task, bool ok, const QJsonObject& value)
+{
+    if (!current(generation))
+        return;
+    const auto it = m_jobTasks.find(task);
+    if (it == m_jobTasks.end())
+        return;
+    const QString job = it->second.jobId;
+    m_jobTasks.erase(it);
+    if (ok)
+        m_options.jobs->succeed(job, value);
+    else
+        m_options.jobs->fail(job, value.value(u"message").toString());
 }
 
 void LuaPlugin::started(quint64 generation, bool ok, const QString& message)

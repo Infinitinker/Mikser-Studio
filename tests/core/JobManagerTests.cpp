@@ -194,3 +194,66 @@ TEST_CASE("A job of a registered kind starts for its caller, who owns it")
     CHECK(jobs.start(u"test.missing"_s, {}, plugin).error().code == CommandErrorCode::InvalidParams);
     CHECK(jobs.jobsJson().size() == 1);
 }
+
+TEST_CASE("A job's children end with it, and their progress shows on it", "[jobs]")
+{
+    Fixture f;
+    const QString parent = f.submit({}, u"Parent"_s);
+    const auto child = f.jobs.submit(
+        {.id = {}, .kind = u"test.work"_s, .title = u"Child"_s, .owner = u"core"_s, .lane = {}, .parent = parent},
+        [&f](const QString& jobId) { f.started.append(jobId); },
+        [&f](const QString& jobId) { f.stopped.append(jobId); });
+    REQUIRE(child);
+    CHECK(f.events.at(1).payload.value(u"parent"_s).toString() == parent);
+
+    f.jobs.progress(*child, 0.5, u"Halfway"_s);
+    const QJsonArray list = f.jobs.jobsJson();
+    CHECK(list.at(0).toObject().value(u"message"_s).toString() == u"Halfway"_s);
+    CHECK(list.at(0).toObject().value(u"progress"_s).toDouble() == 0.5);
+    CHECK(list.at(1).toObject().value(u"parent"_s).toString() == parent);
+
+    SECTION("Canceling the parent cancels the child and stops its work")
+    {
+        REQUIRE(f.jobs.cancel(parent) == JobState::Canceled);
+        CHECK(f.jobs.state(*child) == JobState::Canceled);
+        CHECK(f.stopped == QStringList{parent, *child});
+    }
+    SECTION("A parent that ends cancels the children it left running")
+    {
+        f.jobs.succeed(parent, {});
+        CHECK(f.jobs.state(*child) == JobState::Canceled);
+        CHECK(f.stopped == QStringList{*child});
+    }
+    SECTION("No child joins a parent that has ended")
+    {
+        f.jobs.fail(parent, u"Broken"_s);
+        const auto late = f.jobs.submit(
+            {.id = {}, .kind = u"test.work"_s, .title = u"Late"_s, .owner = u"core"_s, .lane = {}, .parent = parent},
+            {});
+        REQUIRE_FALSE(late);
+        CHECK(late.error().code == CommandErrorCode::Canceled);
+    }
+}
+
+TEST_CASE("A job of a registered kind gets its caller's network entries and parent")
+{
+    UndoStack undo;
+    CommandBus bus(undo);
+    JobManager jobs(bus);
+    JobSpec given;
+    jobs.registerKind(u"test.net"_s, JobKind{.permission = u"network"_s,
+                                             .start = [&given](JobManager& manager, JobSpec spec, const QJsonObject&) {
+                                                 given = spec;
+                                                 return manager.submit(std::move(spec), {});
+                                             }});
+    const auto parent = jobs.submit({.id = {}, .kind = u"test.task"_s, .title = {}, .owner = u"test"_s, .lane = {}},
+                                    {});
+    REQUIRE(parent);
+    const CallContext plugin{.origins = {u"plugin:test"_s}, .permissions = {u"network"_s}};
+    REQUIRE(jobs.start(u"test.net"_s, {}, plugin, JobRequest{.parent = *parent, .network = {u"*:443"_s}}));
+    CHECK(given.parent == *parent);
+    CHECK(given.network == QStringList{u"*:443"_s});
+
+    jobs.unregisterKind(u"test.net"_s);
+    CHECK(jobs.start(u"test.net"_s, {}, plugin).error().code == CommandErrorCode::InvalidParams);
+}

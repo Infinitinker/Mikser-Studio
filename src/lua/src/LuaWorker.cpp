@@ -174,6 +174,7 @@ struct LuaWorker::State {
     sol::protected_function answer;
     sol::protected_function event;
     sol::protected_function main;
+    sol::protected_function job;
 };
 
 void LuaWorker::State::fail(const QString& message) const
@@ -254,6 +255,32 @@ void LuaWorker::State::addHost(sol::table& host)
                           });
                           return sent();
                       });
+    host.set_function(
+        "run_job",
+        [this, generation](sol::this_state ts, std::int64_t call, std::int64_t run, const sol::object& spec) -> Sent {
+            auto json = objectFromLua(ts, spec, u"The job's spec"_s);
+            if (!json)
+                return notSent(json.error());
+            post([generation, call, run, spec = *json](LuaPlugin& plugin) {
+                plugin.runJob(generation, call, run, spec);
+            });
+            return sent();
+        });
+    host.set_function("job_progress",
+                      [this, generation](std::int64_t task, double fraction, const std::string& message) {
+                          post([generation, task, fraction, message = text(message)](LuaPlugin& plugin) {
+                              plugin.jobProgress(generation, task, fraction, message);
+                          });
+                      });
+    host.set_function("job_done", [this, generation](sol::this_state ts, std::int64_t task, bool ok,
+                                                     const sol::object& value) {
+        auto json = objectFromLua(ts, value, u"The job's result"_s);
+        if (!json) {
+            ok = false;
+            json = QJsonObject{{u"code"_s, u"failed"_s}, {u"message"_s, json.error()}};
+        }
+        post([generation, task, ok, value = *json](LuaPlugin& plugin) { plugin.jobDone(generation, task, ok, value); });
+    });
     host.set_function("started", [this, generation](bool ok, const sol::optional<std::string>& message) {
         post([generation, ok, message = text(message.value_or(std::string()))](LuaPlugin& plugin) {
             plugin.started(generation, ok, message);
@@ -350,6 +377,7 @@ bool LuaWorker::State::setUp()
     answer = dispatch.get<sol::protected_function>("answer");
     event = dispatch.get<sol::protected_function>("event");
     main = dispatch.get<sol::protected_function>("main");
+    job = dispatch.get<sol::protected_function>("job");
     return true;
 }
 
@@ -384,6 +412,14 @@ void LuaWorker::invoke(qint64 run, qint64 handler, const QJsonObject& params, co
     s.call(s.invoke, run, handler, toLua(state, params), toLua(state, context));
 }
 
+void LuaWorker::runJob(qint64 run, const QString& jobId)
+{
+    State& s = *m_state;
+    if (!s.lua)
+        return;
+    s.call(s.job, run, jobId.toStdString());
+}
+
 void LuaWorker::answer(qint64 call, bool ok, const QJsonValue& value)
 {
     State& s = *m_state;
@@ -416,6 +452,7 @@ void LuaWorker::shutdown()
     s.answer = {};
     s.event = {};
     s.main = {};
+    s.job = {};
     s.lua = nullptr;
     QThread::currentThread()->quit();
 }

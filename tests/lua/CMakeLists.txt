@@ -1,6 +1,7 @@
 # The Lua host's tests: plugins in isolated states, the sandbox, the limits, the ms API and hot reload.
 add_executable(mikserstudio-lua-tests
     LuaHostTests.cpp
+    LuaJobsTests.cpp
     LuaJsonTests.cpp
     LuaTestSupport.cpp
     LuaTestSupport.h

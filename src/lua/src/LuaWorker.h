@@ -57,6 +57,8 @@ public:
     void start();
     // Runs the handler registered as `handler` for the run `run`.
     void invoke(qint64 run, qint64 handler, const QJsonObject& params, const QJsonObject& context);
+    // Runs the code of the plugin's own job `jobId` (ms.jobs.run) as the task `run`.
+    void runJob(qint64 run, const QString& jobId);
     // Resumes the task waiting for `call` with its answer: the value, or {code, message}.
     void answer(qint64 call, bool ok, const QJsonValue& value);
     // Hands the events in the inbox to the plugin's callbacks.

@@ -1,7 +1,9 @@
 // Plugin manifests: a valid one is parsed with defaults, errors name the field, the entry and the
-// permissions are checked, panel contributions are checked, and native and Python plugins are refused.
+// permissions and network entries are checked, panel contributions are checked, and native and Python
+// plugins are refused.
 #include "TestSupport.h"
 
+#include "mikserstudio/core/NetworkEntry.h"
 #include "mikserstudio/core/PluginManager.h"
 
 #include <catch2/catch_test_macros.hpp>
@@ -108,6 +110,38 @@ TEST_CASE("Permissions are the ones the app knows, each listed once", "[plugins]
     CHECK(errorFor(with(u"permissions"_s, QJsonArray{u"ui"_s, u"ui"_s})) == u"/permissions/1: “ui” is listed twice"_s);
     CHECK(errorFor(with(u"permissions"_s, QJsonArray{1})).contains(u"/permissions/0"_s));
     CHECK(errorFor(with(u"capabilities"_s, QJsonArray{u"commands"_s})).startsWith(u"/capabilities: replaced by"_s));
+}
+
+TEST_CASE("Network entries are host:port, need the network permission and default to none", "[plugins][manifest]")
+{
+    CHECK(parsePluginManifest(validManifest(), u"D:/plugins/hello"_s)->network.isEmpty());
+
+    QJsonObject manifest = with(u"permissions"_s, QJsonArray{u"network"_s});
+    manifest.insert(u"network"_s, QJsonArray{u"127.0.0.1:11434"_s, u"Api.Example.com:443"_s, u"[::1]:*"_s, u"*:*"_s});
+    const auto parsed = parsePluginManifest(manifest, u"D:/plugins/hello"_s);
+    REQUIRE(parsed);
+    CHECK(parsed->network == QStringList{u"127.0.0.1:11434"_s, u"api.example.com:443"_s, u"[::1]:*"_s, u"*:*"_s});
+
+    for (const QString& entry : {u"example.com"_s, u"example.com:0"_s, u"example.com:70000"_s, u"::1:80"_s,
+                                 u"http://example.com:80"_s, u"*.example.com:443"_s, u"exa mple.com:80"_s}) {
+        manifest.insert(u"network"_s, QJsonArray{entry});
+        INFO(entry.toStdString());
+        CHECK(errorFor(manifest).startsWith(u"/network/0: “%1” is not a network entry"_s.arg(entry)));
+    }
+    CHECK(errorFor(with(u"network"_s, QJsonArray{u"*:443"_s})).contains(u"doesn't ask for the “network” permission"_s));
+}
+
+TEST_CASE("Network entries name their host and port", "[plugins][manifest]")
+{
+    const auto any = parseNetworkEntry(u"*:*"_s);
+    REQUIRE(any);
+    CHECK(any->host == u"*"_s);
+    CHECK_FALSE(any->port.has_value());
+    const auto ipv6 = parseNetworkEntry(u"[::1]:11434"_s);
+    REQUIRE(ipv6);
+    CHECK(ipv6->host == u"::1"_s);
+    CHECK(ipv6->port == 11434);
+    CHECK(parseNetworkEntry(u" LocalHost:8188 "_s)->host == u"localhost"_s);
 }
 
 TEST_CASE("Panel contributions are checked", "[plugins][manifest]")

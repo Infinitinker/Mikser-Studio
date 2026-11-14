@@ -38,6 +38,17 @@ struct JobSpec {
     // The origins of whoever started the job (CallContext::origins); nullopt takes the running
     // command's.
     std::optional<QStringList> origins = std::nullopt;
+    // The job this one is part of. When that one ends, or is canceled, this one is canceled; this
+    // one's progress shows on it. Empty for a job of its own.
+    QString parent = {};
+    // The host:port entries the job may connect to (core::NetworkEntry): its owner's manifest's.
+    QStringList network = {};
+};
+
+// What the caller of JobManager::start() adds to its call context.
+struct JobRequest {
+    QString parent;  // JobSpec::parent.
+    QStringList network;  // JobSpec::network.
 };
 
 // Starts a job's work, on the main thread. The work reports through JobManager::progress and ends
@@ -59,7 +70,7 @@ struct JobKind {
 };
 
 // The app's jobs, on the main thread. Each change is published on the bus's events, with the
-// origins of the command that started the job: "job.created" {jobId, kind, title, owner, lane},
+// origins of the command that started the job: "job.created" {jobId, kind, title, owner, lane, parent},
 // "job.progress" {jobId, progress, message} at most kProgressInterval apart per job, and
 // "job.finished" {jobId, state, error, result}.
 class JobManager final : public QObject {
@@ -73,15 +84,16 @@ public:
     ~JobManager() override;
 
     // Queues a job in its lane and returns its id; `run` starts it when the lane is free. Fails
-    // when `spec.id` is taken.
+    // when `spec.id` is taken, and with Canceled when `spec.parent` has ended.
     std::expected<QString, CommandError> submit(JobSpec spec, JobRun run, JobCancel cancel = {});
     // Registers a kind of job under its name, such as "http.request"; a later one replaces it.
     void registerKind(const QString& kind, JobKind jobKind);
+    void unregisterKind(const QString& kind);
     // Starts a job of a registered kind for the caller of `context`, who owns it: the plugin of
     // its last origin, or "core". Fails with InvalidParams for a kind that isn't registered and
     // with PermissionDenied when the caller lacks the kind's permission.
     std::expected<QString, CommandError> start(const QString& kind, const QJsonObject& input,
-                                               const CallContext& context);
+                                               const CallContext& context, const JobRequest& request = {});
     // `progress` runs from 0 to 1. Ignored for a job that isn't running. succeed() and fail() are
     // ignored for a job that has finished.
     void progress(const QString& jobId, double progress, const QString& message = {});
@@ -90,7 +102,7 @@ public:
     // Cancels a job that hasn't finished and returns the state it has now.
     std::expected<JobState, CommandError> cancel(const QString& jobId);
 
-    // {id, kind, title, owner, lane, state, progress, message, error, createdAt, startedAt,
+    // {id, kind, title, owner, lane, parent, state, progress, message, error, createdAt, startedAt,
     //  finishedAt, result, origins}, oldest first; the last kMaxFinishedJobs finished ones.
     [[nodiscard]] QJsonArray jobsJson() const;
     [[nodiscard]] std::optional<JobState> state(const QString& jobId) const;
@@ -119,6 +131,7 @@ private:
     [[nodiscard]] const Job* find(const QString& jobId) const;
     void startNext(const QString& lane);
     void finish(Job& job, JobState state, const QString& error, const QJsonObject& result);
+    void cancelChildren(const QString& parent);
     void forgetOldJobs();
     void publish(const Job& job, const QString& topic, const QJsonObject& payload);
     [[nodiscard]] static QJsonObject toJson(const Job& job);

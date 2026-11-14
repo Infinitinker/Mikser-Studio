@@ -1,5 +1,6 @@
 // One running Lua plugin, on the main thread: its worker thread and Lua state, the commands it
-// registered, the runs, transactions and jobs it has open, its events and its hot reload.
+// registered, the runs, transactions and jobs it has open (its own jobs' code included), its events
+// and its hot reload.
 #pragma once
 
 #include "mikserstudio/core/Command.h"
@@ -70,6 +71,10 @@ public:
     void beginTransaction(quint64 generation, qint64 call, qint64 run, const QString& name);
     void finishTransaction(quint64 generation, qint64 call, qint64 transaction, bool commit, const QString& reason);
     void startJob(quint64 generation, qint64 call, qint64 run, const QString& kind, const QJsonObject& input);
+    // A job of the plugin's own, {kind, title, lane?}, whose code the worker runs once it starts.
+    void runJob(quint64 generation, qint64 call, qint64 run, const QJsonObject& spec);
+    void jobProgress(quint64 generation, qint64 task, double fraction, const QString& message);
+    void jobDone(quint64 generation, qint64 task, bool ok, const QJsonObject& value);
     void started(quint64 generation, bool ok, const QString& message);
 
 private:
@@ -77,10 +82,21 @@ private:
         core::CommandDone done;
         core::CallContext context;
     };
+    // The code of a job of the plugin's own, which runs as a task of its own.
+    struct JobTask {
+        QString jobId;
+        core::CallContext context;
+        bool started = false;
+    };
 
     [[nodiscard]] bool current(quint64 generation) const { return m_worker && generation == m_generation; }
     // The context of a call the plugin makes from the task of `run` (0: not in a command).
     [[nodiscard]] core::CallContext contextFor(qint64 run) const;
+    // The job whose code runs as `run`, or empty.
+    [[nodiscard]] QString jobOf(qint64 run) const;
+    // Canceled when `run` is the code of a job that has ended, so it starts nothing more.
+    [[nodiscard]] std::optional<core::CommandError> endedJob(qint64 run) const;
+    void startTask(quint64 generation, qint64 task, const QString& jobId);
     void answer(qint64 call, const std::expected<QJsonValue, core::CommandError>& outcome);
     void startWorker();
     // Stops the worker and everything it had open: its runs finish as canceled, its commands are
@@ -107,6 +123,7 @@ private:
     std::optional<core::CommandBus::TransactionId> m_transaction;
     std::set<core::CommandBus::TransactionId> m_rolledBack;
     QSet<QString> m_jobs;
+    std::map<qint64, JobTask> m_jobTasks;  // By the run their code has.
 
     std::unique_ptr<QFileSystemWatcher> m_watcher;
     QTimer m_reloadTimer;

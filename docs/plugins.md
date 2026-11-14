@@ -64,6 +64,8 @@ down: the Plugins panel lists it as failed, with the reason, and the log has the
 - `apiVersion`: 1, the version of the Lua API described here.
 - `entry`: the Lua file that starts the plugin, inside its folder, with `/` between folders.
 - `permissions` (optional): what the plugin may do; see [Permissions](#permissions).
+- `network` (optional, with the `network` permission): where the plugin's jobs may connect, as
+  `host:port` entries; see [The network](#the-network).
 - `settingsSchema` (optional): a JSON Schema of the plugin's settings, an object.
 - `panels` (optional): QML panels; see [Panels](#panels-qml).
 
@@ -114,6 +116,15 @@ ms.command({
 - `ms.jobs.start(kind, input)` starts a job of a kind the app provides and returns it:
   `job:await()` waits for it to end and returns its result, raising an error when it failed or was
   canceled; `job:cancel()` cancels it. A job can't be awaited inside a transaction.
+- `ms.jobs.run({kind, title, lane}, fn)` starts a job of the plugin's own, whose work is `fn(job)`:
+  it runs as a task of its own once the job starts, what it returns is the job's result, and an
+  error it raises fails the job. Its kind is `<plugin id>.<kind>`, its `title` is what the person
+  sees, and jobs of one `lane` run one at a time. `job:progress(fraction, message)` shows how far it
+  has come. The jobs `fn` starts are part of it: their progress shows on it, and when it ends or is
+  canceled, they are canceled. A command whose work takes long returns `{jobId = job.id}` at once
+  and marks itself `starts_job`.
+- `ms.jobs.get(id)` is the job with that id, to await or cancel, such as one another plugin's command
+  started; awaiting it reads `jobs.list`, which needs `project.read`.
 - `ms.project()` returns the project as it is now, read-only: `session`, `revision`, `frameRate`
   (`{num, den}`), `width`, `height`, `media`, `tracks` and `clips`, as `project.list` gives them,
   with `find_media(id)`, `find_track(id)`, `find_clip(id)`,
@@ -161,6 +172,22 @@ is `invalid_params`, `not_available`, `permission_denied` or `canceled`; any oth
 The permission a command needs belongs to whoever runs it: a plugin needs it itself, also when an
 agent asked the plugin to run its command. A plugin's command runs with no more than its caller's
 permissions, and the plugin's own.
+
+### The network
+
+A plugin reaches the network only through the app's job kinds, such as `http.request`, and only
+where its manifest's `network` entries allow. Each entry is `host:port`:
+
+- the host is a name (`api.example.com`), an IPv4 address or an IPv6 address in brackets
+  (`[::1]`), or `*`, any computer but this one;
+- the port is a number or `*`, any port.
+
+This computer (`localhost`, `127.0.0.0/8`, `::1`) is reached only through an entry that names it,
+such as `127.0.0.1:11434` or `localhost:*`, and Mikser Studio's own API never. Settings can't widen
+the entries: a plugin whose address is a setting lists every address the person may enter, such as
+`127.0.0.1:*`, `localhost:*`, `[::1]:*` and `*:*` for a tool that runs on this computer or another
+one. The entries are checked against the address as it is written; a name that leads to this
+computer is not caught.
 
 ## The sandbox
 

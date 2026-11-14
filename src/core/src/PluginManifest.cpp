@@ -3,6 +3,7 @@
 
 #include "mikserstudio/core/Command.h"
 #include "mikserstudio/core/JsonSchema.h"
+#include "mikserstudio/core/NetworkEntry.h"
 
 #include <QDir>
 #include <QJsonArray>
@@ -31,6 +32,7 @@ const QJsonObject& manifestSchema()
             "apiVersion": {"type": "integer", "minimum": 1},
             "entry": {"type": "string", "minLength": 1},
             "permissions": {"type": "array", "items": {"type": "string"}, "default": []},
+            "network": {"type": "array", "items": {"type": "string"}, "default": []},
             "settingsSchema": {"type": "object"},
             "panels": {
                 "type": "array",
@@ -80,6 +82,21 @@ std::expected<QStringList, QString> parsePermissions(const QJsonArray& permissio
             return std::unexpected(u"/permissions/%1: “%2” is listed twice"_s.arg(i).arg(permission));
         result.append(permission);
     }
+    return result;
+}
+
+std::expected<QStringList, QString> parseNetwork(const QJsonArray& entries, const QStringList& permissions)
+{
+    QStringList result;
+    for (qsizetype i = 0; i < entries.size(); ++i) {
+        const QString text = entries.at(i).toString();
+        const auto entry = parseNetworkEntry(text);
+        if (!entry)
+            return std::unexpected(u"/network/%1: %2"_s.arg(i).arg(entry.error()));
+        result.append(text.trimmed().toLower());
+    }
+    if (!result.isEmpty() && !permissions.contains(u"network"_s))
+        return std::unexpected(u"/network: lists addresses, but the plugin doesn't ask for the “network” permission"_s);
     return result;
 }
 
@@ -146,6 +163,10 @@ std::expected<PluginManifest, QString> parsePluginManifest(const QJsonObject& js
     if (!permissions)
         return std::unexpected(permissions.error());
 
+    auto network = parseNetwork(manifest.value(u"network").toArray(), *permissions);
+    if (!network)
+        return std::unexpected(network.error());
+
     return PluginManifest{
         .id = manifest.value(u"id").toString(),
         .name = manifest.value(u"name").toString(),
@@ -154,6 +175,7 @@ std::expected<PluginManifest, QString> parsePluginManifest(const QJsonObject& js
         .apiVersion = apiVersion,
         .entry = entry,
         .permissions = std::move(*permissions),
+        .network = std::move(*network),
         .settingsSchema = settingsSchema,
         .panels = std::move(*panels),
         .directory = QDir::fromNativeSeparators(QDir(directory).absolutePath()),

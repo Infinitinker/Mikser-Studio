@@ -101,6 +101,7 @@ bool LuaFixture::activate(const QByteArray& mainLua, const QStringList& granted)
     manifest.name = u"Test plugin"_s;
     manifest.version = u"1.0.0"_s;
     manifest.entry = u"main.lua"_s;
+    manifest.network = network;
     manifest.directory = dir.path();
     const int before = starts;
     auto instance = runtime->activate(

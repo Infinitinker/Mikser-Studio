@@ -60,6 +60,12 @@ std::expected<QString, CommandError> JobManager::submit(JobSpec spec, JobRun run
         return std::unexpected(CommandError{CommandErrorCode::Failed,
                                             u"There is a job “%1” already. Report this problem."_s.arg(spec.id)});
     }
+    if (!spec.parent.isEmpty()) {
+        if (const Job* parent = find(spec.parent); !parent || isFinished(parent->state)) {
+            return std::unexpected(CommandError{
+                CommandErrorCode::Canceled, u"The job “%1” this one would be part of has ended."_s.arg(spec.parent)});
+        }
+    }
     const CallContext* running = m_bus.runningContext();
     Job& job = m_jobs.emplace_back();
     job.origins = spec.origins.value_or(running ? running->origins : QStringList());
@@ -70,10 +76,14 @@ std::expected<QString, CommandError> JobManager::submit(JobSpec spec, JobRun run
     QString id = job.spec.id;
     const QString lane = job.spec.lane;
     qCInfo(lcJobs).noquote() << "Job" << id << "(" << job.spec.kind << ") queued in lane" << lane;
-    publish(
-        job, u"job.created"_s,
-        QJsonObject{
-            {u"kind"_s, job.spec.kind}, {u"title"_s, job.spec.title}, {u"owner"_s, job.spec.owner}, {u"lane"_s, lane}});
+    publish(job, u"job.created"_s,
+            QJsonObject{
+                {u"kind"_s, job.spec.kind},
+                {u"title"_s, job.spec.title},
+                {u"owner"_s, job.spec.owner},
+                {u"lane"_s, lane},
+                {u"parent"_s, job.spec.parent},
+            });
     Q_EMIT jobsChanged();
     if (lane.isEmpty()) {
         Job* now = find(id);
@@ -92,8 +102,13 @@ void JobManager::registerKind(const QString& kind, JobKind jobKind)
     m_kinds.insert_or_assign(kind, std::move(jobKind));
 }
 
+void JobManager::unregisterKind(const QString& kind)
+{
+    m_kinds.erase(kind);
+}
+
 std::expected<QString, CommandError> JobManager::start(const QString& kind, const QJsonObject& input,
-                                                       const CallContext& context)
+                                                       const CallContext& context, const JobRequest& request)
 {
     const auto it = m_kinds.find(kind);
     if (it == m_kinds.end())
@@ -113,6 +128,8 @@ std::expected<QString, CommandError> JobManager::start(const QString& kind, cons
         .owner = caller.startsWith(u"plugin:"_s) ? caller.mid(7) : u"core"_s,
         .lane = {},
         .origins = context.origins,
+        .parent = request.parent,
+        .network = request.network,
     };
     // Copied: the kind may register kinds while it starts.
     const JobKind jobKind = it->second;
@@ -131,6 +148,8 @@ void JobManager::progress(const QString& jobId, double progress, const QString& 
         return;
     job->sinceProgress.start();
     publish(*job, u"job.progress"_s, QJsonObject{{u"progress"_s, job->progress}, {u"message"_s, job->message}});
+    if (const QString parent = job->spec.parent; !parent.isEmpty())
+        this->progress(parent, progress, message);
 }
 
 void JobManager::succeed(const QString& jobId, const QJsonObject& result)
@@ -160,6 +179,7 @@ std::expected<JobState, CommandError> JobManager::cancel(const QString& jobId)
     finish(*job, JobState::Canceled, {}, {});
     if (stop)
         stop(jobId);
+    cancelChildren(jobId);
     return JobState::Canceled;
 }
 
@@ -228,8 +248,21 @@ void JobManager::finish(Job& job, JobState state, const QString& error, const QJ
             QJsonObject{{u"state"_s, toString(state)}, {u"error"_s, error}, {u"result"_s, result}});
     forgetOldJobs();
     Q_EMIT jobsChanged();
+    if (state != JobState::Canceled)  // cancel() cancels the children once the work has stopped.
+        cancelChildren(id);
     if (!lane.isEmpty())
         startNext(lane);
+}
+
+void JobManager::cancelChildren(const QString& parent)
+{
+    QStringList children;
+    for (const Job& job : m_jobs) {
+        if (job.spec.parent == parent && !isFinished(job.state))
+            children.append(job.spec.id);
+    }
+    for (const QString& child : std::as_const(children))
+        std::ignore = cancel(child);
 }
 
 void JobManager::forgetOldJobs()
@@ -262,6 +295,7 @@ QJsonObject JobManager::toJson(const Job& job)
         {u"title"_s, job.spec.title},
         {u"owner"_s, job.spec.owner},
         {u"lane"_s, job.spec.lane},
+        {u"parent"_s, job.spec.parent},
         {u"state"_s, toString(job.state)},
         {u"progress"_s, job.progress},
         {u"message"_s, job.message},

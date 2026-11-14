@@ -131,7 +131,7 @@ messages.
 | AI engine | The part of the app that runs AI jobs in the AI tools the user runs, through its backends (`services::AiEngine`). Being replaced by the `ollama` and `comfyui` plugins. | AI service, sidecar |
 | backend | A part of the AI engine that connects to one AI tool's API and offers operations, such as `ollama` and `comfyui`. | provider |
 | operation | What a backend can do, such as `image.generate` or `text.generate`. | task, op type |
-| job | One run of long work, with a state: `queued`, `running`, `succeeded`, `failed` or `canceled`. Today an AI job; planned: any job kind in core's job manager (`http.request`, `comfyui.run_prompt`, …), which Lua starts and awaits. | task, request |
+| job | One run of long work in core's job manager, with a state: `queued`, `running`, `succeeded`, `failed` or `canceled`: a job of a registered kind (`http.request`, …), which Lua starts and awaits, a plugin's own job, or an AI engine job mirrored there. | task, request |
 | provenance | The record of how AI made a media item: the job, backend, operation, model, parameters, time and tool versions. | metadata, history |
 
 ## Threads and processes
@@ -172,8 +172,11 @@ messages.
   200 finished ones are kept. The AI engine's jobs are mirrored onto it until its backends move to
   plugins. Code that can't reach C++, such as a Lua plugin, starts a job of a registered kind
   (`core::JobKind`, such as `http.request`) by its name with a JSON input, and owns it; the kind
-  names the permission a caller needs. Lua awaits a job without holding its thread. (built) Work
-  runs off the main thread where it can. (planned)
+  names the permission a caller needs. Lua awaits a job without holding its thread. A plugin also
+  runs jobs of its own, whose work is its Lua code (`ms.jobs.run`). A job may be part of another
+  (`JobSpec::parent`): the jobs a plugin's job starts are its children, whose progress shows on it
+  and which are canceled when it ends. (built) Work runs off the main thread where it can.
+  (planned)
 
 ## Undo for groups of changes
 
@@ -213,7 +216,8 @@ The contract the Lua host keeps (built, but for `ms.ui.confirm`). A plugin's cod
   raises an error with a `code`: `needs_confirmation`, `permission_denied`, `canceled`,
   `invalid_params` or `failed`.
 - `ms.jobs.start(kind, input)` starts a C++ job of a registered kind and returns a job with
-  `:await()` and `:cancel()`.
+  `:await()` and `:cancel()`; `ms.jobs.run(spec, fn)` starts a job of the plugin's own whose work
+  is `fn`, and `ms.jobs.get(id)` names any job to await.
 - `ms.on(topic, fn)` subscribes to events; each callback runs in its own coroutine.
 - `ms.project()` returns an immutable project view with a revision number and queries (by clip id,
   range and media id).
@@ -231,7 +235,8 @@ The contract the Lua host keeps (built, but for `ms.ui.confirm`). A plugin's cod
 - `project.write`: run commands that change the project.
 - `files`: open, save or import a path outside the project; the person grants it.
 - `network`: connect to the `host:port` entries the manifest lists; no loopback by default, never
-  the app's own API port, and settings can't widen the list.
+  the app's own API port, and settings can't widen the list (built: `core::NetworkEntry`, checked
+  by the job kinds that reach the network; `*` is any other computer, or any port).
 - `ui`: contribute menus, panels and forms, ask the person (`ms.ui.confirm`), and drive the monitors
   and playback.
 - `plugins.manage`: run the `plugins.*` commands; only built-in plugins get it.

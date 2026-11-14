@@ -1,9 +1,10 @@
 -- The Lua half of the ms API, run once in each plugin's state before the plugin's code.
 --
 -- Everything that may wait is written here, in Lua: a C++ function that yields fails, and sol2
--- has no continuations. Command handlers, event callbacks and the plugin's main chunk each run
--- in a coroutine of their own, a task. ms.run and the other calls that wait post a request to the
--- main thread through `host` and yield; the host resumes the task with the answer.
+-- has no continuations. Command handlers, event callbacks, the functions of the plugin's own jobs
+-- and its main chunk each run in a coroutine of their own, a task. ms.run and the other calls that
+-- wait post a request to the main thread through `host` and yield; the host resumes the task with
+-- the answer.
 --
 -- The host calls the functions this chunk returns; the plugin sees only the global `ms` and the
 -- sandboxed standard library.
@@ -19,6 +20,8 @@ local job_waiters = {} -- job id -> list of call ids
 local finished_jobs = {} -- job id -> the job.finished payload, for jobs this plugin started
 local started_jobs = {} -- job id -> true while this plugin waits to hear how it ended
 local early_jobs, early_order = {}, {} -- jobs that ended before ms.jobs.start heard their id
+local watched_jobs = {} -- job id -> true while an await waits for a job this plugin didn't start
+local job_bodies = {} -- job id -> the function of a job of the plugin's own, until it starts
 local command_handlers = {} -- handler id -> function
 
 local array_mt = host.array_mt
@@ -54,6 +57,16 @@ local function finish(task, ok, value, co)
 			local code, message = describe(value)
 			host.log("error", described(co, message))
 			host.done(task.run, false, { code = code, message = message })
+		end
+	elseif task.kind == "job" then
+		if ok then
+			host.job_done(task.run, true, type(value) == "table" and value or {})
+		else
+			local code, message = describe(value)
+			if code ~= "canceled" then
+				host.log("error", described(co, message))
+			end
+			host.job_done(task.run, false, { code = code, message = message })
 		end
 	elseif task.kind == "main" then
 		if ok then
@@ -102,7 +115,7 @@ local function current_task(what)
 	local co, main = coroutine.running()
 	local task = tasks[co]
 	if main or not task or not coroutine.isyieldable() then
-		error(what .. " works only in a command handler, an event callback or the plugin's main code", 3)
+		error(what .. " works only in a command handler, an event callback, a job's function or the plugin's main code", 3)
 	end
 	return task
 end
@@ -152,6 +165,11 @@ end
 
 local function job_ended(payload)
 	local id = payload.jobId
+	job_bodies[id] = nil
+	if watched_jobs[id] then
+		watched_jobs[id] = nil
+		started_jobs[id] = true
+	end
 	if not started_jobs[id] then
 		-- It may be one of ours whose start hasn't been answered yet.
 		early_jobs[id] = payload
@@ -268,20 +286,49 @@ end
 
 local job_mt = {}
 job_mt.__index = job_mt
+local TASK = {} -- The key of the task a job of the plugin's own runs as.
+
+-- The result of a job that ended, or the error it ended with.
+local function outcome(ended)
+	if ended.state == "succeeded" then
+		return ended.result or {}
+	end
+	local code = ended.state == "canceled" and "canceled" or "failed"
+	error(new_error(code, ended.error ~= "" and ended.error or code), 3)
+end
+
+local function is_finished(state)
+	return state == "succeeded" or state == "failed" or state == "canceled"
+end
 
 function job_mt:await()
 	local task = current_task("job:await")
 	if task.transaction then
 		error("A job can't be awaited inside ms.transaction: it would hold the project for its whole run", 2)
 	end
+	if not finished_jobs[self.id] and not started_jobs[self.id] then
+		-- Not one this plugin started: it may have ended already.
+		watched_jobs[self.id] = true
+		local listed
+		for _, job in ipairs(ms.run("jobs.list", {}).jobs) do
+			if job.id == self.id then
+				listed = job
+			end
+		end
+		if not finished_jobs[self.id] then
+			if not listed then
+				watched_jobs[self.id] = nil
+				error(new_error("invalid_params", ("There is no job “%s”."):format(self.id)), 2)
+			elseif is_finished(listed.state) then
+				watched_jobs[self.id] = nil
+				return outcome(listed)
+			end
+		end
+	end
 	local ended = finished_jobs[self.id]
 	if ended then
 		finished_jobs[self.id] = nil
-		if ended.state == "succeeded" then
-			return ended.result or {}
-		end
-		local code = ended.state == "canceled" and "canceled" or "failed"
-		error(new_error(code, ended.error or code), 2)
+		return outcome(ended)
 	end
 	return wait(task, function(call)
 		job_waiters[self.id] = job_waiters[self.id] or {}
@@ -291,6 +338,23 @@ end
 
 function job_mt:cancel()
 	return ms.run("jobs.cancel", { jobId = self.id })
+end
+
+function job_mt:progress(fraction, message)
+	if not self[TASK] then
+		error("job:progress works only on the job that ms.jobs.run gives its function", 2)
+	end
+	host.job_progress(self[TASK], tonumber(fraction) or 0, message ~= nil and tostring(message) or "")
+end
+
+function dispatch.job(run, id)
+	local body = job_bodies[id]
+	job_bodies[id] = nil
+	if not body then
+		host.job_done(run, false, { code = "failed", message = "The job's code is gone." })
+		return
+	end
+	spawn("job", run, body, setmetatable({ id = id, [TASK] = run }, job_mt))
 end
 
 ms.jobs = {}
@@ -305,6 +369,31 @@ function ms.jobs.start(kind, input)
 		early_jobs[id] = nil
 	else
 		started_jobs[id] = true
+	end
+	return setmetatable({ id = id }, job_mt)
+end
+
+function ms.jobs.run(spec, fn)
+	local task = current_task("ms.jobs.run")
+	if type(spec) ~= "table" or type(fn) ~= "function" then
+		error("ms.jobs.run takes {kind, title, lane} and the function that does the job's work", 2)
+	end
+	local id = wait(task, function(call, run)
+		return host.run_job(call, run, spec)
+	end)
+	if early_jobs[id] then
+		finished_jobs[id] = early_jobs[id]
+		early_jobs[id] = nil
+	else
+		job_bodies[id] = fn
+		started_jobs[id] = true
+	end
+	return setmetatable({ id = id }, job_mt)
+end
+
+function ms.jobs.get(id)
+	if type(id) ~= "string" or id == "" then
+		error("ms.jobs.get takes a job's id", 2)
 	end
 	return setmetatable({ id = id }, job_mt)
 end

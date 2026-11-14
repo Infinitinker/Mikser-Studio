@@ -6,6 +6,7 @@ add_library(mikserstudio-core STATIC
     include/mikserstudio/core/Instance.h
     include/mikserstudio/core/JobManager.h
     include/mikserstudio/core/JsonSchema.h
+    include/mikserstudio/core/NetworkEntry.h
     include/mikserstudio/core/PluginCommands.h
     include/mikserstudio/core/PluginManager.h
     include/mikserstudio/core/PluginRuntime.h
@@ -25,6 +26,7 @@ add_library(mikserstudio-core STATIC
     src/Logging.cpp
     src/Logging.h
     src/MediaCommands.cpp
+    src/NetworkEntry.cpp
     src/PluginCommands.cpp
     src/PluginManager.cpp
     src/PluginManifest.cpp

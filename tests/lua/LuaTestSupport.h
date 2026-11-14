@@ -75,6 +75,7 @@ struct LuaFixture {
     lua::LuaRuntimeOptions options;
     std::unique_ptr<lua::LuaRuntime> runtime;
     std::unique_ptr<core::PluginInstance> plugin;
+    QStringList network;  // The test plugin's network entries.
     int starts = 0;
     QString failure;
 };

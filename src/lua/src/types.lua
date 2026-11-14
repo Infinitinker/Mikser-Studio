@@ -32,7 +32,7 @@
 ---@field quiet? boolean The command log and the status bar leave it out.
 ---@field shortcut? string
 
----A job this plugin started.
+---A job: one this plugin started, or one ms.jobs.get names.
 ---@class ms.job
 ---@field id string
 local job = {}
@@ -43,6 +43,18 @@ function job:await() end
 
 ---Cancels the job.
 function job:cancel() end
+
+---Shows how far the job has come, from 0 to 1, and what it does now. Only on the job that
+---ms.jobs.run gives its function.
+---@param fraction number
+---@param message? string
+function job:progress(fraction, message) end
+
+---What ms.jobs.run starts.
+---@class ms.job_spec
+---@field kind string Lower-case words joined by dots; the job's kind is "<plugin id>.<kind>".
+---@field title string What the person sees, such as "Generate text: a red fox".
+---@field lane? string Jobs of one lane run one at a time, in the order they came.
 
 ---@class ms.rational
 ---@field num integer
@@ -154,6 +166,18 @@ ms.jobs = {}
 ---@param input? table
 ---@return ms.job
 function ms.jobs.start(kind, input) end
+
+---Starts a job of the plugin's own, whose work `fn` does: its return value is the job's result, and
+---an error it raises fails the job. The jobs it starts are part of this one.
+---@param spec ms.job_spec
+---@param fn fun(job: ms.job): table?
+---@return ms.job
+function ms.jobs.run(spec, fn) end
+
+---The job with this id, to await or cancel.
+---@param id string
+---@return ms.job
+function ms.jobs.get(id) end
 
 ---The project as it is now, read-only.
 ---@return ms.project
