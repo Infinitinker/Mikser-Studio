@@ -56,6 +56,28 @@ CommandSpec readOnly(CommandSpec spec)
     return spec;
 }
 
+// A command that changes where the AI tools are reached.
+CommandSpec network(CommandSpec spec)
+{
+    spec.permission = u"network"_s;
+    return spec;
+}
+
+// A command that talks to the AI tools, which may be on another computer or an online service.
+CommandSpec reachesAiTools(CommandSpec spec)
+{
+    spec.openWorld = true;
+    return network(std::move(spec));
+}
+
+// A command that starts an AI job and answers with its {jobId}.
+CommandSpec startsJob(CommandSpec spec)
+{
+    spec.startsJob = true;
+    spec.resultSchema = core::objectResultSchema({{u"jobId"_s, u"string"_s}});
+    return reachesAiTools(std::move(spec));
+}
+
 CommandResult ok(QJsonObject result)
 {
     return CommandOutcome{std::move(result), nullptr};
@@ -139,7 +161,7 @@ private:
 
 void AiCommandSet::registerAll()
 {
-    add(aiSpec(
+    add(startsJob(aiSpec(
             u"ai.run"_s, u"Run AI operation"_s,
             u"Runs an AI operation, such as image.generate or text.generate, in the AI tool of its backend; images, video and audio it makes come into the project."_s,
             objectSchema(
@@ -153,16 +175,18 @@ void AiCommandSet::registerAll()
                                                u"The operation's parameters, as its schema in ai.backends says."_s}}},
                     {u"backend"_s, stringParam(u"The backend to run it on; the first that offers it when omitted."_s)},
                 },
-                {u"op"_s})),
+                {u"op"_s}))),
         [this](const QJsonObject& params) { return run(params); });
     add(readOnly(aiSpec(u"ai.jobs"_s, u"List AI jobs"_s,
                         u"Lists the AI jobs of this session with their progress and results."_s)),
         [this](const QJsonObject&) { return ok(QJsonObject{{u"jobs"_s, m_engine.jobsJson()}}); });
-    add(aiSpec(u"ai.cancel_job"_s, u"Cancel AI job"_s, u"Stops a queued or running AI job."_s,
-               objectSchema(QJsonObject{{u"jobId"_s, stringParam(u"Id of the job, from ai.jobs."_s)}}, {u"jobId"_s})),
+    add(reachesAiTools(aiSpec(
+            u"ai.cancel_job"_s, u"Cancel AI job"_s, u"Stops a queued or running AI job."_s,
+            objectSchema(QJsonObject{{u"jobId"_s, stringParam(u"Id of the job, from ai.jobs."_s)}}, {u"jobId"_s}))),
         [this](const QJsonObject& params) { return cancelJob(params); });
-    add(aiSpec(u"ai.backends"_s, u"List AI backends"_s,
-               u"Lists the AI backends with their operations and whether their AI tools can run them now."_s),
+    add(reachesAiTools(
+            aiSpec(u"ai.backends"_s, u"List AI backends"_s,
+                   u"Lists the AI backends with their operations and whether their AI tools can run them now."_s)),
         [this](const QJsonObject&) {
             m_engine.refreshAvailability();
             return ok(QJsonObject{{u"backends"_s, backendsJson(m_engine.backends())}});
@@ -176,14 +200,14 @@ void AiCommandSet::registerAll()
         });
     add(readOnly(aiSpec(u"ai.settings"_s, u"AI settings"_s, u"Reports the addresses of the AI tools."_s)),
         [this](const QJsonObject&) { return ok(toJson(m_engine.settings())); });
-    add(aiSpec(u"ai.set_settings"_s, u"Change AI settings"_s,
-               u"Changes the addresses of the AI tools; new jobs use them at once, running jobs go on."_s,
-               objectSchema(
-                   QJsonObject{
-                       {u"ollamaUrl"_s, stringParam(u"Address of Ollama, such as http://127.0.0.1:11434."_s)},
-                       {u"comfyuiUrl"_s, stringParam(u"Address of ComfyUI, such as http://127.0.0.1:8188."_s)},
-                   },
-                   {})),
+    add(network(aiSpec(u"ai.set_settings"_s, u"Change AI settings"_s,
+                       u"Changes the addresses of the AI tools; new jobs use them at once, running jobs go on."_s,
+                       objectSchema(
+                           QJsonObject{
+                               {u"ollamaUrl"_s, stringParam(u"Address of Ollama, such as http://127.0.0.1:11434."_s)},
+                               {u"comfyuiUrl"_s, stringParam(u"Address of ComfyUI, such as http://127.0.0.1:8188."_s)},
+                           },
+                           {}))),
         [this](const QJsonObject& params) { return setSettings(params); });
 }
 

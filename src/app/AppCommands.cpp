@@ -28,13 +28,19 @@ void registerAppCommands(core::CommandBus& bus, core::ProjectModel& project, eng
         {u"required"_s, QJsonArray{u"mediaId"_s}},
         {u"additionalProperties"_s, false},
     };
-    bus.registerCommand({u"source.open_media"_s,
-                         u"Show in source monitor"_s,
-                         u"Loads a media item from the bin into the source monitor."_s,
-                         u"Source monitor"_s,
-                         mediaSchema,
-                         {},
-                         false},
+    bus.registerCommand({.id = u"source.open_media"_s,
+                         .title = u"Show in source monitor"_s,
+                         .description = u"Loads a media item from the bin into the source monitor."_s,
+                         .category = u"Source monitor"_s,
+                         .paramsSchema = mediaSchema,
+                         .shortcut = {},
+                         .undoable = false,
+                         .readOnly = false,
+                         .confirmation = {},
+                         .confirmationParam = {},
+                         .owner = u"core"_s,
+                         .resultSchema = core::objectResultSchema({{u"mediaId"_s, u"string"_s}}),
+                         .permission = u"ui"_s},
                         [&project, source](const QJsonObject& params) -> core::CommandResult {
                             const QString id = params.value(u"mediaId"_s).toString();
                             const core::MediaItem* item = project.findMedia(id);

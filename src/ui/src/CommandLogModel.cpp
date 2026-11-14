@@ -3,7 +3,6 @@
 #include "CommandLogModel.h"
 
 #include "CommandText.h"
-#include "QuietCommands.h"
 
 #include "mikserstudio/core/CommandBus.h"
 #include "mikserstudio/ui/Theme.h"

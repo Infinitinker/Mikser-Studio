@@ -196,7 +196,8 @@ The contract the Lua host builds. A plugin's code sees one global, `ms`.
 - `files`: open, save or import a path outside the project; the person grants it.
 - `network`: connect to the `host:port` entries the manifest lists; no loopback by default, never
   the app's own API port, and settings can't widen the list.
-- `ui`: contribute menus, panels and forms, and ask the person (`ms.ui.confirm`).
+- `ui`: contribute menus, panels and forms, ask the person (`ms.ui.confirm`), and drive the monitors
+  and playback.
 - `plugins.manage`: run the `plugins.*` commands; only built-in plugins get it.
 
 The permission a command needs belongs to its caller. The call context keeps the chain of origins

@@ -16,7 +16,7 @@ class CommandBus;
 namespace mikserstudio::ui {
 
 // Chronological list of the commands executed or failed on the bus (except quiet ones: read-only
-// commands and UI bookkeeping, see QuietCommands.h). Identical consecutive successful runs are
+// commands and UI bookkeeping, see isQuietCommand). Identical consecutive successful runs are
 // folded into one row with a repeat count. Keeps the newest kMaxEntries rows.
 class CommandLogModel final : public QAbstractTableModel {
     Q_OBJECT

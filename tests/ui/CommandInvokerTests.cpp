@@ -13,7 +13,6 @@
 #include "CommandStatus.h"
 #include "MessageBoxAnswer.h"
 #include "PluginPanelBridge.h"
-#include "QuietCommands.h"
 #include "TestCommands.h"
 
 #include <catch2/catch_test_macros.hpp>
@@ -236,13 +235,14 @@ TEST_CASE("Plugin panels get a canceled error when the user declines the confirm
     CHECK(f.guardedRuns == 1);
 }
 
-TEST_CASE("Read-only commands stay out of the command log and the status bar", "[invoker][log]")
+TEST_CASE("Read-only and quiet commands stay out of the command log and the status bar", "[invoker][log]")
 {
     mikserstudio::core::UndoStack undo;
     mikserstudio::core::CommandBus bus(undo);
     REQUIRE(registerTestCommand(
         bus, {.id = u"ai.jobs"_s, .title = u"List AI jobs"_s, .category = u"AI"_s, .readOnly = true}));
-    REQUIRE(registerTestCommand(bus, {.id = u"program.seek"_s, .title = u"Seek"_s, .category = u"Program"_s}));
+    REQUIRE(registerTestCommand(
+        bus, {.id = u"program.seek"_s, .title = u"Seek"_s, .category = u"Program"_s, .quiet = true}));
     REQUIRE(registerTestCommand(bus, {.id = u"demo.run"_s, .title = u"Run Demo"_s, .category = u"Demo"_s}));
 
     mikserstudio::ui::CommandLogModel log(bus);
@@ -253,10 +253,7 @@ TEST_CASE("Read-only commands stay out of the command log and the status bar", "
     REQUIRE(bus.execute(u"ai.jobs"_s));
     // Failures of read-only commands (e.g. polls while the service is down) are quiet too.
     CHECK_FALSE(bus.execute(u"ai.jobs"_s, QJsonObject{{u"unexpected"_s, 1}}));
-    {
-        const mikserstudio::ui::QuietCommandScope quiet;
-        REQUIRE(bus.execute(u"program.seek"_s));
-    }
+    REQUIRE(bus.execute(u"program.seek"_s));
     CHECK(log.rowCount() == 0);
     CHECK(status.text() == u"Ready"_s);
 

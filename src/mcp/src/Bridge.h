@@ -4,6 +4,7 @@
 #include "AppClient.h"
 #include "EventFollower.h"
 #include "RecentEvents.h"
+#include "ToolList.h"
 
 #include <QHash>
 #include <QJsonObject>
@@ -79,6 +80,7 @@ private:
 
     // A tool's result: the command's result as JSON text and, for clients of 2025-06-18 or later, as
     // structured content.
+    [[nodiscard]] Results results() const;  // What this client's protocol version gets.
     [[nodiscard]] QJsonObject success(const QJsonObject& result) const;
     QObject* startRequest(const QJsonValue& id);
     void finishRequest(const QJsonValue& id, const QJsonObject& result);

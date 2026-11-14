@@ -174,7 +174,7 @@ void Bridge::listTools(const QJsonValue& id, QObject* context)
         // While the app is not running there are no tools, not even the bridge's own.
         QJsonArray tools;
         if (commands) {
-            tools = toolsFor(*commands, {RecentEvents::toolName()}).tools;
+            tools = toolsFor(*commands, {RecentEvents::toolName()}, results()).tools;
             tools.append(RecentEvents::tool());
         }
         finishRequest(id, QJsonObject{{u"tools"_s, tools}});
@@ -203,7 +203,7 @@ void Bridge::callTool(const QJsonValue& id, const QJsonObject& params, QObject* 
                 finishRequest(id, failure(commands.error()));
                 return;
             }
-            const QJsonObject command = toolsFor(*commands, {RecentEvents::toolName()}).commands.value(name);
+            const QJsonObject command = toolsFor(*commands, {RecentEvents::toolName()}, results()).commands.value(name);
             if (command.isEmpty()) {
                 failRequest(id, InvalidParams, u"Mikser Studio has no tool “%1”. List the tools again."_s.arg(name));
                 return;
@@ -292,11 +292,16 @@ void Bridge::ask(QObject* context, const QString& confirmation, std::function<vo
     });
 }
 
+Results Bridge::results() const
+{
+    return m_protocol >= kStructuredSince ? Results::Structured : Results::TextOnly;
+}
+
 QJsonObject Bridge::success(const QJsonObject& result) const
 {
     const QString text = QString::fromUtf8(QJsonDocument(result).toJson(QJsonDocument::Compact));
     QJsonObject answer{{u"content"_s, QJsonArray{QJsonObject{{u"type"_s, u"text"_s}, {u"text"_s, text}}}}};
-    if (m_protocol >= kStructuredSince)
+    if (results() == Results::Structured)
         answer.insert(u"structuredContent"_s, result);
     return answer;
 }

@@ -1,4 +1,4 @@
-// The command title lookup and the one-line summary of a command's result.
+// The command title lookup, the test for quiet commands and the one-line summary of a command's result.
 #include "CommandText.h"
 
 #include "mikserstudio/core/CommandBus.h"
@@ -17,6 +17,12 @@ QString elide(const QString& text, qsizetype maxChars)
 }
 
 }  // namespace
+
+bool isQuietCommand(const core::CommandBus& bus, const QString& id)
+{
+    const core::CommandSpec* spec = bus.spec(id);
+    return spec && (spec->readOnly || spec->quiet);
+}
 
 QString commandTitle(const core::CommandBus& bus, const QString& id)
 {

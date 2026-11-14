@@ -36,6 +36,19 @@ struct CommandSpec {
     // user and runs the command again with the parameter set to true. Interactive UIs and the MCP
     // bridge set it only after the user agreed.
     QString confirmationParam = {};
+    // Who registered the command: "core" for the app's own commands, or the plugin's id.
+    QString owner = QStringLiteral("core");
+    // JSON Schema ("type": "object") of the result; empty when the result is not described.
+    QJsonObject resultSchema = {};
+    // The permission a caller needs to run it (docs/architecture.md, "Permissions"): "project.read",
+    // "project.write", "files", "network", "ui" or "plugins.manage". Empty becomes "project.read" for
+    // a read-only command and "project.write" for any other.
+    QString permission = {};
+    bool startsJob = false;  // The work goes on in a job; the result names it ({jobId}).
+    bool openWorld = false;  // Reaches outside the app, such as an AI tool's API.
+    // Logs and status messages leave it out, as they leave out read-only commands: bookkeeping such
+    // as the many seeks of scrubbing the playhead.
+    bool quiet = false;
 };
 
 // A change that can be reverted. Created by a command handler after it has applied the change.

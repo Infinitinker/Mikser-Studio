@@ -39,6 +39,24 @@ QJsonObject status(const Transport& transport)
     };
 }
 
+// The schema of status(), every transport command's result.
+QJsonObject statusSchema()
+{
+    const QJsonObject integer{{u"type"_s, u"integer"_s}};
+    return QJsonObject{
+        {u"type"_s, u"object"_s},
+        {u"properties"_s,
+         QJsonObject{
+             {u"position"_s, integer},
+             {u"duration"_s, integer},
+             {u"state"_s,
+              QJsonObject{{u"type"_s, u"string"_s}, {u"enum"_s, QJsonArray{u"stopped"_s, u"paused"_s, u"playing"_s}}}},
+             {u"frameRate"_s, QJsonObject{{u"type"_s, u"object"_s}}},
+         }},
+        {u"required"_s, QJsonArray{u"position"_s, u"duration"_s, u"state"_s, u"frameRate"_s}},
+    };
+}
+
 QJsonObject frameSchema(qint64 minimum)
 {
     return QJsonObject{{u"type"_s, u"integer"_s}, {u"minimum"_s, minimum}, {u"maximum"_s, qint64{kMaxFrame}}};
@@ -76,6 +94,7 @@ struct TransportCommand {
     QJsonObject schema;
     std::function<void(Transport&, const QJsonObject&)> run;
     bool readOnly = false;
+    bool quiet = false;  // CommandSpec::quiet: a seek is sent many times while the playhead is scrubbed.
 };
 
 QList<TransportCommand> transportCommands()
@@ -99,7 +118,7 @@ QList<TransportCommand> transportCommands()
          }},
         {u"seek"_s, u"Go to frame"_s, u"Moves the playhead to a frame."_s,
          paramsSchema(QJsonObject{{u"frame"_s, frameSchema(0)}}, {u"frame"_s}),
-         [](Transport& t, const QJsonObject& params) { t.seek(params.value(u"frame").toInteger()); }},
+         [](Transport& t, const QJsonObject& params) { t.seek(params.value(u"frame").toInteger()); }, false, true},
         {u"step"_s, u"Step frames"_s, u"Pauses and moves the playhead by a number of frames (negative steps back)."_s,
          paramsSchema(QJsonObject{{u"frames"_s, withDefault(frameSchema(-kMaxFrame), 1)}}, {}),
          [](Transport& t, const QJsonObject& params) {
@@ -138,6 +157,13 @@ void registerTransportCommands(CommandBus& bus, Transport& transport, const QStr
                 .undoable = false,
                 .readOnly = command.readOnly,
                 .confirmation = {},
+                .confirmationParam = {},
+                .owner = u"core"_s,
+                .resultSchema = statusSchema(),
+                .permission = command.readOnly ? u"project.read"_s : u"ui"_s,
+                .startsJob = false,
+                .openWorld = false,
+                .quiet = command.quiet,
             },
             [&transport, run = std::move(command.run)](const QJsonObject& params) -> CommandResult {
                 run(transport, params);

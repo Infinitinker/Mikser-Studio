@@ -225,7 +225,61 @@ TEST_CASE("CommandBus lists specs sorted and converts them to JSON", "[commands]
     reader.undoable = false;
     reader.readOnly = true;
     REQUIRE(bus.registerCommand(reader, okHandler()));
-    CHECK(toJson(*bus.spec(u"test.read_value"_s)).value(u"readOnly").toBool());
+    const QJsonObject readerJson = toJson(*bus.spec(u"test.read_value"_s));
+    CHECK(readerJson.value(u"readOnly").toBool());
+    CHECK(readerJson.value(u"permission").toString() == u"project.read"_s);
+
+    CHECK(spec.value(u"owner").toString() == u"core"_s);
+    CHECK(spec.value(u"permission").toString() == u"project.write"_s);
+    CHECK(spec.value(u"resultSchema").toObject().isEmpty());
+    CHECK(spec.value(u"startsJob") == QJsonValue(false));
+    CHECK(spec.value(u"openWorld") == QJsonValue(false));
+    CHECK(spec.value(u"quiet") == QJsonValue(false));
+
+    CommandSpec job = setSpec();
+    job.id = u"test.start_job"_s;
+    job.undoable = false;
+    job.owner = u"hello"_s;
+    job.resultSchema = objectResultSchema({{u"jobId"_s, u"string"_s}});
+    job.permission = u"network"_s;
+    job.startsJob = true;
+    job.openWorld = true;
+    job.quiet = true;
+    REQUIRE(bus.registerCommand(job, okHandler()));
+    const QJsonObject jobJson = toJson(*bus.spec(u"test.start_job"_s));
+    CHECK(jobJson.value(u"owner").toString() == u"hello"_s);
+    CHECK(jobJson.value(u"resultSchema").toObject() ==
+          json(R"({"type": "object", "properties": {"jobId": {"type": "string"}}, "required": ["jobId"]})"));
+    CHECK(jobJson.value(u"permission").toString() == u"network"_s);
+    CHECK(jobJson.value(u"startsJob").toBool());
+    CHECK(jobJson.value(u"openWorld").toBool());
+    CHECK(jobJson.value(u"quiet").toBool());
+}
+
+TEST_CASE("CommandBus refuses an unknown permission, a result schema that isn't an object and no owner", "[commands]")
+{
+    UndoStack stack;
+    CommandBus bus(stack);
+    CommandSpec permission = setSpec();
+    permission.permission = u"everything"_s;
+    CHECK_FALSE(bus.registerCommand(permission, okHandler()));
+    CommandSpec result = setSpec();
+    result.resultSchema = json(R"({"type": "array"})");
+    CHECK_FALSE(bus.registerCommand(result, okHandler()));
+    CommandSpec owner = setSpec();
+    owner.owner.clear();
+    CHECK_FALSE(bus.registerCommand(owner, okHandler()));
+    CHECK_FALSE(bus.contains(u"test.set_value"_s));
+}
+
+TEST_CASE("Undo and redo describe their result", "[commands][undo]")
+{
+    UndoStack stack;
+    CommandBus bus(stack);
+    const QJsonObject text = objectResultSchema({{u"text"_s, u"string"_s}});
+    CHECK(bus.spec(u"edit.undo"_s)->resultSchema == text);
+    CHECK(bus.spec(u"edit.redo"_s)->resultSchema == text);
+    CHECK(bus.spec(u"edit.undo"_s)->permission == u"project.write"_s);
 }
 
 TEST_CASE("CommandBus fills an empty params schema with one that takes no params", "[commands]")

@@ -161,6 +161,7 @@ void registerProjectFileCommands(core::CommandBus& bus, core::ProjectModel& proj
     const QJsonObject discard = agreementProperty(u"Discard the unsaved changes. Set only after the person agreed."_s);
     const QJsonObject overwrite = agreementProperty(
         u"Replace the file when it exists. Set only after the person agreed."_s);
+    const QJsonObject pathResult = core::objectResultSchema({{u"path"_s, u"string"_s}});
 
     bus.registerCommand(
         {.id = u"project.new"_s,
@@ -173,7 +174,10 @@ void registerProjectFileCommands(core::CommandBus& bus, core::ProjectModel& proj
          .undoable = false,
          .readOnly = false,
          .confirmation = {},
-         .confirmationParam = u"discard"_s},
+         .confirmationParam = u"discard"_s,
+         .owner = u"core"_s,
+         .resultSchema = {},
+         .permission = u"project.write"_s},
         [&project, &undo](const QJsonObject& params) -> core::CommandResult {
             if (const auto asked = unsavedChanges(undo, params.value(u"discard"_s).toBool(),
                                                   u"Start a new project? Unsaved changes to this one will be lost."_s))
@@ -199,7 +203,10 @@ void registerProjectFileCommands(core::CommandBus& bus, core::ProjectModel& proj
          .undoable = false,
          .readOnly = false,
          .confirmation = {},
-         .confirmationParam = u"discard"_s},
+         .confirmationParam = u"discard"_s,
+         .owner = u"core"_s,
+         .resultSchema = pathResult,
+         .permission = u"files"_s},
         [&project, &undo](const QJsonObject& params) -> core::CommandResult {
             const auto path = fileToOpen(params.value(u"path"_s).toString());
             if (!path)
@@ -229,7 +236,10 @@ void registerProjectFileCommands(core::CommandBus& bus, core::ProjectModel& proj
          .undoable = false,
          .readOnly = false,
          .confirmation = {},
-         .confirmationParam = u"overwrite"_s},
+         .confirmationParam = u"overwrite"_s,
+         .owner = u"core"_s,
+         .resultSchema = pathResult,
+         .permission = u"files"_s},
         save);
     bus.registerCommand(
         {.id = u"project.save_as"_s,
@@ -246,7 +256,10 @@ void registerProjectFileCommands(core::CommandBus& bus, core::ProjectModel& proj
          .undoable = false,
          .readOnly = false,
          .confirmation = {},
-         .confirmationParam = u"overwrite"_s},
+         .confirmationParam = u"overwrite"_s,
+         .owner = u"core"_s,
+         .resultSchema = pathResult,
+         .permission = u"files"_s},
         save);
 }
 

@@ -27,7 +27,7 @@ QString toolName(const QString& commandId)
     return QString(commandId).replace(notInNames, u"_"_s).left(kMaxNameLength);
 }
 
-QJsonObject toolFor(const QJsonObject& command)
+QJsonObject toolFor(const QJsonObject& command, Results results)
 {
     const QString id = command.value(u"id"_s).toString();
     const QString title = textOr(command, u"title"_s, id);
@@ -58,7 +58,7 @@ QJsonObject toolFor(const QJsonObject& command)
         }
     }
     const bool readOnly = command.value(u"readOnly"_s).toBool();
-    return QJsonObject{
+    QJsonObject tool{
         {u"name"_s, toolName(id)},
         {u"title"_s, title},
         {u"description"_s, description},
@@ -68,19 +68,23 @@ QJsonObject toolFor(const QJsonObject& command)
              {u"title"_s, title},
              {u"readOnlyHint"_s, readOnly},
              {u"destructiveHint"_s, (!confirmation.isEmpty() || !agreement.isEmpty()) && !readOnly},
-             {u"openWorldHint"_s, false},
+             {u"openWorldHint"_s, command.value(u"openWorld"_s).toBool()},
          }},
     };
+    const QJsonObject resultSchema = command.value(u"resultSchema"_s).toObject();
+    if (results == Results::Structured && resultSchema.value(u"type"_s) == u"object"_s)
+        tool.insert(u"outputSchema"_s, resultSchema);
+    return tool;
 }
 
-Tools toolsFor(const QJsonArray& commands, const QStringList& taken)
+Tools toolsFor(const QJsonArray& commands, const QStringList& taken, Results results)
 {
     Tools tools;
     for (const QJsonValue listed : commands) {
         const QJsonObject command = listed.toObject();
         if (!command.value(u"id"_s).isString())
             continue;
-        const QJsonObject tool = toolFor(command);
+        const QJsonObject tool = toolFor(command, results);
         const QString name = tool.value(u"name"_s).toString();
         if (taken.contains(name) || tools.commands.contains(name)) {
             qCWarning(lcMcp).noquote() << u"Left out %1: its tool name %2 is taken."_s.arg(

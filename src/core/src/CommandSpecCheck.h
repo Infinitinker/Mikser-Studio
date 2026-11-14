@@ -24,7 +24,9 @@ namespace mikserstudio::core {
 // - the title isn't empty;
 // - a read-only command is neither undoable nor asks first (no confirmation or confirmationParam);
 // - paramsSchema is an object schema;
-// - confirmationParam names a boolean property of paramsSchema whose default is false.
+// - confirmationParam names a boolean property of paramsSchema whose default is false;
+// - resultSchema, when given, is an object schema; the owner isn't empty;
+// - the permission is one of the known ones; an empty one is filled in (CommandSpec::permission).
 [[nodiscard]] std::expected<CommandSpec, QString> normalizeCommandSpec(CommandSpec spec);
 
 }  // namespace mikserstudio::core

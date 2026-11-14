@@ -2,7 +2,6 @@
 #include "CommandStatus.h"
 
 #include "CommandText.h"
-#include "QuietCommands.h"
 
 #include "mikserstudio/core/CommandBus.h"
 

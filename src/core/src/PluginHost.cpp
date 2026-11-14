@@ -162,6 +162,13 @@ std::expected<void, QString> PluginHost::addCommand(const QByteArray& specJson, 
         .undoable = false,
         .readOnly = json->value(u"readOnly").toBool(),
         .confirmation = json->value(u"confirmation").toString(),
+        .confirmationParam = {},
+        .owner = m_pluginId,
+        .resultSchema = json->value(u"resultSchema").toObject(),
+        .permission = {},
+        .startsJob = false,
+        .openWorld = json->value(u"openWorld").toBool(),
+        .quiet = json->value(u"quiet").toBool(),
     };
     CommandHandler handler = [fn, userData, id, pluginId = m_pluginId](const QJsonObject& params) -> CommandResult {
         const QByteArray input = compact(params);

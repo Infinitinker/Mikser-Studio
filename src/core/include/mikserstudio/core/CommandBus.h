@@ -7,7 +7,9 @@
 #include <QJsonObject>
 #include <QObject>
 
+#include <initializer_list>
 #include <map>
+#include <utility>
 
 namespace mikserstudio::core {
 
@@ -22,8 +24,10 @@ class UndoStack;
 // Spec rules: the id matches ^[a-z0-9_]+(\.[a-z0-9_]+)+$ and, with "_" for ".", has at most 64
 // characters, isn't "recent_events" and differs from every registered command's (the names of MCP
 // tools); the title is not empty; paramsSchema has "type": "object" (an empty paramsSchema becomes
-// one that accepts only {}); a readOnly command is neither undoable nor asks first; and a
-// confirmationParam names a boolean property with "default": false.
+// one that accepts only {}); a readOnly command is neither undoable nor asks first; a
+// confirmationParam names a boolean property with "default": false; a resultSchema, when given, is
+// an object schema; the owner isn't empty; and the permission is a known one (an empty one becomes
+// "project.read" for a read-only command and "project.write" for any other).
 //
 // Handlers may execute other commands. To make those one undo step, open a core::UndoGroup in the
 // handler: the nested commands' edits become one compound edit, and an edit the handler itself
@@ -70,6 +74,9 @@ private:
 
 // Converts a spec to the JSON published by the API and used by the command palette.
 [[nodiscard]] QJsonObject toJson(const CommandSpec& spec);
+// A CommandSpec::resultSchema for a result object that always has these properties, each named
+// with its JSON type, such as {u"path"_s, u"string"_s}.
+[[nodiscard]] QJsonObject objectResultSchema(std::initializer_list<std::pair<QString, QString>> properties);
 // "unknown_command", "invalid_params", "failed", "not_available", "needs_confirmation".
 [[nodiscard]] QString toString(CommandErrorCode code);
 

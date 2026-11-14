@@ -2,7 +2,6 @@
 #include "TimelineController.h"
 
 #include "CommandInvoker.h"
-#include "QuietCommands.h"
 #include "Timecode.h"
 #include "TimelineModel.h"
 #include "TimelineRules.h"
@@ -192,8 +191,6 @@ void TimelineController::seek(qint64 frame)
 {
     if (!canSeek())
         return;
-    // Scrubbing sends many seeks; they are not worth a log line each.
-    const QuietCommandScope quiet;
     executeReported(m_bus, kSeekCommand, QJsonObject{{u"frame"_s, std::max<qint64>(0, frame)}});
 }
 

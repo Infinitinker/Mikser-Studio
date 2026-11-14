@@ -132,7 +132,13 @@ curl -s -H "Authorization: Bearer $TOKEN" "$API/v1/commands"
         "undoable": false,
         "readOnly": false,
         "confirmation": "",
-        "confirmationParam": ""
+        "confirmationParam": "",
+        "owner": "core",
+        "resultSchema": {"type": "object", "properties": {"text": {"type": "string"}}, "required": ["text"]},
+        "permission": "project.write",
+        "startsJob": false,
+        "openWorld": false,
+        "quiet": false
     },
     ...
 ]
@@ -149,6 +155,18 @@ runs: `project.new` and `project.open` (`discard`) only while there are unsaved 
 saving to the project's own file never asks. Such a run without the parameter fails with
 `409 needs_confirmation`, whose message is the question to ask; the client asks the person and, when
 they agree, runs the command again with the parameter set to `true`.
+
+`owner` is `core` for the app's own commands and the plugin's id for a plugin's. `resultSchema`, when
+not empty, is the JSON Schema of a successful run's `result`, such as `{path}` for `project.save`.
+`permission` is what a caller needs to run the command ([architecture.md](architecture.md#permissions)):
+`project.read` for read-only commands, `project.write` for changes to the project, `files` for
+reading and writing files (opening, saving and importing), `network` for talking to the AI tools and
+changing their addresses, `ui` for the monitors and playback, and `plugins.manage`; today it is
+listed but not enforced. `startsJob` is true when the work goes on in a job that the result names
+(`ai.run` answers `{jobId}`; `ai.jobs` follows it). `openWorld` is true when the command reaches
+outside the app, to an AI tool that may be on another computer or online. `quiet` is true for
+bookkeeping that the command log and the status bar leave out, as they leave out read-only commands:
+the seeks of `program.seek` and `source.seek`, which scrubbing sends many times.
 Plugins add and remove commands at run time; the events socket reports those changes.
 
 ### `GET /v1/commands/<id>`
@@ -237,7 +255,9 @@ discovery file, `/v1/commands` and `/v1/events`.
   `recent_events` (the bridge's own tool), or would equal another command's.
   Read-only commands carry `readOnlyHint`, and commands with a `confirmation` or a
   `confirmationParam` carry `destructiveHint`; a `confirmationParam` is left out of the input schema,
-  and the description says that the person is asked first. A tool's result is the command's
+  and the description says that the person is asked first. Commands with `openWorld` carry
+  `openWorldHint`, and a command's `resultSchema` is the tool's output schema for clients of protocol
+  version 2025-06-18 or later. A tool's result is the command's
   `result`, as JSON text and, for clients of protocol version 2025-06-18 or later, as structured
   content; a command's error is a tool error with its message and code.
 - **Confirmations:** before a command with a `confirmation`, the bridge asks the person through the

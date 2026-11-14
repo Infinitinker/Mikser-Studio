@@ -120,6 +120,12 @@ void registerMediaCommands(CommandBus& bus, ProjectModel& project, MediaProbe& p
                 {u"path"_s}),
             .shortcut = u"Ctrl+I"_s,
             .undoable = true,
+            .readOnly = false,
+            .confirmation = {},
+            .confirmationParam = {},
+            .owner = u"core"_s,
+            .resultSchema = objectResultSchema({{u"mediaId"_s, u"string"_s}}),
+            .permission = u"files"_s,
         },
         [&project, &probe](const QJsonObject& params) { return importMedia(project, probe, params); });
 

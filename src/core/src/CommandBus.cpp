@@ -6,6 +6,8 @@
 #include "mikserstudio/core/JsonSchema.h"
 #include "mikserstudio/core/UndoStack.h"
 
+#include <QJsonArray>
+
 #include <exception>
 
 using namespace Qt::StringLiterals;
@@ -24,6 +26,11 @@ CommandResult runHandler(const CommandHandler& handler, const QString& id, const
             u"Command “%1” stopped with an internal error: %2. Report this problem, with Mikser Studio’s log."_s.arg(
                 id, QString::fromLocal8Bit(exception.what())));
     }
+}
+
+QJsonObject undoRedoResultSchema()
+{
+    return objectResultSchema({{u"text"_s, u"string"_s}});
 }
 
 CommandHandler undoRedoHandler(UndoStack& stack, bool undo)
@@ -61,6 +68,11 @@ CommandBus::CommandBus(UndoStack& undoStack, QObject* parent)
             .paramsSchema = {},
             .shortcut = u"Ctrl+Z"_s,
             .undoable = false,
+            .readOnly = false,
+            .confirmation = {},
+            .confirmationParam = {},
+            .owner = u"core"_s,
+            .resultSchema = undoRedoResultSchema(),
         },
         undoRedoHandler(m_undoStack, true));
     registerCommand(
@@ -72,6 +84,11 @@ CommandBus::CommandBus(UndoStack& undoStack, QObject* parent)
             .paramsSchema = {},
             .shortcut = u"Ctrl+Shift+Z"_s,
             .undoable = false,
+            .readOnly = false,
+            .confirmation = {},
+            .confirmationParam = {},
+            .owner = u"core"_s,
+            .resultSchema = undoRedoResultSchema(),
         },
         undoRedoHandler(m_undoStack, false));
 }
@@ -194,7 +211,24 @@ QJsonObject toJson(const CommandSpec& spec)
         {u"readOnly"_s, spec.readOnly},
         {u"confirmation"_s, spec.confirmation},
         {u"confirmationParam"_s, spec.confirmationParam},
+        {u"owner"_s, spec.owner},
+        {u"resultSchema"_s, spec.resultSchema},
+        {u"permission"_s, spec.permission},
+        {u"startsJob"_s, spec.startsJob},
+        {u"openWorld"_s, spec.openWorld},
+        {u"quiet"_s, spec.quiet},
     };
+}
+
+QJsonObject objectResultSchema(std::initializer_list<std::pair<QString, QString>> properties)
+{
+    QJsonObject schemas;
+    QJsonArray required;
+    for (const auto& [name, type] : properties) {
+        schemas.insert(name, QJsonObject{{u"type"_s, type}});
+        required.append(name);
+    }
+    return QJsonObject{{u"type"_s, u"object"_s}, {u"properties"_s, schemas}, {u"required"_s, required}};
 }
 
 QString toString(CommandErrorCode code)
