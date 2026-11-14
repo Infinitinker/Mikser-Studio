@@ -18,6 +18,8 @@ class ProjectModel;
 
 void registerMediaCommands(CommandBus& bus, ProjectModel& project, MediaProbe& probe);
 void registerTimelineCommands(CommandBus& bus, ProjectModel& project);
+// Publishes the project's changes on the bus's events (ProjectEvents.cpp).
+void publishProjectEvents(CommandBus& bus, const ProjectModel& project);
 
 // One step of an edit: re-applies or reverts a model change. A failure means the model was
 // changed behind the undo stack's back; it is logged and the step is skipped.

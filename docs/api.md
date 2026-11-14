@@ -241,7 +241,10 @@ Each text message is one JSON object with a `type`:
 {"type": "command.registered", "id": "hello.greet"}
 {"type": "command.unregistered", "id": "hello.greet"}
 {"type": "command.changed", "id": "hello.greet"}
-{"type": "undo.changed", "canUndo": true, "canRedo": false, "undoText": "Import “sample-30s.mp4”", "redoText": ""}
+{"type": "undo.changed", "canUndo": true, "canRedo": false, "undoText": "Import “sample-30s.mp4”", "redoText": "", "origin": "api", "origins": ["api"]}
+{"type": "media.added", "mediaId": "media-...", "origin": "api", "origins": ["api"]}
+{"type": "clip.changed", "clipId": "clip-...", "origin": "ui", "origins": ["ui"]}
+{"type": "transport.state", "transport": "program", "position": 120, "duration": 900, "state": "playing", "frameRate": {"num": 30, "den": 1}}
 ```
 
 - Events cover **every** command run, whether it came from the API, the UI, a shortcut or a plugin.
@@ -249,6 +252,15 @@ Each text message is one JSON object with a `type`:
   person, in the interface), `api` (a client of this API, such as an agent through the MCP bridge) or
   `plugin:<id>`. `origins` is the chain of callers, the one who started the run first: a plugin's
   command run through the API is `["api", "plugin:hello"]`. Commands a command runs keep its origin.
+  Every event a command causes carries its origin; one the app causes by itself, such as a
+  plugin's commands registered at start-up, has none.
+- The project's changes come with the id of what changed: `media.added` and `media.removed`
+  (`mediaId`), `clip.added`, `clip.removed` and `clip.changed` (`clipId`), `track.added`,
+  `track.removed` and `track.changed` (`trackId`), `project.reset` (a new or opened project) and
+  `project.file_changed` (`path`). Read the details with `project.list`.
+- `transport.state` reports a monitor's playback (`transport` is `program` or `source`, with the
+  status the transport commands return), when it changes and at most 10 times a second per monitor:
+  the first change at once and the last one of a burst within 100 ms.
 - For an undoable command, `undo.changed` arrives before its `command.executed`.
 - No state is sent on connect: call `GET /v1/commands` (and the commands you care about) after the
   socket is open to get the current state, then apply events.
@@ -287,7 +299,8 @@ discovery file, `/v1/commands` and `/v1/events`.
   stops, and when plugins add, change or remove commands. Changes that come within 50 ms of each
   other become one `notifications/tools/list_changed`.
 - **Recent events:** the bridge's own read-only tool `recent_events` lists the last 100 events it
-  received, newest last, each with a `number`, the `time` it arrived and the `event` as the socket sent
+  received (except `transport.state`, which playback sends often: read it with `program.status`),
+  newest last, each with a `number`, the `time` it arrived and the `event` as the socket sent
   it, so an agent sees what the person changed. Its result's `latest` is the newest number; pass it as
   `after` the next time to get only the events since. The tool is listed with the commands, and a
   command whose tool would take its name is left out.

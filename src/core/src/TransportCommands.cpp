@@ -6,9 +6,13 @@
 #include "mikserstudio/core/CommandBus.h"
 
 #include <QJsonArray>
+#include <QPointer>
+#include <QTimer>
 
 #include <algorithm>
+#include <chrono>
 #include <functional>
+#include <utility>
 
 using namespace Qt::StringLiterals;
 
@@ -141,6 +145,58 @@ QList<TransportCommand> transportCommands()
     };
 }
 
+// Publishes "transport.state" when the transport's status changes: the first change at once, then
+// at most one every kInterval, with the status at its end.
+class StatePublisher final : public QObject {
+public:
+    static constexpr std::chrono::milliseconds kInterval{100};
+
+    StatePublisher(CommandBus& bus, Transport& transport, QString name)
+        : QObject(&transport)
+        , m_bus(&bus)
+        , m_transport(transport)
+        , m_name(std::move(name))
+    {
+        m_timer.setSingleShot(true);
+        m_timer.setInterval(kInterval);
+        connect(&m_timer, &QTimer::timeout, this, [this] {
+            if (m_changed)
+                publish();
+        });
+        connect(&transport, &Transport::positionChanged, this, &StatePublisher::changed);
+        connect(&transport, &Transport::durationChanged, this, &StatePublisher::changed);
+        connect(&transport, &Transport::stateChanged, this, &StatePublisher::changed);
+        connect(&transport, &Transport::frameRateChanged, this, &StatePublisher::changed);
+    }
+
+private:
+    void changed()
+    {
+        if (m_timer.isActive()) {
+            m_changed = true;
+            return;
+        }
+        publish();
+    }
+
+    void publish()
+    {
+        m_changed = false;
+        m_timer.start();
+        if (!m_bus)
+            return;
+        QJsonObject state = status(m_transport);
+        state.insert(u"transport"_s, m_name);
+        m_bus->events().publish({u"transport.state"_s, state, {}});
+    }
+
+    QPointer<CommandBus> m_bus;
+    Transport& m_transport;
+    QString m_name;
+    QTimer m_timer;
+    bool m_changed = false;
+};
+
 }  // namespace
 
 void registerTransportCommands(CommandBus& bus, Transport& transport, const QString& prefix, const QString& displayName)
@@ -173,6 +229,7 @@ void registerTransportCommands(CommandBus& bus, Transport& transport, const QStr
             qCWarning(lcTransport).noquote()
                 << "Transport command" << prefix + u'.' + command.name << "was not registered";
     }
+    new StatePublisher(bus, transport, prefix);  // Owned by the transport.
 }
 
 }  // namespace mikserstudio::core

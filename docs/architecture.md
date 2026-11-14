@@ -137,6 +137,11 @@ messages.
 ## Threads and processes
 
 - **Main thread:** UI, core, command execution, project model. (built)
+- **Events:** `core::EventBus`, owned by the command bus, publishes each event (a topic, a JSON
+  payload with the ids of what changed, and the origins of the command that caused it) on the main
+  thread. `/v1/events` is one subscriber; a subscriber on another thread, such as a Lua plugin,
+  reads through a bounded `core::EventInbox` that coalesces `transport.state` and `job.progress`.
+  (built)
 - **Commands that answer later:** a command marked `async` hands its handler a `done` callback
   instead of returning. `CommandBus::executeAsync` can be called from any thread: it queues the run
   to the main thread and the answer to the caller's. Menus, the palette, shortcuts, plugin panels and

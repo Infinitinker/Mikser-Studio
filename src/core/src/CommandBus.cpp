@@ -106,6 +106,7 @@ CommandBus::CommandBus(UndoStack& undoStack, QObject* parent)
     : QObject(parent)
     , m_undoStack(undoStack)
 {
+    publishOwnEvents();
     qRegisterMetaType<CommandError>();
     qRegisterMetaType<CallContext>();
     registerCommand(
@@ -140,6 +141,45 @@ CommandBus::CommandBus(UndoStack& undoStack, QObject* parent)
             .resultSchema = undoRedoResultSchema(),
         },
         undoRedoHandler(m_undoStack, false));
+}
+
+void CommandBus::publishOwnEvents()
+{
+    connect(
+        this, &CommandBus::executed, this,
+        [this](const QString& id, const QJsonObject& params, const QJsonObject& result, const CallContext& context) {
+            m_events.publish({u"command.executed"_s,
+                              {{u"id"_s, id}, {u"params"_s, params}, {u"result"_s, result}},
+                              context.origins});
+        });
+    connect(
+        this, &CommandBus::failed, this,
+        [this](const QString& id, const QJsonObject& params, const CommandError& error, const CallContext& context) {
+            const QJsonObject described{{u"code"_s, toString(error.code)}, {u"message"_s, error.message}};
+            m_events.publish({u"command.failed"_s,
+                              {{u"id"_s, id}, {u"params"_s, params}, {u"error"_s, described}},
+                              context.origins});
+        });
+    connect(this, &CommandBus::commandRegistered, this,
+            [this](const QString& id) { publish(u"command.registered"_s, {{u"id"_s, id}}); });
+    connect(this, &CommandBus::commandUnregistered, this,
+            [this](const QString& id) { publish(u"command.unregistered"_s, {{u"id"_s, id}}); });
+    connect(this, &CommandBus::commandChanged, this,
+            [this](const QString& id) { publish(u"command.changed"_s, {{u"id"_s, id}}); });
+    connect(&m_undoStack, &UndoStack::changed, this, [this] {
+        publish(u"undo.changed"_s, {
+                                       {u"canUndo"_s, m_undoStack.canUndo()},
+                                       {u"canRedo"_s, m_undoStack.canRedo()},
+                                       {u"undoText"_s, m_undoStack.undoText()},
+                                       {u"redoText"_s, m_undoStack.redoText()},
+                                   });
+    });
+}
+
+void CommandBus::publish(const QString& topic, const QJsonObject& payload)
+{
+    const CallContext* running = runningContext();
+    m_events.publish({topic, payload, running ? running->origins : QStringList()});
 }
 
 CommandBus::~CommandBus() = default;

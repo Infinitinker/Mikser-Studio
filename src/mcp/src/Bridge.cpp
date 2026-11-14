@@ -79,8 +79,12 @@ Bridge::Bridge(QString discoveryPath, Send send, Options options, QObject* paren
         toolsChanged();
     });
     connect(&m_events, &EventFollower::eventReceived, this, [this](const QJsonObject& event) {
-        m_recent.add(event, QDateTime::currentDateTimeUtc());
         const QString type = event.value(u"type"_s).toString();
+        // Playback sends it ten times a second, which would push every other event out; an agent
+        // reads it with program.status.
+        if (type == u"transport.state"_s)
+            return;
+        m_recent.add(event, QDateTime::currentDateTimeUtc());
         if (type == u"command.registered"_s || type == u"command.unregistered"_s || type == u"command.changed"_s)
             toolsChanged();
     });

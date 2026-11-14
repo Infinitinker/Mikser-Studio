@@ -28,6 +28,7 @@ endforeach()
 
 add_executable(mikserstudio-core-tests
     CommandBusTests.cpp
+    EventBusTests.cpp
     InstanceTests.cpp
     JsonSchemaTests.cpp
     PluginManagerTests.cpp

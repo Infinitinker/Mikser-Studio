@@ -27,6 +27,11 @@ class ProjectModel;
 // set_track_flags keeps omitted flags and records no undo step when nothing changes.
 // Undo restores the exact previous state (ids, media bin order, clip placement).
 //
+// The project's changes are published on the bus's events, with the id of what changed:
+// "media.added" and "media.removed" {mediaId}, "clip.added", "clip.removed" and "clip.changed"
+// {clipId}, "track.added", "track.removed" and "track.changed" {trackId}, "project.reset" {} and
+// "project.file_changed" {path}.
+//
 // `probe`, `project` and `bus` must outlive the registered commands.
 void registerProjectCommands(CommandBus& bus, ProjectModel& project, MediaProbe& probe);
 

@@ -3,6 +3,7 @@
 #pragma once
 
 #include "mikserstudio/core/Command.h"
+#include "mikserstudio/core/EventBus.h"
 
 #include <QJsonObject>
 #include <QObject>
@@ -95,6 +96,12 @@ public:
 
     [[nodiscard]] UndoStack& undoStack() const { return m_undoStack; }
 
+    // The app's events. The bus publishes its own: "command.executed", "command.failed",
+    // "command.registered", "command.unregistered", "command.changed" and "undo.changed".
+    [[nodiscard]] EventBus& events() { return m_events; }
+    // Publishes an event with the origins of the command that is running, if one is.
+    void publish(const QString& topic, const QJsonObject& payload);
+
 Q_SIGNALS:
     void commandRegistered(const QString& id);
     void commandUnregistered(const QString& id);
@@ -124,6 +131,7 @@ private:
     };
 
     bool add(CommandSpec spec, CommandHandler handler, AsyncCommandHandler asyncHandler);
+    void publishOwnEvents();
     // The params with their defaults, or why the run may not start: the depth, the permission or
     // the params.
     std::expected<QJsonObject, CommandError> admit(const Entry& entry, const QJsonObject& params,
@@ -135,6 +143,7 @@ private:
     static void deliver(const Reply& reply, std::expected<QJsonObject, CommandError> result);
 
     UndoStack& m_undoStack;
+    EventBus m_events;
     std::map<QString, Entry> m_commands;
     std::vector<CallContext> m_running;  // The contexts of the commands running, innermost last.
     std::map<RunId, PendingRun> m_pending;

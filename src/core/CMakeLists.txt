@@ -2,6 +2,7 @@
 add_library(mikserstudio-core STATIC
     include/mikserstudio/core/Command.h
     include/mikserstudio/core/CommandBus.h
+    include/mikserstudio/core/EventBus.h
     include/mikserstudio/core/Instance.h
     include/mikserstudio/core/JsonSchema.h
     include/mikserstudio/core/PluginManager.h
@@ -13,6 +14,7 @@ add_library(mikserstudio-core STATIC
     src/CommandBus.cpp
     src/CommandSpecCheck.cpp
     src/CommandSpecCheck.h
+    src/EventBus.cpp
     src/Instance.cpp
     src/JsonSchema.cpp
     src/Logging.cpp
@@ -28,6 +30,7 @@ add_library(mikserstudio-core STATIC
     src/PluginSettingsStore.h
     src/ProjectCommands.cpp
     src/ProjectCommandsPrivate.h
+    src/ProjectEvents.cpp
     src/ProjectJson.cpp
     src/ProjectJson.h
     src/ProjectMigrations.cpp

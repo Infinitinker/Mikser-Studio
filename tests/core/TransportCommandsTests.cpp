@@ -8,6 +8,9 @@
 
 #include <catch2/catch_test_macros.hpp>
 
+#include <QCoreApplication>
+#include <QDeadlineTimer>
+
 #include <algorithm>
 
 using namespace Qt::StringLiterals;
@@ -66,6 +69,8 @@ struct Fixture {
         return *result;
     }
 
+    int argc = 0;
+    QCoreApplication app{argc, nullptr};  // transport.state's throttle runs on timers.
     UndoStack stack;
     CommandBus bus{stack};
     FakeTransport transport;
@@ -146,4 +151,28 @@ TEST_CASE("Frame params outside the supported range are rejected, not wrapped", 
     CHECK(f.run(u"seek"_s, QJsonObject{{u"frame"_s, qint64{kMaxFrame}}}).value(u"position").toInt() == 99);
     CHECK(f.run(u"step"_s, QJsonObject{{u"frames"_s, qint64{kMaxFrame}}}).value(u"position").toInt() == 99);
     CHECK(f.run(u"step"_s, QJsonObject{{u"frames"_s, qint64{-kMaxFrame}}}).value(u"position").toInt() == 0);
+}
+
+TEST_CASE("A transport's state is published at most 10 times a second, ending with the latest", "[transport][events]")
+{
+    Fixture f;
+    QList<QJsonObject> states;
+    QObject::connect(&f.bus.events(), &EventBus::published, &f.bus, [&states](const Event& event) {
+        if (event.topic == u"transport.state"_s)
+            states.append(event.payload);
+    });
+
+    for (int frame = 1; frame <= 5; ++frame)
+        f.run(u"seek"_s, QJsonObject{{u"frame"_s, frame}});
+    REQUIRE(states.size() == 1);  // The first change, at once.
+    CHECK(states.constFirst().value(u"transport"_s) == u"program"_s);
+    CHECK(states.constFirst().value(u"position"_s) == 1);
+
+    const QDeadlineTimer deadline(std::chrono::seconds(5));
+    while (states.size() < 2 && !deadline.hasExpired())
+        QCoreApplication::processEvents(QEventLoop::AllEvents, 20);
+    REQUIRE(states.size() == 2);  // The rest of the burst, as one.
+    CHECK(states.constLast().value(u"position"_s) == 5);
+    CHECK(states.constLast().value(u"state"_s) == u"stopped"_s);
+    CHECK(states.constLast().value(u"duration"_s) == 100);
 }

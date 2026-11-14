@@ -48,7 +48,8 @@ Q_SIGNALS:
 // Every one returns the status {position, duration, state: "stopped"|"paused"|"playing",
 // frameRate: {num, den}} after it ran. frame is 0..kMaxFrame, frames -kMaxFrame..kMaxFrame.
 // ".step" defaults to 1 frame, pauses and clamps to [0, duration - 1]. No default shortcuts: the
-// UI binds J/K/L/Space to the focused monitor.
+// UI binds J/K/L/Space to the focused monitor. The status is published as "transport.state"
+// {transport: prefix, ...status} when it changes, at most 10 times a second.
 void registerTransportCommands(CommandBus& bus, Transport& transport, const QString& prefix,
                                const QString& displayName);
 

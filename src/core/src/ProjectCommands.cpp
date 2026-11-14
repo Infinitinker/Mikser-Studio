@@ -74,6 +74,7 @@ void registerProjectCommands(CommandBus& bus, ProjectModel& project, MediaProbe&
 {
     registerMediaCommands(bus, project, probe);
     registerTimelineCommands(bus, project);
+    publishProjectEvents(bus, project);
 }
 
 }  // namespace mikserstudio::core
