@@ -26,8 +26,10 @@ local function rethrow_cancel(problem)
     end
 end
 
+-- A job's error as a clause for another sentence: its words without the closing period.
 local function message_of(problem)
-    return type(problem) == "table" and problem.message or tostring(problem)
+    local message = type(problem) == "table" and problem.message or tostring(problem)
+    return (message:gsub("%.$", ""))
 end
 
 -- The answer to a GET or POST of Ollama's API, or an error that says Ollama isn't reachable.
