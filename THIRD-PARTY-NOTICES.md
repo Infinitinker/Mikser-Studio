@@ -13764,6 +13764,45 @@ OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
 PERFORMANCE OF THIS SOFTWARE.
 ````
 
+## lua54 (MIT)
+
+Source: https://lua.org/
+
+### lua54/LICENSE
+
+````text
+License
+
+Lua is free software distributed under the terms of the MIT license
+reproduced below; it may be used for any purpose, including commercial
+purposes, at absolutely no cost without having to ask us. The only
+requirement is that if you do use Lua, then you should give us credit
+by including the appropriate copyright notice somewhere in your
+product or its documentation.
+
+    Copyright © 1994–2025 Lua.org, PUC-Rio.
+
+    Permission is hereby granted, free of charge, to any person
+    obtaining a copy of this software and associated documentation
+    files (the "Software"), to deal in the Software without
+    restriction, including without limitation the rights to use, copy,
+    modify, merge, publish, distribute, sublicense, and/or sell copies
+    of the Software, and to permit persons to whom the Software is
+    furnished to do so, subject to the following conditions: 
+
+    The above copyright notice and this permission notice shall be
+    included in all copies or substantial portions of the Software. 
+
+    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+    EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+    MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+    NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+    HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+    WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+    OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+    DEALINGS IN THE SOFTWARE.  
+````
+
 ## md4c (MIT)
 
 Source: https://github.com/mity/md4c
@@ -20184,6 +20223,35 @@ Source: https://github.com/google/shaderc
 ### shaderc/LICENSE
 
 The same text as liblc3/LICENSE under liblc3.
+
+## sol2 (MIT)
+
+Source: https://sol2.readthedocs.io/
+
+### sol2/LICENSE.txt
+
+````text
+The MIT License (MIT)
+
+Copyright (c) 2013-2022 Rapptz, ThePhD, and contributors
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of
+this software and associated documentation files (the "Software"), to deal in
+the Software without restriction, including without limitation the rights to
+use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of
+the Software, and to permit persons to whom the Software is furnished to do so,
+subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
+FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
+COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
+IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
+CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+````
 
 ## sord (0BSD OR ISC)
 

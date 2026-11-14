@@ -47,7 +47,7 @@ The version is the one in `CMakeLists.txt`'s `project()`, Mikser Studio's only v
 
 The AI commands run in the app itself, so a release has them; they use the AI tools the user runs
 ([ai.md](ai.md)). The scripts in `tools/` build and check a release, and stay behind: a release
-ships no Lua, and no Python.
+ships the Lua library its plugins run in (`lua54.dll`), but none of these scripts, and no Python.
 
 ## Dependencies and notices
 
@@ -55,7 +55,8 @@ A release takes its libraries from MSYS2's UCRT64 environment. `tools/msys2_pack
 which: the libraries the programs and the bundled plugins import (`PROGRAM_LIBRARIES`), the
 MLT modules and Qt plugins a release copies (`MLT_MODULES` and `COPIED`), the libraries those load by
 name (`LOADED_LIBRARIES`), and every library all of these import in turn, read from the files
-themselves; then the MSYS2 packages they come from, with their licenses, from MSYS2's package database.
+themselves; then the MSYS2 packages they come from, with their licenses, from MSYS2's package database,
+and the packages compiled into the program without a library of their own (`COMPILED_IN`: sol2).
 `tools/build_release.lua` fails unless `THIRD-PARTY-NOTICES.md` covers exactly what it copies: when
 the program or a plugin imports a library `PROGRAM_LIBRARIES` does not list, or when the committed
 notices are not what `tools/notices.lua` writes from the MSYS2 it builds with. So nothing ships without

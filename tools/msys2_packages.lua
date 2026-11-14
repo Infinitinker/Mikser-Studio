@@ -76,6 +76,12 @@ msys2.PROGRAM_LIBRARIES = {
     "libmlt-7.dll",
     "libstdc++-6.dll",
     "libwinpthread-1.dll",
+    "lua54.dll",
+}
+--- The MSYS2 packages compiled into the program, whose files a release doesn't copy but whose notices
+--- it ships: sol2, the header-only C++ binding of the Lua host.
+msys2.COMPILED_IN = {
+    "sol2",
 }
 --- The MSYS2 libraries that copied files load by name while running, which their import tables don't
 --- show: MSYS2's SDL2.dll (sdl2-compat, which MLT's sdl2 module imports) loads SDL3.dll, and Qt's OpenSSL
@@ -394,6 +400,22 @@ function msys2.runtime(programs, root)
     end
     for _, file in ipairs(copied) do
         use(msys2.ENVIRONMENT .. "/" .. file.relative)
+    end
+    local by_name = {}
+    for _, package in pairs(owners) do
+        by_name[package.name] = package
+    end
+    for _, name in ipairs(msys2.COMPILED_IN) do
+        local package = by_name[name]
+        if not package then
+            msys2.fail(
+                ("MSYS2's %s%s is not installed. Install MSYS2's packages (%s)."):format(msys2.PREFIX, name, INSTALL)
+            )
+        end
+        if not used[package] then
+            used[package] = true
+            packages[#packages + 1] = package
+        end
     end
     table.sort(paths, files.before)
     table.sort(packages, function(a, b)

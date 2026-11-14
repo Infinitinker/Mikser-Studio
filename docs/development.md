@@ -13,13 +13,15 @@ pacman -S --needed mingw-w64-ucrt-x86_64-{gcc,gdb,cmake,ninja,ccache,pkgconf} \
   mingw-w64-ucrt-x86_64-{qt6-base,qt6-declarative,qt6-shadertools,qt6-tools,qt6-httpserver,qt6-websockets,qt6-svg} \
   mingw-w64-ucrt-x86_64-{kddockwidgets,mlt,ffmpeg,rtaudio,catch} \
   mingw-w64-ucrt-x86_64-{libebur128,fftw,libsamplerate,sox,rubberband,rnnoise,lilv} \
-  mingw-w64-ucrt-x86_64-{lua54,lua54-luafilesystem,lua54-cjson}
+  mingw-w64-ucrt-x86_64-{lua54,sol2,lua54-luafilesystem,lua54-cjson}
 ```
 
 The fourth line is MLT's optional runtime libraries. Without them MLT silently skips modules: `qt6`
 (the `qtblend` compositor), `plus`, `resample`, `sox`, `rubberband`, `rnnoise` and `ladspa`.
 
-The last line is Lua 5.4 with LuaFileSystem (`lfs`) and lua-cjson. The scripts in `tools/` (the
+The last line is Lua 5.4 with sol2, the header-only C++ binding the Lua host (`src/lua/`) is built
+on, and LuaFileSystem (`lfs`) and lua-cjson. Mikser Studio links Lua (`lua54.dll`) and runs its
+plugins in it. The scripts in `tools/` (the
 release build, the notices, the license and include checks, and what they read from MSYS2) are Lua,
 run with `lua5.4` from the repository's root, and never ship; their tests in `tools/tests/` run with
 the C++ tests, so configuring with the tests on needs `lua5.4` too.
