@@ -3,6 +3,7 @@
 #include "ProjectCommandsPrivate.h"
 #include "mikserstudio/core/CommandBus.h"
 #include "mikserstudio/core/Project.h"
+#include "mikserstudio/core/ProjectSnapshot.h"
 
 #include <QDir>
 #include <QFileInfo>
@@ -154,7 +155,32 @@ void registerMediaCommands(CommandBus& bus, ProjectModel& project, MediaProbe& p
             .readOnly = true,
             .confirmation = {},
         },
-        [&project](const QJsonObject&) -> CommandResult { return CommandOutcome{project.toJson(), nullptr}; });
+        [&project](const QJsonObject&) -> CommandResult {
+            return CommandOutcome{project.snapshot()->toJson(), nullptr};
+        });
+
+    bus.registerCommand(
+        CommandSpec{
+            .id = u"project.session"_s,
+            .title = u"Project session"_s,
+            .description = u"Returns the project's session, which changes when a project is started or opened, and "
+                           u"its revision, which grows with every change."_s,
+            .category = u"Project"_s,
+            .paramsSchema = {},
+            .shortcut = {},
+            .undoable = false,
+            .readOnly = true,
+            .confirmation = {},
+            .confirmationParam = {},
+            .owner = u"core"_s,
+            .resultSchema = objectResultSchema({{u"session"_s, u"string"_s}, {u"revision"_s, u"integer"_s}}),
+        },
+        [&project](const QJsonObject&) -> CommandResult {
+            const auto snapshot = project.snapshot();
+            return CommandOutcome{QJsonObject{{u"session"_s, snapshot->session},
+                                              {u"revision"_s, static_cast<qint64>(snapshot->revision)}},
+                                  nullptr};
+        });
 }
 
 }  // namespace mikserstudio::core

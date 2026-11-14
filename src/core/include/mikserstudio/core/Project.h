@@ -9,9 +9,13 @@
 
 #include <cstdint>
 #include <expected>
+#include <memory>
+#include <mutex>
 #include <optional>
 
 namespace mikserstudio::core {
+
+struct ProjectSnapshot;
 
 // Frames are the unit of time on the timeline, at the project's frame rate.
 using FramePos = std::int64_t;
@@ -94,6 +98,9 @@ struct Clip {
 // Mutating methods validate their input and return an English error message on failure; they
 // never leave the model half-changed. They do not record undo history: commands do that
 // (see ProjectCommands.h), so scripts, the API and the UI all get undo through the CommandBus.
+//
+// After every change the model publishes a ProjectSnapshot: an immutable copy with a revision
+// number, which any thread may read through snapshot().
 class ProjectModel final : public QObject {
     Q_OBJECT
 
@@ -143,6 +150,8 @@ public:
     void reset(Rational frameRate = {30, 1}, int width = 1920, int height = 1080);
 
     [[nodiscard]] QJsonObject toJson() const;
+    // The project after its latest change. Safe to call on any thread.
+    [[nodiscard]] std::shared_ptr<const ProjectSnapshot> snapshot() const;
     // Migrates older versions (see "version"), validates everything and only then replaces the
     // current project; on failure the current project is unchanged.
     std::expected<void, QString> loadJson(const QJsonObject& json);
@@ -165,6 +174,8 @@ Q_SIGNALS:
 private:
     [[nodiscard]] std::optional<QString> checkPlacement(const Clip& clip, const QString& ignoreClipId) const;
     void sortClips();
+    // Publishes a snapshot of the project as it is now, with the next revision.
+    void publishSnapshot();
 
     Rational m_frameRate{30, 1};
     int m_width = 1920;
@@ -173,6 +184,10 @@ private:
     QList<Track> m_tracks;
     QList<Clip> m_clips;
     QString m_filePath;
+    QString m_session;  // A new one for each new or opened project.
+    quint64 m_revision = 0;
+    mutable std::mutex m_snapshotMutex;
+    std::shared_ptr<const ProjectSnapshot> m_snapshot;
 };
 
 // True for an absolute path to a file on this computer (not a URL or a network share such as

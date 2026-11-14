@@ -3,6 +3,7 @@
 #include "TestSupport.h"
 
 #include "mikserstudio/core/Project.h"
+#include "mikserstudio/core/ProjectSnapshot.h"
 
 #include <catch2/catch_test_macros.hpp>
 
@@ -624,4 +625,42 @@ TEST_CASE("New video tracks go above the existing video tracks", "[project]")
     REQUIRE(project.loadJson(document));
     CHECK(project.addTrack(TrackKind::Video) == u"V1"_s);
     CHECK(project.tracks().first().id == u"V1"_s);
+}
+
+TEST_CASE("The project publishes a snapshot after every change, with a session per project", "[project][snapshot]")
+{
+    ProjectModel project;
+    const auto empty = project.snapshot();
+    REQUIRE(empty);
+    CHECK_FALSE(empty->session.isEmpty());
+    CHECK(empty->tracks.size() == 4);
+
+    REQUIRE(project.addMedia(videoItem(u"media-1"_s)));
+    REQUIRE(project.addClip(
+        Clip{.id = u"clip-1"_s, .mediaId = u"media-1"_s, .trackId = u"V1"_s, .position = 0, .in = 0, .out = 100}));
+    REQUIRE(project.addClip(
+        Clip{.id = u"clip-2"_s, .mediaId = u"media-1"_s, .trackId = u"V1"_s, .position = 200, .in = 0, .out = 50}));
+    const auto edited = project.snapshot();
+    CHECK(edited->revision == empty->revision + 3);
+    CHECK(edited->session == empty->session);
+    CHECK(empty->clips.isEmpty());  // An older snapshot never changes.
+    REQUIRE(edited->findClip(u"clip-2"_s));
+    CHECK(edited->findClip(u"clip-2"_s)->end() == 250);
+    CHECK(edited->findMedia(u"media-1"_s));
+    CHECK(edited->findTrack(u"V1"_s));
+    CHECK_FALSE(edited->findClip(u"clip-none"_s));
+    CHECK(edited->clipsInRange(90, 210).size() == 2);
+    CHECK(edited->clipsInRange(100, 200).isEmpty());
+    CHECK(edited->clipsInRange(0, 1000, u"V2"_s).isEmpty());
+    CHECK(edited->clipsOfMedia(u"media-1"_s).size() == 2);
+    CHECK(edited->toJson().value(u"revision"_s).toInteger() == static_cast<qint64>(edited->revision));
+
+    const QJsonObject saved = project.toJson();
+    project.reset();
+    const auto fresh = project.snapshot();
+    CHECK(fresh->session != edited->session);
+    CHECK(fresh->revision > edited->revision);
+    REQUIRE(project.loadJson(saved));
+    CHECK(project.snapshot()->session != fresh->session);
+    CHECK(project.snapshot()->clips.size() == 2);
 }

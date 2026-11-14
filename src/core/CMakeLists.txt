@@ -9,6 +9,7 @@ add_library(mikserstudio-core STATIC
     include/mikserstudio/core/PluginManager.h
     include/mikserstudio/core/Project.h
     include/mikserstudio/core/ProjectCommands.h
+    include/mikserstudio/core/ProjectSnapshot.h
     include/mikserstudio/core/Transport.h
     include/mikserstudio/core/UndoStack.h
     include/mikserstudio/core/UserFolders.h
@@ -38,6 +39,7 @@ add_library(mikserstudio-core STATIC
     src/ProjectMigrations.cpp
     src/ProjectMigrations.h
     src/ProjectModel.cpp
+    src/ProjectSnapshot.cpp
     src/TimelineCommands.cpp
     src/TransportCommands.cpp
     src/UndoStack.cpp

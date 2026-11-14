@@ -183,6 +183,29 @@ QJsonObject clipToJson(const Clip& clip)
     };
 }
 
+QJsonObject projectToJson(Rational frameRate, int width, int height, const QList<MediaItem>& media,
+                          const QList<Track>& tracks, const QList<Clip>& clips)
+{
+    QJsonArray mediaJson;
+    for (const MediaItem& item : media)
+        mediaJson.append(mediaToJson(item));
+    QJsonArray tracksJson;
+    for (const Track& track : tracks)
+        tracksJson.append(trackToJson(track));
+    QJsonArray clipsJson;
+    for (const Clip& clip : clips)
+        clipsJson.append(clipToJson(clip));
+    return QJsonObject{
+        {u"version"_s, ProjectModel::kFormatVersion},
+        {u"frameRate"_s, rationalToJson(frameRate)},
+        {u"width"_s, width},
+        {u"height"_s, height},
+        {u"media"_s, mediaJson},
+        {u"tracks"_s, tracksJson},
+        {u"clips"_s, clipsJson},
+    };
+}
+
 std::expected<ProjectDocument, QString> projectFromJson(const QJsonObject& json)
 {
     if (const QStringList problems = JsonSchema::validate(json, projectSchema()); !problems.isEmpty())

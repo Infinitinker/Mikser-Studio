@@ -4,6 +4,7 @@
 #include "Logging.h"
 #include "ProjectJson.h"
 #include "ProjectMigrations.h"
+#include "mikserstudio/core/ProjectSnapshot.h"
 
 #include <QDir>
 #include <QFileInfo>
@@ -101,6 +102,15 @@ bool isAllowedMediaPath(const QString& path)
 ProjectModel::ProjectModel(QObject* parent)
     : QObject(parent)
 {
+    // Connected first, so the snapshot is current for every other receiver of these signals.
+    for (const auto signal : {&ProjectModel::mediaAdded, &ProjectModel::mediaRemoved, &ProjectModel::clipAdded,
+                              &ProjectModel::clipRemoved, &ProjectModel::clipChanged, &ProjectModel::trackAdded,
+                              &ProjectModel::trackRemoved, &ProjectModel::trackChanged, &ProjectModel::filePathChanged})
+        connect(this, signal, this, &ProjectModel::publishSnapshot);
+    connect(this, &ProjectModel::projectReset, this, [this] {
+        m_session = QUuid::createUuid().toString(QUuid::WithoutBraces);
+        publishSnapshot();
+    });
     reset();
 }
 
@@ -345,24 +355,30 @@ void ProjectModel::reset(Rational frameRate, int width, int height)
 
 QJsonObject ProjectModel::toJson() const
 {
-    QJsonArray media;
-    for (const MediaItem& item : m_media)
-        media.append(mediaToJson(item));
-    QJsonArray tracks;
-    for (const Track& track : m_tracks)
-        tracks.append(trackToJson(track));
-    QJsonArray clips;
-    for (const Clip& clip : m_clips)
-        clips.append(clipToJson(clip));
-    return QJsonObject{
-        {u"version"_s, kFormatVersion},
-        {u"frameRate"_s, rationalToJson(m_frameRate)},
-        {u"width"_s, m_width},
-        {u"height"_s, m_height},
-        {u"media"_s, media},
-        {u"tracks"_s, tracks},
-        {u"clips"_s, clips},
-    };
+    return projectToJson(m_frameRate, m_width, m_height, m_media, m_tracks, m_clips);
+}
+
+std::shared_ptr<const ProjectSnapshot> ProjectModel::snapshot() const
+{
+    const std::scoped_lock lock(m_snapshotMutex);
+    return m_snapshot;
+}
+
+void ProjectModel::publishSnapshot()
+{
+    auto next = std::make_shared<ProjectSnapshot>(ProjectSnapshot{
+        .revision = ++m_revision,
+        .session = m_session,
+        .frameRate = m_frameRate,
+        .width = m_width,
+        .height = m_height,
+        .filePath = m_filePath,
+        .media = m_media,
+        .tracks = m_tracks,
+        .clips = m_clips,
+    });
+    const std::scoped_lock lock(m_snapshotMutex);
+    m_snapshot = std::move(next);
 }
 
 std::expected<void, QString> ProjectModel::loadJson(const QJsonObject& json)

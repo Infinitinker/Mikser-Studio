@@ -8,11 +8,13 @@ class CommandBus;
 class MediaProbe;
 class ProjectModel;
 
-// Registers the project and timeline commands. All of them are undoable except reads.
+// Registers the project and timeline commands. All of them are undoable except reads, which are
+// served from the project's snapshot.
 //
 //   project.import_media      {path, name?, provenance?}       -> {mediaId}
 //   project.remove_media      {mediaId}
-//   project.list              {}                               -> project JSON (readOnly)
+//   project.list              {}                               -> project JSON with session and revision (readOnly)
+//   project.session           {}                               -> {session, revision} (readOnly)
 //   timeline.add_clip         {mediaId, trackId, position, in?, out?} -> {clipId}
 //   timeline.remove_clip      {clipId}
 //   timeline.move_clip        {clipId, trackId, position}

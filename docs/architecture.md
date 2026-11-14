@@ -137,6 +137,11 @@ messages.
 ## Threads and processes
 
 - **Main thread:** UI, core, command execution, project model. (built)
+- **Project snapshots:** after every change, the project model publishes a
+  `shared_ptr<const core::ProjectSnapshot>`, an immutable copy with a revision number and a session
+  id that changes on New and Open, with queries by clip id, range and media id. Its lists share
+  their data with the model's until the model changes them, so publishing is cheap, and any thread
+  may read a snapshot. `project.list` is served from it. (built)
 - **Events:** `core::EventBus`, owned by the command bus, publishes each event (a topic, a JSON
   payload with the ids of what changed, and the origins of the command that caused it) on the main
   thread. `/v1/events` is one subscriber; a subscriber on another thread, such as a Lua plugin,

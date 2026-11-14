@@ -259,7 +259,10 @@ Each text message is one JSON object with a `type`:
 - The project's changes come with the id of what changed: `media.added` and `media.removed`
   (`mediaId`), `clip.added`, `clip.removed` and `clip.changed` (`clipId`), `track.added`,
   `track.removed` and `track.changed` (`trackId`), `project.reset` (a new or opened project) and
-  `project.file_changed` (`path`). Read the details with `project.list`.
+  `project.file_changed` (`path`). Read the details with `project.list`, which answers with the
+  project's `session` (it changes when a project is started or opened, so ids from another session
+  are gone) and its `revision` (it grows with every change); `project.session` answers just those
+  two.
 - Jobs report `job.created` (`jobId`, `kind`, `title`, `owner`, `lane`), `job.progress`
   (`progress` from 0 to 1, `message`; at most 10 a second per job) and `job.finished` (`state`:
   `succeeded`, `failed` or `canceled`, `error`, `result`). `jobs.list` lists them, the AI engine's

@@ -5,6 +5,7 @@
 #include "mikserstudio/core/CommandBus.h"
 #include "mikserstudio/core/Project.h"
 #include "mikserstudio/core/ProjectCommands.h"
+#include "mikserstudio/core/ProjectSnapshot.h"
 #include "mikserstudio/core/UndoStack.h"
 
 #include <catch2/catch_test_macros.hpp>
@@ -217,7 +218,14 @@ TEST_CASE("project.list returns the project JSON", "[project][commands]")
     const QString id = f.import(u"clip.mp4"_s);
     const auto listed = f.bus.execute(u"project.list"_s);
     REQUIRE(listed);
-    CHECK(*listed == f.project.toJson());
+    QJsonObject expected = f.project.toJson();
+    expected.insert(u"session"_s, f.project.snapshot()->session);
+    expected.insert(u"revision"_s, static_cast<qint64>(f.project.snapshot()->revision));
+    CHECK(*listed == expected);
+    const auto session = f.bus.execute(u"project.session"_s);
+    REQUIRE(session);
+    CHECK(session->value(u"session"_s) == listed->value(u"session"_s));
+    CHECK(session->value(u"revision"_s) == listed->value(u"revision"_s));
     CHECK(listed->value(u"media").toArray()[0].toObject().value(u"id").toString() == id);
     CHECK(f.stack.undoText() == u"Import “clip.mp4”"_s);
 }
