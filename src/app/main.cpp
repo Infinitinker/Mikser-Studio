@@ -3,6 +3,7 @@
 //   mikser-studio [files...] [--play] [--screenshot <png> [--screenshot-delay <ms>]]
 //   mikser-studio --headless [--api-port <port>]
 //   mikser-studio [--no-api] [--api-port <port>] [--safe-mode]
+//   mikser-studio --print-lua-types <file>
 //
 // MIKSERSTUDIO_PLUGIN_PATH names folders of plugins in development; MIKSERSTUDIO_PLUGIN_HOT_RELOAD=1
 // reloads a plugin when its files change, which a build from source does anyway.
@@ -16,15 +17,18 @@
 #include "Studio.h"
 
 #include "mikserstudio/core/Instance.h"
+#include "mikserstudio/lua/LuaTypes.h"
 #include "mikserstudio/ui/Theme.h"
 
 #include <QApplication>
 #include <QCommandLineParser>
 #include <QCoreApplication>
 #include <QDir>
+#include <QFile>
 #include <QGuiApplication>
 #include <QIcon>
 
+#include <cstdio>
 #include <cstring>
 #include <expected>
 #include <memory>
@@ -42,13 +46,32 @@ struct CommandLine {
     app::DesktopOptions desktop;
 };
 
-bool wantsHeadless(int argc, char** argv)
+// Where the option is on the command line; 0 when it isn't.
+int findOption(int argc, char** argv, const char* option)
 {
     for (int i = 1; i < argc; ++i) {
-        if (std::strcmp(argv[i], "--headless") == 0)
-            return true;
+        if (std::strcmp(argv[i], option) == 0)
+            return i;
     }
-    return false;
+    return 0;
+}
+
+// Writes the types of the plugins' Lua API to the file after --print-lua-types (docs/plugins.md,
+// "Tooling"). A file, not standard output, so the line ends are \n on every system. A program
+// without a console may show no message, so the exit code also says whether it worked.
+int printLuaTypes(int argc, char** argv, int at)
+{
+    if (at + 1 >= argc) {
+        std::fputs("--print-lua-types needs the file to write, such as plugins/types/ms.lua.\n", stderr);
+        return 2;
+    }
+    QFile file(QString::fromLocal8Bit(argv[at + 1]));
+    const QByteArray types = lua::luaTypes().toUtf8();
+    if (!file.open(QIODevice::WriteOnly | QIODevice::Truncate) || file.write(types) != types.size()) {
+        std::fprintf(stderr, "Can't write %s: %s\n", argv[at + 1], qUtf8Printable(file.errorString()));
+        return 1;
+    }
+    return 0;
 }
 
 // The command line, or what is wrong with it. --help, --version and unknown options are answered by
@@ -65,12 +88,16 @@ std::expected<CommandLine, QString> parseCommandLine(const QCoreApplication& app
     const QCommandLineOption noApi(u"no-api"_s, u"Do not start the local API."_s);
     const QCommandLineOption apiPort(u"api-port"_s, u"Port of the local API (default: any free port)."_s, u"port"_s);
     const QCommandLineOption safeMode(u"safe-mode"_s, u"Run only the built-in plugins."_s);
+    // Handled in main, before anything starts; here for --help.
+    const QCommandLineOption luaTypes(
+        u"print-lua-types"_s, u"Write the types of the plugins' Lua API, for Lua language servers, to <file>."_s,
+        u"file"_s);
     const QCommandLineOption play(u"play"_s, u"Start playing the timeline after start-up."_s);
     const QCommandLineOption screenshot(u"screenshot"_s, u"Save a screenshot of the window to <png>, then quit."_s,
                                         u"png"_s);
     const QCommandLineOption screenshotDelay(u"screenshot-delay"_s, u"Milliseconds to wait before the screenshot."_s,
                                              u"ms"_s, u"4000"_s);
-    parser.addOptions({headless, noApi, apiPort, safeMode, play, screenshot, screenshotDelay});
+    parser.addOptions({headless, noApi, apiPort, safeMode, luaTypes, play, screenshot, screenshotDelay});
     parser.process(app);
 
     CommandLine line;
@@ -198,5 +225,7 @@ int runDesktop(int argc, char** argv)
 
 int main(int argc, char** argv)
 {
-    return wantsHeadless(argc, argv) ? runHeadless(argc, argv) : runDesktop(argc, argv);
+    if (const int at = findOption(argc, argv, "--print-lua-types"))
+        return printLuaTypes(argc, argv, at);
+    return findOption(argc, argv, "--headless") != 0 ? runHeadless(argc, argv) : runDesktop(argc, argv);
 }

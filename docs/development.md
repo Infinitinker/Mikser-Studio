@@ -161,15 +161,20 @@ also runs on its own: `lua5.4 tools/tests/test_licenses.lua`.
 lua5.4 tools/check_includes.lua
 ```
 
-**Lua** (no job yet): StyLua and selene, for the scripts in `tools/`, with the settings in
-`tools/stylua.toml` and `tools/selene.toml` (and Lua 5.4's standard library for selene in
-`tools/lua54.yml`), both failing on any finding. `stylua .` formats the files in place.
+**Lua** (no job yet): StyLua and selene, both failing on any finding, for the scripts in `tools/`,
+with the settings in `tools/stylua.toml` and `tools/selene.toml` (and Lua 5.4's standard library for
+selene in `tools/lua54.yml`), and for the plugins, with those in `plugins/stylua.toml` and
+`plugins/selene.toml` (and what the plugins' sandbox offers in `plugins/mikserstudio.yml`).
+`stylua .` formats the files in place.
 
 ```sh
-cd tools
-stylua --check .
-selene .
+(cd tools && stylua --check . && selene .)
+(cd plugins && stylua --check . && selene .)
 ```
+
+The plugins' types for Lua language servers, `plugins/types/ms.lua`, are what
+`mikser-studio --print-lua-types plugins/types/ms.lua` writes; a Lua host test fails when they are
+stale.
 
 **Licenses** (job `Licenses`): `THIRD-PARTY-NOTICES.md` is up to date, and every license a release
 ships can be combined with Mikser Studio's GPL-3.0-or-later ([releasing.md](releasing.md#licenses)).

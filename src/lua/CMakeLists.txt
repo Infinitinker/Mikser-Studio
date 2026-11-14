@@ -12,9 +12,14 @@ target_compile_definitions(mikserstudio-lua-sol2 INTERFACE SOL_ALL_SAFETIES_ON=1
 file(READ "${CMAKE_CURRENT_SOURCE_DIR}/src/prelude.lua" MIKSERSTUDIO_LUA_PRELUDE)
 configure_file(src/Prelude.h.in "${CMAKE_CURRENT_BINARY_DIR}/generated/Prelude.h" @ONLY)
 set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/src/prelude.lua")
+# So are the types of the ms API that mikser-studio --print-lua-types writes.
+file(READ "${CMAKE_CURRENT_SOURCE_DIR}/src/types.lua" MIKSERSTUDIO_LUA_TYPES)
+configure_file(src/Types.h.in "${CMAKE_CURRENT_BINARY_DIR}/generated/Types.h" @ONLY)
+set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/src/types.lua")
 
 add_library(mikserstudio-lua STATIC
     include/mikserstudio/lua/LuaRuntime.h
+    include/mikserstudio/lua/LuaTypes.h
     src/CommandSpecs.cpp
     src/CommandSpecs.h
     src/Logging.cpp
@@ -24,6 +29,7 @@ add_library(mikserstudio-lua STATIC
     src/LuaPlugin.cpp
     src/LuaPlugin.h
     src/LuaRuntime.cpp
+    src/LuaTypes.cpp
     src/LuaWorker.cpp
     src/LuaWorker.h
 )

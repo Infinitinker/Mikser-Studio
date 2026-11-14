@@ -1,0 +1,3 @@
+# selene's settings for the plugins (docs/plugins.md, "Tooling"): what a plugin's sandbox offers, from
+# mikserstudio.yml next to this file.
+std = "mikserstudio"

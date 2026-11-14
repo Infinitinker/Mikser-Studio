@@ -5,16 +5,16 @@ local plugin = "mikserstudio.examples.hello"
 local greet = plugin .. ".greet"
 
 local function equal(actual, expected)
-	if actual ~= expected then
-		error(("expected %s, got %s"):format(tostring(expected), tostring(actual)), 2)
-	end
+    if actual ~= expected then
+        error(("expected %s, got %s"):format(tostring(expected), tostring(actual)), 2)
+    end
 end
 
 local listed
 for _, entry in ipairs(ms.run("plugins.list", {}).plugins) do
-	if entry.id == plugin then
-		listed = entry
-	end
+    if entry.id == plugin then
+        listed = entry
+    end
 end
 equal(listed.status, "active")
 equal(table.concat(listed.permissions, ","), "project.read,ui")

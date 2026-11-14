@@ -1,0 +1,92 @@
+# What a plugin's sandbox offers, for selene (selene.toml), which builds in the libraries up to Lua 5.3:
+# Lua 5.3's, without what the sandbox leaves out (docs/plugins.md, "The sandbox"), with what Lua 5.4
+# adds and the ms API (its types are in types/ms.lua).
+---
+base: lua53
+name: mikserstudio
+lua_versions:
+  - lua54
+globals:
+  io:
+    removed: true
+  debug:
+    removed: true
+  package:
+    removed: true
+  dofile:
+    removed: true
+  loadfile:
+    removed: true
+  string.dump:
+    removed: true
+  os.execute:
+    removed: true
+  os.exit:
+    removed: true
+  os.getenv:
+    removed: true
+  os.remove:
+    removed: true
+  os.rename:
+    removed: true
+  os.tmpname:
+    removed: true
+  os.setlocale:
+    removed: true
+  os.difftime:
+    removed: true
+  warn:
+    args:
+      - type: string
+      - type: "..."
+  coroutine.close:
+    args:
+      - type: any
+  ms.plugin_id:
+    property: read-only
+  ms.null:
+    property: read-only
+  ms.command:
+    args:
+      - type: table
+  ms.run:
+    args:
+      - type: string
+      - required: false
+        type: table
+  ms.on:
+    args:
+      - type: string
+      - type: function
+  ms.transaction:
+    args:
+      - type: string
+      - type: function
+  ms.jobs.start:
+    args:
+      - type: string
+      - required: false
+        type: table
+  ms.project:
+    must_use: true
+    args: []
+  ms.settings:
+    must_use: true
+    args: []
+  ms.array:
+    must_use: true
+    args:
+      - required: false
+        type: table
+  ms.log.debug:
+    args:
+      - type: "..."
+  ms.log.info:
+    args:
+      - type: "..."
+  ms.log.warning:
+    args:
+      - type: "..."
+  ms.log.error:
+    args:
+      - type: "..."
