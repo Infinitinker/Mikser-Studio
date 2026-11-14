@@ -63,6 +63,8 @@ add_library(mikserstudio-ui STATIC
     src/SchemaEditors.cpp
     src/SchemaEditors.h
     src/SchemaForm.cpp
+    src/SettingsWindow.cpp
+    src/SettingsWindow.h
     src/Shell.cpp
     src/Theme.cpp
     src/ThemeStyleSheet.cpp

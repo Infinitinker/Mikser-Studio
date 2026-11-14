@@ -7,6 +7,7 @@
     "entry": "main.lua",
     "permissions": ["network"],
     "network": ["127.0.0.1:*", "localhost:*", "[::1]:*", "*:*"],
+    "settingsSection": "AI tools",
     "settingsSchema": {
         "type": "object",
         "properties": {

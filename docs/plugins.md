@@ -67,6 +67,8 @@ down: the Plugins panel lists it as failed, with the reason, and the log has the
 - `network` (optional, with the `network` permission): where the plugin's jobs may connect, as
   `host:port` entries; see [The network](#the-network).
 - `settingsSchema` (optional): a JSON Schema of the plugin's settings, an object.
+- `settingsSection` (optional): for a built-in plugin, the section of the Settings window that
+  shows its settings, such as `AI tools`.
 - `panels` (optional): QML panels; see [Panels](#panels-qml).
 
 A manifest with a `kind` is refused: Mikser Studio runs Lua plugins only, and native and Python
@@ -236,8 +238,9 @@ job.
 
 Settings are a JSON object validated against `settingsSchema`, with its defaults filled in, kept in
 `<config>/plugin-settings/<plugin-id>.json`. Stored settings that no longer match the schema are
-ignored in favor of the defaults. The Plugins panel draws their form from the schema; agents change
-them with `plugins.set_settings`. Read them with `ms.settings()` whenever you need them: they can
+ignored in favor of the defaults. The Plugins panel draws their form from the schema, and so does
+the Settings window (Window → Settings…) for the built-in plugins that name a `settingsSection`;
+agents change them with `plugins.set_settings`. Read them with `ms.settings()` whenever you need them: they can
 change while the plugin runs.
 
 ## Panels (QML)

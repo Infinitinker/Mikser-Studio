@@ -34,6 +34,7 @@ const QJsonObject& manifestSchema()
             "permissions": {"type": "array", "items": {"type": "string"}, "default": []},
             "network": {"type": "array", "items": {"type": "string"}, "default": []},
             "settingsSchema": {"type": "object"},
+            "settingsSection": {"type": "string", "minLength": 1},
             "panels": {
                 "type": "array",
                 "default": [],
@@ -96,7 +97,7 @@ std::expected<QStringList, QString> parseNetwork(const QJsonArray& entries, cons
         result.append(text.trimmed().toLower());
     }
     if (!result.isEmpty() && !permissions.contains(u"network"_s))
-        return std::unexpected(u"/network: lists addresses, but the plugin doesn't ask for the “network” permission"_s);
+        return std::unexpected(u"/network: lists addresses, but the plugin doesn’t ask for the “network” permission"_s);
     return result;
 }
 
@@ -177,6 +178,7 @@ std::expected<PluginManifest, QString> parsePluginManifest(const QJsonObject& js
         .permissions = std::move(*permissions),
         .network = std::move(*network),
         .settingsSchema = settingsSchema,
+        .settingsSection = manifest.value(u"settingsSection").toString(),
         .panels = std::move(*panels),
         .directory = QDir::fromNativeSeparators(QDir(directory).absolutePath()),
     };

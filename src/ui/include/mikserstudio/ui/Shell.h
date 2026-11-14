@@ -72,6 +72,8 @@ public:
     bool saveState();
     void show();
     void showCommandPalette();
+    // Opens the Settings window, at `section` (such as "AI tools") when there is one.
+    void showSettings(const QString& section = {});
 
     [[nodiscard]] QMenu* windowMenu() const { return m_windowMenu; }
     [[nodiscard]] QMenu* workspaceMenu() const { return m_workspaceMenu; }

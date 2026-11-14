@@ -14,6 +14,7 @@ add_executable(mikserstudio-ui-tests
     PropertiesPanelTests.cpp
     ShellStateTests.cpp
     SchemaFormTests.cpp
+    SettingsWindowTests.cpp
     TestCommands.h
     TimelineControllerTests.cpp
     TimelineFixture.h

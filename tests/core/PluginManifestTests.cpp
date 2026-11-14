@@ -65,6 +65,7 @@ TEST_CASE("A valid manifest is parsed with defaults", "[plugins][manifest]")
     CHECK(parsed->entry == u"src/main.lua"_s);
     CHECK(parsed->permissions == QStringList{u"project.read"_s, u"ui"_s});
     CHECK(parsed->settingsSchema.contains(u"properties"_s));
+    CHECK(parsed->settingsSection.isEmpty());
     CHECK(parsed->directory == u"D:/plugins/hello"_s);
     REQUIRE(parsed->panels.size() == 2);
     CHECK(parsed->panels[0].id == u"greeter"_s);
@@ -93,6 +94,10 @@ TEST_CASE("Manifest errors name the field", "[plugins][manifest]")
     CHECK(errorFor(with(u"apiVersion"_s, 1.5)).contains(u"/apiVersion"_s));
     CHECK(errorFor(with(u"settingsSchema"_s, json(R"({"type": "array"})"))).contains(u"/settingsSchema"_s));
     CHECK(errorFor(with(u"settingsSchema"_s, u"x"_s)).contains(u"/settingsSchema"_s));
+    CHECK(errorFor(with(u"settingsSection"_s, u""_s)).contains(u"/settingsSection"_s));
+    const auto sectioned = parsePluginManifest(with(u"settingsSection"_s, u"AI tools"_s), u"D:/p"_s);
+    REQUIRE(sectioned);
+    CHECK(sectioned->settingsSection == u"AI tools"_s);
 }
 
 TEST_CASE("The entry is a Lua file inside the plugin folder", "[plugins][manifest]")
@@ -128,7 +133,7 @@ TEST_CASE("Network entries are host:port, need the network permission and defaul
         INFO(entry.toStdString());
         CHECK(errorFor(manifest).startsWith(u"/network/0: “%1” is not a network entry"_s.arg(entry)));
     }
-    CHECK(errorFor(with(u"network"_s, QJsonArray{u"*:443"_s})).contains(u"doesn't ask for the “network” permission"_s));
+    CHECK(errorFor(with(u"network"_s, QJsonArray{u"*:443"_s})).contains(u"doesn’t ask for the “network” permission"_s));
 }
 
 TEST_CASE("Network entries name their host and port", "[plugins][manifest]")

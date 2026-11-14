@@ -12,6 +12,7 @@
 #include "PluginPanelHost.h"
 #include "PluginsPanel.h"
 #include "PropertiesPanel.h"
+#include "SettingsWindow.h"
 #include "TimelineController.h"
 #include "TimelineView.h"
 #include "WindowMenu.h"
@@ -215,6 +216,14 @@ void Shell::showCommandPalette()
     m_palette->popup();
 }
 
+void Shell::showSettings(const QString& section)
+{
+    SettingsWindow window(m_bus, m_plugins, mainWindow());
+    if (!section.isEmpty())
+        window.showSection(section);
+    window.exec();
+}
+
 WorkspaceMenu& Shell::workspaces() const
 {
     return *m_workspaceMenuController;
@@ -292,7 +301,13 @@ void Shell::buildMenus()
     palette->setToolTip(u"Search and run any command."_s);
     connect(palette, &QAction::triggered, this, &Shell::showCommandPalette);
     window->addAction(palette);
-    m_windowMenuController = new WindowMenu(*m_dockHost, m_windowMenu, *m_status, {palette}, this);
+    auto* settings = new QAction(u"Settings…"_s, window);
+    settings->setShortcut(QKeySequence(u"Ctrl+,"_s));
+    settings->setShortcutContext(Qt::ApplicationShortcut);
+    settings->setToolTip(u"Shows the settings of the built-in plugins, such as the AI tools’ addresses."_s);
+    connect(settings, &QAction::triggered, this, [this] { showSettings(); });
+    window->addAction(settings);
+    m_windowMenuController = new WindowMenu(*m_dockHost, m_windowMenu, *m_status, {palette, settings}, this);
 
     m_workspaceMenuController = new WorkspaceMenu(*m_dockHost, m_workspaceMenu, *m_status, window, this);
 }

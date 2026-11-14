@@ -50,6 +50,8 @@ struct PluginManifest {
     QStringList permissions;
     QStringList network;  // Lower case.
     QJsonObject settingsSchema;
+    // The section of the Settings window that shows a built-in plugin's settings, such as "AI tools".
+    QString settingsSection;
     QList<PanelContribution> panels;
     QString directory;  // Absolute directory that contained the manifest.
 };
@@ -58,7 +60,7 @@ inline constexpr int kPluginApiVersion = 1;
 inline constexpr auto kPluginManifestFileName = "mikserstudio-plugin.json";
 
 // Validates the manifest (required fields, id/version format, apiVersion, entry, permissions,
-// network, settingsSchema, panels) and fills defaults: description "", permissions [], network [],
+// network, settingsSchema, settingsSection, panels) and fills defaults: description "", permissions [], network [],
 // panel defaultArea "right".
 [[nodiscard]] std::expected<PluginManifest, QString> parsePluginManifest(const QJsonObject& json,
                                                                          const QString& directory);
