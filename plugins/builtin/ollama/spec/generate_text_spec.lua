@@ -4,7 +4,7 @@
 
 local plugin = "mikserstudio.ollama"
 local fake = ms.settings().fakes.ollama
-local RAN_OUT = "The model ran out of room before it answered; allow it more tokens or use a model that doesn't "
+local RAN_OUT = "The model ran out of room before it answered; allow it more tokens or use a model that doesn’t "
     .. "think first."
 
 local function equal(actual, expected)

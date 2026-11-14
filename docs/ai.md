@@ -50,7 +50,7 @@ one answer is written at a time:
   progress. The answer is the text after the model's last `</think>`, so a thinking model's reasoning
   is dropped. An answer that stops inside `<think>`, or one that has only reasoning when Ollama says
   it ran out of room, fails the job: "The model ran out of room before it answered; allow it more
-  tokens or use a model that doesn't think first."
+  tokens or use a model that doesn’t think first."
 - The provenance names the plugin, the operation, the params, Ollama's version, the model's name,
   digest, family, size and quantization, and the time.
 - Its failures say what to do: start Ollama, download a model with `ollama pull`, choose another

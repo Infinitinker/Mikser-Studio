@@ -8,7 +8,7 @@ local SHOW = 15 -- /api/show reads the model file's metadata, which can take a m
 local SILENCE = 600 -- loading a large model before the first token can take minutes
 
 local NO_MODELS = 'Ollama has no models. Download one with "ollama pull <model>" and try again.'
-local RAN_OUT = "The model ran out of room before it answered; allow it more tokens or use a model that doesn't "
+local RAN_OUT = "The model ran out of room before it answered; allow it more tokens or use a model that doesn’t "
     .. "think first."
 
 local function trim(text)
