@@ -81,11 +81,13 @@ TOKEN=$(jq -r .token "$HOME/.local/share/Mikser Studio/api.json")
 | 400 | `invalid_params` | The params do not match the command's `paramsSchema`, or the body is not a JSON object. |
 | 400 | `malformed_json` | The body is not valid JSON. |
 | 401 | `unauthorized` | Missing or wrong token (also sends `WWW-Authenticate: Bearer`). |
+| 403 | `permission_denied` | The caller lacks the command's `permission`. API clients carry every permission, so today only a command a plugin runs for them can answer this. |
 | 404 | `unknown_command` | No command with that id. |
 | 404 | `not_found` | No such route. |
 | 405 | `method_not_allowed` | Wrong HTTP method (the `Allow` header lists the right ones). |
 | 409 | `not_available` | The command exists but cannot run now (e.g. nothing to undo). |
 | 409 | `needs_confirmation` | This run needs the person's agreement; the message is the question (see `confirmationParam`). |
+| 409 | `canceled` | The run was stopped before it finished. |
 | 413 | `payload_too_large` | The body is larger than 1 MiB (1 048 576 bytes). |
 | 426 | `upgrade_required` | A plain GET on `/v1/events`, which is a WebSocket. |
 | 500 | `failed` | The command ran and failed; the message says why. |
@@ -224,15 +226,18 @@ websocat "ws://127.0.0.1:52341/v1/events?token=$TOKEN"
 Each text message is one JSON object with a `type`:
 
 ```json
-{"type": "command.executed", "id": "project.import_media", "params": {"path": "D:/samples/sample-30s.mp4"}, "result": {"mediaId": "media-..."}}
-{"type": "command.failed", "id": "edit.undo", "params": {}, "error": {"code": "not_available", "message": "There is nothing to undo."}}
+{"type": "command.executed", "id": "project.import_media", "params": {"path": "D:/samples/sample-30s.mp4"}, "result": {"mediaId": "media-..."}, "origin": "api", "origins": ["api"]}
+{"type": "command.failed", "id": "edit.undo", "params": {}, "error": {"code": "not_available", "message": "There is nothing to undo."}, "origin": "ui", "origins": ["ui"]}
 {"type": "command.registered", "id": "hello.greet"}
 {"type": "command.unregistered", "id": "hello.greet"}
 {"type": "undo.changed", "canUndo": true, "canRedo": false, "undoText": "Import “sample-30s.mp4”", "redoText": ""}
 ```
 
 - Events cover **every** command run, whether it came from the API, the UI, a shortcut or a plugin.
-  `params` are the params after defaults were applied.
+  `params` are the params after defaults were applied. `origin` says who started the run: `ui` (the
+  person, in the interface), `api` (a client of this API, such as an agent through the MCP bridge) or
+  `plugin:<id>`. `origins` is the chain of callers, the one who started the run first: a plugin's
+  command run through the API is `["api", "plugin:hello"]`. Commands a command runs keep its origin.
 - For an undoable command, `undo.changed` arrives before its `command.executed`.
 - No state is sent on connect: call `GET /v1/commands` (and the commands you care about) after the
   socket is open to get the current state, then apply events.

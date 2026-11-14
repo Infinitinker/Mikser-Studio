@@ -126,6 +126,19 @@ void registerTestCommands(core::CommandBus& bus, int& counter)
     }));
     REQUIRE(bus.registerCommand(spec(u"test.noop"_s, "{}"),
                                 [](const QJsonObject&) -> core::CommandResult { return core::CommandOutcome{}; }));
+    REQUIRE(bus.registerCommand(
+        spec(u"test.refuse"_s,
+             R"({"type": "object", "properties": {"code": {"type": "string", "enum":
+                 ["permission_denied", "needs_confirmation", "canceled"]}}, "required": ["code"],
+                 "additionalProperties": false})"),
+        [](const QJsonObject& params) -> core::CommandResult {
+            const QString code = params.value(u"code"_s).toString();
+            const core::CommandErrorCode error = code == u"permission_denied"_s
+                                                     ? core::CommandErrorCode::PermissionDenied
+                                                 : code == u"canceled"_s ? core::CommandErrorCode::Canceled
+                                                                         : core::CommandErrorCode::NeedsConfirmation;
+            return core::commandFailure(error, u"The test command refused with %1."_s.arg(code));
+        }));
 }
 
 ApiFixture::ApiFixture()

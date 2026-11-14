@@ -8,6 +8,7 @@
 #include <catch2/catch_test_macros.hpp>
 
 #include <QCoreApplication>
+#include <QMap>
 
 #include <stdexcept>
 
@@ -538,4 +539,101 @@ TEST_CASE("Command error codes have stable names", "[commands]")
     CHECK(toString(CommandErrorCode::Failed) == u"failed"_s);
     CHECK(toString(CommandErrorCode::NotAvailable) == u"not_available"_s);
     CHECK(toString(CommandErrorCode::NeedsConfirmation) == u"needs_confirmation"_s);
+    CHECK(toString(CommandErrorCode::PermissionDenied) == u"permission_denied"_s);
+    CHECK(toString(CommandErrorCode::Canceled) == u"canceled"_s);
+}
+
+TEST_CASE("A run's call context reaches the signals and the commands its handler runs", "[commands][context]")
+{
+    UndoStack stack;
+    CommandBus bus(stack);
+    CommandSpec inner = setSpec();
+    inner.id = u"test.inner"_s;
+    inner.undoable = false;
+    inner.paramsSchema = {};
+    REQUIRE(bus.registerCommand(inner, okHandler()));
+    CommandSpec outer = inner;
+    outer.id = u"test.outer"_s;
+    REQUIRE(bus.registerCommand(outer, [&bus](const QJsonObject&) -> CommandResult {
+        CHECK(bus.runningContext() != nullptr);
+        if (auto ran = bus.execute(u"test.inner"_s); !ran)
+            return std::unexpected(ran.error());
+        return CommandOutcome{};
+    }));
+
+    QMap<QString, QStringList> origins;
+    QMap<QString, bool> confirmed;
+    QObject::connect(&bus, &CommandBus::executed,
+                     [&](const QString& id, const QJsonObject&, const QJsonObject&, const CallContext& context) {
+                         origins.insert(id, context.origins);
+                         confirmed.insert(id, context.confirmed);
+                     });
+
+    CallContext agreed = CallContext::api();
+    agreed.confirmed = true;
+    REQUIRE(bus.execute(u"test.outer"_s, {}, agreed));
+    CHECK(origins.value(u"test.outer"_s) == QStringList{u"api"_s});
+    CHECK(origins.value(u"test.inner"_s) == QStringList{u"api"_s});
+    CHECK(confirmed.value(u"test.outer"_s));
+    // The person agreed to the outer run, not to what its handler runs.
+    CHECK_FALSE(confirmed.value(u"test.inner"_s));
+    CHECK(bus.runningContext() == nullptr);
+
+    REQUIRE(bus.execute(u"test.outer"_s));
+    CHECK(origins.value(u"test.inner"_s) == QStringList{u"ui"_s});
+
+    const CallContext plugin = CallContext::api().through(u"plugin:hello"_s, {u"project.read"_s, u"network"_s});
+    CHECK(plugin.origins == QStringList{u"api"_s, u"plugin:hello"_s});
+    CHECK(plugin.origin() == u"api"_s);
+    CHECK(plugin.permissions == QStringList{u"project.read"_s, u"network"_s});
+}
+
+TEST_CASE("A caller without a command's permission is refused before it runs", "[commands][context]")
+{
+    UndoStack stack;
+    CommandBus bus(stack);
+    int value = 0;
+    REQUIRE(bus.registerCommand(setSpec(), setHandler(value)));
+    QList<CallContext> refused;
+    QObject::connect(&bus, &CommandBus::failed,
+                     [&](const QString&, const QJsonObject&, const CommandError&, const CallContext& context) {
+                         refused.append(context);
+                     });
+
+    const CallContext reader = CallContext::ui().through(u"plugin:hello"_s, {u"project.read"_s});
+    const auto denied = bus.execute(u"test.set_value"_s, QJsonObject{{u"value"_s, 3}}, reader);
+    REQUIRE_FALSE(denied.has_value());
+    CHECK(denied.error().code == CommandErrorCode::PermissionDenied);
+    CHECK(denied.error().message.contains(u"“project.write”"_s));
+    CHECK(denied.error().message.contains(u"the plugin “hello”"_s));
+    CHECK(value == 0);
+    REQUIRE(refused.size() == 1);
+    CHECK(refused.constFirst().origins == QStringList{u"ui"_s, u"plugin:hello"_s});
+
+    CHECK(bus.execute(u"test.set_value"_s, QJsonObject{{u"value"_s, 3}}, CallContext::api()));
+    CHECK(value == 3);
+}
+
+TEST_CASE("Commands that run each other without end stop at the depth limit", "[commands][context]")
+{
+    UndoStack stack;
+    CommandBus bus(stack);
+    CommandSpec loop = setSpec();
+    loop.id = u"test.loop"_s;
+    loop.undoable = false;
+    loop.paramsSchema = {};
+    std::size_t runs = 0;
+    REQUIRE(bus.registerCommand(loop, [&bus, &runs](const QJsonObject&) -> CommandResult {
+        ++runs;
+        if (auto again = bus.execute(u"test.loop"_s); !again)
+            return std::unexpected(again.error());
+        return CommandOutcome{};
+    }));
+
+    const auto result = bus.execute(u"test.loop"_s);
+    REQUIRE_FALSE(result.has_value());
+    CHECK(result.error().code == CommandErrorCode::Failed);
+    CHECK(result.error().message.contains(u"levels deep"_s));
+    CHECK(runs == CommandBus::kMaxDepth);
+    CHECK(bus.runningContext() == nullptr);
 }

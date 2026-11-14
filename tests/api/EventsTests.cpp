@@ -2,6 +2,7 @@
 // token, and is closed when the server stops.
 #include "ApiTestSupport.h"
 
+#include <QJsonArray>
 #include <QNetworkRequest>
 #include <QWebSocket>
 
@@ -99,7 +100,9 @@ TEST_CASE("The events socket pushes command.executed and undo.changed", "[api][e
     CHECK(client.find(u"command.executed"_s) == QJsonObject{{u"type"_s, u"command.executed"_s},
                                                             {u"id"_s, u"test.increment"_s},
                                                             {u"params"_s, QJsonObject{{u"by"_s, 2}}},
-                                                            {u"result"_s, QJsonObject{{u"value"_s, 2}}}});
+                                                            {u"result"_s, QJsonObject{{u"value"_s, 2}}},
+                                                            {u"origin"_s, u"api"_s},
+                                                            {u"origins"_s, QJsonArray{u"api"_s}}});
     CHECK(client.find(u"undo.changed"_s) == QJsonObject{{u"type"_s, u"undo.changed"_s},
                                                         {u"canUndo"_s, true},
                                                         {u"canRedo"_s, false},
@@ -134,8 +137,10 @@ TEST_CASE("The events socket pushes failures and registry changes, also for comm
           QJsonObject{{u"type"_s, u"command.failed"_s},
                       {u"id"_s, u"test.fail"_s},
                       {u"params"_s, QJsonObject{}},
-                      {u"error"_s, QJsonObject{{u"code"_s, u"failed"_s},
-                                               {u"message"_s, u"The test command failed on purpose."_s}}}});
+                      {u"error"_s,
+                       QJsonObject{{u"code"_s, u"failed"_s}, {u"message"_s, u"The test command failed on purpose."_s}}},
+                      {u"origin"_s, u"ui"_s},
+                      {u"origins"_s, QJsonArray{u"ui"_s}}});
 
     mikserstudio::core::CommandSpec late;
     late.id = u"test.late"_s;

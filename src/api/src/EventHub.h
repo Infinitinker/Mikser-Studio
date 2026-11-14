@@ -11,6 +11,7 @@ class QWebSocket;
 
 namespace mikserstudio::core {
 class CommandBus;
+struct CallContext;
 struct CommandError;
 }  // namespace mikserstudio::core
 
@@ -31,8 +32,10 @@ public:
 
 private:
     void broadcast(const QJsonObject& event);
-    void onExecuted(const QString& id, const QJsonObject& params, const QJsonObject& result);
-    void onFailed(const QString& id, const QJsonObject& params, const core::CommandError& error);
+    void onExecuted(const QString& id, const QJsonObject& params, const QJsonObject& result,
+                    const core::CallContext& context);
+    void onFailed(const QString& id, const QJsonObject& params, const core::CommandError& error,
+                  const core::CallContext& context);
     void onUndoChanged();
 
     core::CommandBus& m_bus;

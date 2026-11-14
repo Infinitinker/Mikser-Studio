@@ -5,6 +5,7 @@
 #include <QJsonObject>
 #include <QMetaType>
 #include <QString>
+#include <QStringList>
 
 #include <expected>
 #include <functional>
@@ -67,6 +68,30 @@ enum class CommandErrorCode {
     Failed,
     NotAvailable,  // Valid command that cannot run in the current state (e.g. nothing to undo).
     NeedsConfirmation,  // This run needs the user's agreement first (see CommandSpec::confirmationParam).
+    PermissionDenied,  // The caller lacks the command's permission (CommandSpec::permission).
+    Canceled,  // The run was stopped before it finished, by the caller or a timeout.
+};
+
+// Every permission, in the order docs/architecture.md ("Permissions") lists them.
+[[nodiscard]] const QStringList& allPermissions();
+
+// Who runs a command: the call context of docs/architecture.md ("Terms").
+struct CallContext {
+    // The chain of origins, the one that started the run first: "ui" (the person, in the
+    // interface), "api" (a client of the local API, such as an agent) or "plugin:<id>".
+    QStringList origins{QStringLiteral("ui")};
+    // The permissions the caller carries. The person and the API carry them all.
+    QStringList permissions = allPermissions();
+    // The person agreed to this run, as the command's confirmation asks.
+    bool confirmed = false;
+
+    [[nodiscard]] static CallContext ui() { return {}; }
+    [[nodiscard]] static CallContext api() { return {.origins = {QStringLiteral("api")}}; }
+    // Who started the run.
+    [[nodiscard]] const QString& origin() const { return origins.constFirst(); }
+    // This context passed on by `origin`, such as a plugin, which carries at most `permitted`. The
+    // person's agreement covers only the run it was given for.
+    [[nodiscard]] CallContext through(const QString& origin, const QStringList& permitted) const;
 };
 
 // An error in user terms: `message` says what went wrong and what to do about it.
@@ -93,5 +118,6 @@ using CommandHandler = std::function<CommandResult(const QJsonObject& params)>;
 
 }  // namespace mikserstudio::core
 
-// Lets CommandBus::failed reach queued connections; CommandBus registers it.
+// Let CommandBus::executed and failed reach queued connections; CommandBus registers them.
 Q_DECLARE_METATYPE(mikserstudio::core::CommandError)
+Q_DECLARE_METATYPE(mikserstudio::core::CallContext)

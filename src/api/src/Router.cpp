@@ -62,7 +62,10 @@ HttpStatus statusFor(core::CommandErrorCode code)
         return HttpStatus::BadRequest;
     case core::CommandErrorCode::NotAvailable:
     case core::CommandErrorCode::NeedsConfirmation:
+    case core::CommandErrorCode::Canceled:
         return HttpStatus::Conflict;
+    case core::CommandErrorCode::PermissionDenied:
+        return HttpStatus::Forbidden;
     case core::CommandErrorCode::Failed:
         return HttpStatus::InternalServerError;
     }
@@ -159,7 +162,7 @@ ApiResponse Router::executeCommand(const QHttpServerRequest& request, const QStr
         params = document.object();
     }
 
-    auto result = m_bus.execute(id, params);
+    auto result = m_bus.execute(id, params, core::CallContext::api());
     if (!result) {
         const core::CommandError& error = result.error();
         return errorResponse(statusFor(error.code), core::toString(error.code), error.message);

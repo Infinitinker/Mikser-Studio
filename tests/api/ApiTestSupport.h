@@ -61,6 +61,8 @@ HttpReply sendRequest(const QByteArray& method, const QUrl& url, const QByteArra
 //   test.fail {}               -> Failed
 //   test.busy {}               -> NotAvailable
 //   test.noop {}               -> {}
+//   test.refuse {code}         -> the error named by code: "permission_denied", "needs_confirmation"
+//                                 or "canceled"
 class ApiFixture {
 public:
     ApiFixture();

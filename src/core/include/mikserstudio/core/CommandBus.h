@@ -10,6 +10,7 @@
 #include <initializer_list>
 #include <map>
 #include <utility>
+#include <vector>
 
 namespace mikserstudio::core {
 
@@ -31,7 +32,8 @@ class UndoStack;
 //
 // Handlers may execute other commands. To make those one undo step, open a core::UndoGroup in the
 // handler: the nested commands' edits become one compound edit, and an edit the handler itself
-// returns is pushed separately after the group has closed.
+// returns is pushed separately after the group has closed. Commands that run each other more than
+// kMaxDepth levels deep fail, as a loop would.
 class CommandBus final : public QObject {
     Q_OBJECT
 
@@ -51,16 +53,29 @@ public:
     // (InvalidParams lists every problem), runs the handler with the defaulted params, pushes its
     // edit to the undo stack and emits executed() (with the defaulted params) or failed(); a run
     // that needs confirmation (NeedsConfirmation) emits neither.
-    // A handler that throws is reported as Failed. The handler may unregister commands.
+    // A handler that throws is reported as Failed. The handler may unregister commands. A caller
+    // without the spec's permission gets PermissionDenied, and the handler doesn't run.
+    std::expected<QJsonObject, CommandError> execute(const QString& id, const QJsonObject& params,
+                                                     const CallContext& context);
+    // Runs with the context of the command that is running, so a handler's commands keep their
+    // caller's origin and permissions (but not the person's agreement), and with CallContext::ui()
+    // when none is running.
     std::expected<QJsonObject, CommandError> execute(const QString& id, const QJsonObject& params = {});
+
+    // The context of the innermost command that is running, or nullptr.
+    [[nodiscard]] const CallContext* runningContext() const;
+
+    static constexpr std::size_t kMaxDepth = 16;
 
     [[nodiscard]] UndoStack& undoStack() const { return m_undoStack; }
 
 Q_SIGNALS:
     void commandRegistered(const QString& id);
     void commandUnregistered(const QString& id);
-    void executed(const QString& id, const QJsonObject& params, const QJsonObject& result);
-    void failed(const QString& id, const QJsonObject& params, const mikserstudio::core::CommandError& error);
+    void executed(const QString& id, const QJsonObject& params, const QJsonObject& result,
+                  const mikserstudio::core::CallContext& context);
+    void failed(const QString& id, const QJsonObject& params, const mikserstudio::core::CommandError& error,
+                const mikserstudio::core::CallContext& context);
 
 private:
     struct Entry {
@@ -70,6 +85,7 @@ private:
 
     UndoStack& m_undoStack;
     std::map<QString, Entry> m_commands;
+    std::vector<CallContext> m_running;  // The contexts of the commands running, innermost last.
 };
 
 // Converts a spec to the JSON published by the API and used by the command palette.
@@ -77,7 +93,8 @@ private:
 // A CommandSpec::resultSchema for a result object that always has these properties, each named
 // with its JSON type, such as {u"path"_s, u"string"_s}.
 [[nodiscard]] QJsonObject objectResultSchema(std::initializer_list<std::pair<QString, QString>> properties);
-// "unknown_command", "invalid_params", "failed", "not_available", "needs_confirmation".
+// "unknown_command", "invalid_params", "failed", "not_available", "needs_confirmation",
+// "permission_denied", "canceled".
 [[nodiscard]] QString toString(CommandErrorCode code);
 
 }  // namespace mikserstudio::core

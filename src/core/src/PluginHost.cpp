@@ -209,7 +209,12 @@ int PluginHost::executeCommand(void* host, const char* id, size_t idLength, cons
         writeToSink(error, u"The params for “%1” are not valid: %2"_s.arg(commandId, params.error()).toUtf8());
         return 1;
     }
-    auto outcome = plugin.m_bus.execute(commandId, *params);
+    // A native plugin carries every permission; Lua plugins carry those their manifest declares.
+    const QString origin = u"plugin:"_s + plugin.m_pluginId;
+    const CallContext* running = plugin.m_bus.runningContext();
+    const CallContext context = running ? running->through(origin, allPermissions())
+                                        : CallContext{.origins = {origin}, .permissions = allPermissions()};
+    auto outcome = plugin.m_bus.execute(commandId, *params, context);
     if (!outcome) {
         writeToSink(error, outcome.error().message.toUtf8());
         return 1;

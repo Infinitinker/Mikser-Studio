@@ -202,7 +202,9 @@ The contract the Lua host builds. A plugin's code sees one global, `ms`.
 
 The permission a command needs belongs to its caller. The call context keeps the chain of origins
 (agent → plugin → command), and a plugin that calls another plugin's command needs that command's
-permission itself.
+permission itself. The bus checks it before the handler runs and answers `permission_denied`
+(built: `core::CallContext`). The commands a handler runs keep its caller's origins and
+permissions, but not the person's agreement, and runs nest at most 16 deep, which stops a loop.
 
 ### Ids
 

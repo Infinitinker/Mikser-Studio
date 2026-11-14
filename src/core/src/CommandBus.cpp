@@ -14,7 +14,53 @@ using namespace Qt::StringLiterals;
 
 namespace mikserstudio::core {
 
+const QStringList& allPermissions()
+{
+    static const QStringList permissions{u"project.read"_s, u"project.write"_s, u"files"_s, u"network"_s,
+                                         u"ui"_s,           u"plugins.manage"_s};
+    return permissions;
+}
+
+CallContext CallContext::through(const QString& origin, const QStringList& permitted) const
+{
+    CallContext passed{.origins = origins, .permissions = {}, .confirmed = false};
+    passed.origins.append(origin);
+    for (const QString& permission : permissions) {
+        if (permitted.contains(permission))
+            passed.permissions.append(permission);
+    }
+    return passed;
+}
+
 namespace {
+
+// Who `origin` is, for messages: "the interface", "the API client" or "the plugin “hello”".
+QString describeOrigin(const QString& origin)
+{
+    if (origin == u"ui"_s)
+        return u"the interface"_s;
+    if (origin == u"api"_s)
+        return u"the API client"_s;
+    if (origin.startsWith(u"plugin:"_s))
+        return u"the plugin “%1”"_s.arg(origin.mid(7));
+    return u"“%1”"_s.arg(origin);
+}
+
+// Keeps a run's context on the bus's stack while its handler runs.
+class RunningContext {
+public:
+    RunningContext(std::vector<CallContext>& running, const CallContext& context)
+        : m_running(running)
+    {
+        m_running.push_back(context);
+    }
+    ~RunningContext() { m_running.pop_back(); }
+    RunningContext(const RunningContext&) = delete;
+    RunningContext& operator=(const RunningContext&) = delete;
+
+private:
+    std::vector<CallContext>& m_running;
+};
 
 CommandResult runHandler(const CommandHandler& handler, const QString& id, const QJsonObject& params)
 {
@@ -59,6 +105,7 @@ CommandBus::CommandBus(UndoStack& undoStack, QObject* parent)
     , m_undoStack(undoStack)
 {
     qRegisterMetaType<CommandError>();
+    qRegisterMetaType<CallContext>();
     registerCommand(
         CommandSpec{
             .id = u"edit.undo"_s,
@@ -153,7 +200,22 @@ QList<CommandSpec> CommandBus::specs() const
     return result;
 }
 
+const CallContext* CommandBus::runningContext() const
+{
+    return m_running.empty() ? nullptr : &m_running.back();
+}
+
 std::expected<QJsonObject, CommandError> CommandBus::execute(const QString& id, const QJsonObject& params)
+{
+    if (m_running.empty())
+        return execute(id, params, CallContext::ui());
+    CallContext inherited = m_running.back();
+    inherited.confirmed = false;
+    return execute(id, params, inherited);
+}
+
+std::expected<QJsonObject, CommandError> CommandBus::execute(const QString& id, const QJsonObject& params,
+                                                             const CallContext& context)
 {
     const auto fail = [&](CommandError error) -> std::expected<QJsonObject, CommandError> {
         if (error.code == CommandErrorCode::NeedsConfirmation) {
@@ -162,7 +224,7 @@ std::expected<QJsonObject, CommandError> CommandBus::execute(const QString& id, 
             return std::unexpected(std::move(error));
         }
         qCInfo(lcCommands).noquote() << id << "failed:" << error.message;
-        Q_EMIT failed(id, params, error);
+        Q_EMIT failed(id, params, error, context);
         return std::unexpected(std::move(error));
     };
 
@@ -172,6 +234,17 @@ std::expected<QJsonObject, CommandError> CommandBus::execute(const QString& id, 
             {CommandErrorCode::UnknownCommand,
              u"Unknown command “%1”. Open the command palette or call GET /v1/commands to see the available commands."_s
                  .arg(id)});
+    }
+    if (m_running.size() >= kMaxDepth) {
+        return fail({CommandErrorCode::Failed,
+                     u"“%1” was not run: commands ran other commands more than %2 levels deep, as in a loop. "
+                     u"Report this problem, with Mikser Studio’s log."_s.arg(id)
+                         .arg(kMaxDepth)});
+    }
+    if (const QString& permission = it->second.spec.permission; !context.permissions.contains(permission)) {
+        return fail({CommandErrorCode::PermissionDenied,
+                     u"“%1” needs the “%2” permission, and %3 doesn’t have it. Grant it, or run the command "
+                     u"yourself."_s.arg(id, permission, describeOrigin(context.origins.constLast()))});
     }
     // Copies, because a handler may unregister commands (e.g. a plugin deactivating itself).
     const bool undoable = it->second.spec.undoable;
@@ -184,7 +257,10 @@ std::expected<QJsonObject, CommandError> CommandBus::execute(const QString& id, 
             {CommandErrorCode::InvalidParams, u"Invalid parameters for “%1”: %2"_s.arg(id, problems.join(u"; "_s))});
     }
 
-    CommandResult outcome = runHandler(handler, id, effective);
+    CommandResult outcome = [&] {
+        const RunningContext running(m_running, context);
+        return runHandler(handler, id, effective);
+    }();
     if (!outcome)
         return fail(std::move(outcome.error()));
 
@@ -194,7 +270,7 @@ std::expected<QJsonObject, CommandError> CommandBus::execute(const QString& id, 
         m_undoStack.push(std::move(outcome->edit));
     }
     qCDebug(lcCommands).noquote() << "Executed" << id;
-    Q_EMIT executed(id, effective, outcome->result);
+    Q_EMIT executed(id, effective, outcome->result, context);
     return std::move(outcome->result);
 }
 
@@ -244,6 +320,10 @@ QString toString(CommandErrorCode code)
         return u"not_available"_s;
     case CommandErrorCode::NeedsConfirmation:
         return u"needs_confirmation"_s;
+    case CommandErrorCode::PermissionDenied:
+        return u"permission_denied"_s;
+    case CommandErrorCode::Canceled:
+        return u"canceled"_s;
     }
     return u"failed"_s;
 }

@@ -25,14 +25,6 @@ namespace {
 constexpr qsizetype kMaxToolNameLength = 64;  // MCP's limit for a tool name.
 const QString kReservedToolName = u"recent_events"_s;  // The MCP bridge's own tool.
 
-// Every permission a command may need (docs/architecture.md, "Permissions").
-const QStringList& permissions()
-{
-    static const QStringList list{u"project.read"_s, u"project.write"_s, u"files"_s, u"network"_s,
-                                  u"ui"_s,           u"plugins.manage"_s};
-    return list;
-}
-
 std::expected<void, QString> checkConfirmationParam(const CommandSpec& spec)
 {
     if (spec.confirmationParam.isEmpty())
@@ -120,9 +112,9 @@ std::expected<CommandSpec, QString> normalizeCommandSpec(CommandSpec spec)
         return std::unexpected(u"command “%1” needs an owner: \"core\" or the plugin's id"_s.arg(spec.id));
     if (spec.permission.isEmpty())
         spec.permission = spec.readOnly ? u"project.read"_s : u"project.write"_s;
-    if (!permissions().contains(spec.permission))
+    if (!allPermissions().contains(spec.permission))
         return std::unexpected(u"command “%1” names the unknown permission “%2”; use one of %3"_s.arg(
-            spec.id, spec.permission, permissions().join(u", "_s)));
+            spec.id, spec.permission, allPermissions().join(u", "_s)));
     return spec;
 }
 

@@ -6,6 +6,7 @@
 #include "mikserstudio/core/CommandBus.h"
 #include "mikserstudio/core/UndoStack.h"
 
+#include <QJsonArray>
 #include <QJsonDocument>
 #include <QWebSocket>
 
@@ -85,23 +86,29 @@ void EventHub::broadcast(const QJsonObject& event)
     }
 }
 
-void EventHub::onExecuted(const QString& id, const QJsonObject& params, const QJsonObject& result)
+void EventHub::onExecuted(const QString& id, const QJsonObject& params, const QJsonObject& result,
+                          const core::CallContext& context)
 {
     broadcast(QJsonObject{
         {u"type"_s, u"command.executed"_s},
         {u"id"_s, id},
         {u"params"_s, params},
         {u"result"_s, result},
+        {u"origin"_s, context.origin()},
+        {u"origins"_s, QJsonArray::fromStringList(context.origins)},
     });
 }
 
-void EventHub::onFailed(const QString& id, const QJsonObject& params, const core::CommandError& error)
+void EventHub::onFailed(const QString& id, const QJsonObject& params, const core::CommandError& error,
+                        const core::CallContext& context)
 {
     broadcast(QJsonObject{
         {u"type"_s, u"command.failed"_s},
         {u"id"_s, id},
         {u"params"_s, params},
         {u"error"_s, QJsonObject{{u"code"_s, core::toString(error.code)}, {u"message"_s, error.message}}},
+        {u"origin"_s, context.origin()},
+        {u"origins"_s, QJsonArray::fromStringList(context.origins)},
     });
 }
 

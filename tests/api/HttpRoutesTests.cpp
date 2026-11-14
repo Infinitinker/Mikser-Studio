@@ -78,7 +78,7 @@ TEST_CASE("GET /v1/commands lists every spec and GET /v1/commands/<id> returns o
     for (const QJsonValue spec : list.array())
         ids.append(spec.toObject().value(u"id"_s).toString());
     CHECK(ids == QStringList{u"edit.redo"_s, u"edit.undo"_s, u"test.busy"_s, u"test.echo"_s, u"test.fail"_s,
-                             u"test.increment"_s, u"test.noop"_s});
+                             u"test.increment"_s, u"test.noop"_s, u"test.refuse"_s});
 
     const auto one = fixture.get(u"/v1/commands/test.increment"_s);
     REQUIRE(one.status == 200);
@@ -159,6 +159,20 @@ TEST_CASE("Command errors map to HTTP status codes", "[api][http]")
         CHECK(reply.status == 409);
         CHECK(reply.errorCode() == u"not_available"_s);
         CHECK(fixture.post(u"/v1/commands/edit.undo"_s, {}).status == 409);
+    }
+    SECTION("needs confirmation and canceled: 409; permission denied: 403")
+    {
+        const auto ask = fixture.post(u"/v1/commands/test.refuse"_s, R"({"code": "needs_confirmation"})");
+        CHECK(ask.status == 409);
+        CHECK(ask.errorCode() == u"needs_confirmation"_s);
+        CHECK(ask.object().value(u"error"_s).toObject().value(u"message"_s).toString() ==
+              u"The test command refused with needs_confirmation."_s);
+        const auto canceled = fixture.post(u"/v1/commands/test.refuse"_s, R"({"code": "canceled"})");
+        CHECK(canceled.status == 409);
+        CHECK(canceled.errorCode() == u"canceled"_s);
+        const auto denied = fixture.post(u"/v1/commands/test.refuse"_s, R"({"code": "permission_denied"})");
+        CHECK(denied.status == 403);
+        CHECK(denied.errorCode() == u"permission_denied"_s);
     }
     SECTION("failed: 500 with the handler's message")
     {
