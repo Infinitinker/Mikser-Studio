@@ -108,10 +108,12 @@ curl -s http://127.0.0.1:52341/v1/health
 ```
 
 ```json
-{"apiVersion": 1, "name": "Mikser Studio", "version": "0.1.0"}
+{"apiVersion": 1, "name": "Mikser Studio", "pluginsReady": true, "version": "0.1.0"}
 ```
 
-`apiVersion` changes only on breaking changes; new routes, fields and commands may be added to
+`pluginsReady` is true once every plugin that is on has started or failed; tests and agents that need
+a plugin's commands wait for it (or for the `plugins.changed` event that says so). `apiVersion`
+changes only on breaking changes; new routes, fields and commands may be added to
 version 1 at any time, so ignore fields you do not know.
 
 ### `GET /v1/commands`
@@ -167,8 +169,9 @@ not empty, is the JSON Schema of a successful run's `result`, such as `{path}` f
 `permission` is what a caller needs to run the command ([architecture.md](architecture.md#permissions)):
 `project.read` for read-only commands, `project.write` for changes to the project, `files` for
 reading and writing files (opening, saving and importing), `network` for talking to the AI tools and
-changing their addresses, `ui` for the monitors and playback, and `plugins.manage`; today it is
-listed but not enforced. `startsJob` is true when the work goes on in a job that the result names
+changing their addresses, `ui` for the monitors and playback, and `plugins.manage` for the
+`plugins.*` commands. The person and the API's clients hold every permission; a plugin holds those
+it was granted, and its commands run with no more than its own and its caller's. `startsJob` is true when the work goes on in a job that the result names
 (`ai.run` answers `{jobId}`; `ai.jobs` follows it). `openWorld` is true when the command reaches
 outside the app, to an AI tool that may be on another computer or online. `quiet` is true for
 bookkeeping that the command log and the status bar leave out, as they leave out read-only commands:
@@ -269,6 +272,9 @@ Each text message is one JSON object with a `type`:
   (`progress` from 0 to 1, `message`; at most 10 a second per job) and `job.finished` (`state`:
   `succeeded`, `failed` or `canceled`, `error`, `result`). `jobs.list` lists them, the AI engine's
   included, with the same ids as `ai.run` gives; `jobs.cancel {jobId}` cancels one.
+- `plugins.changed` (`ready`) reports that a plugin was found, started, failed, turned on or off,
+  or reloaded; `plugins.list` answers the details. `ready` is what
+  `GET /v1/health` answers as `pluginsReady`.
 - `transport.state` reports a monitor's playback (`transport` is `program` or `source`, with the
   status the transport commands return), when it changes and at most 10 times a second per monitor:
   the first change at once and the last one of a burst within 100 ms.

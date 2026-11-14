@@ -61,6 +61,7 @@ public:
     core::UndoStack undo;
     core::CommandBus bus{undo};
     int counter = 0;
+    bool pluginsReady = true;  // What /v1/health says.
     std::unique_ptr<api::ApiServer> server;
 };
 

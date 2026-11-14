@@ -106,8 +106,11 @@ ApiFixture::ApiFixture()
 {
     REQUIRE(dir.isValid());
     registerTestCommands(bus, counter);
-    server = std::make_unique<api::ApiServer>(
-        bus, api::ApiServerOptions{.port = 0, .token = {}, .discoveryFile = dir.filePath(u"api.json"_s)});
+    server = std::make_unique<api::ApiServer>(bus,
+                                              api::ApiServerOptions{.port = 0,
+                                                                    .token = {},
+                                                                    .discoveryFile = dir.filePath(u"api.json"_s),
+                                                                    .pluginsReady = [this] { return pluginsReady; }});
     const auto started = server->start();
     if (!started)
         FAIL("ApiServer::start failed: " << started.error().toStdString());

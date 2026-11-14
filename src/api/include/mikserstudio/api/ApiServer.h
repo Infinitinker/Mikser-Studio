@@ -6,6 +6,7 @@
 #include <QString>
 
 #include <expected>
+#include <functional>
 #include <memory>
 
 namespace mikserstudio::core {
@@ -27,6 +28,8 @@ struct ApiServerOptions {
     quint16 port = 0;  // 0 picks a free (ephemeral) port.
     QString token;  // Empty: a random token is generated. Otherwise 16+ visible ASCII chars.
     QString discoveryFile;  // Where to write api.json: the app passes core::UserFolders::discoveryFile. Required.
+    // Whether the plugins have started, which GET /v1/health answers (pluginsReady); none: true.
+    std::function<bool()> pluginsReady;
 };
 
 // The local, versioned API: /v1 HTTP routes plus the /v1/events WebSocket on the same port.
@@ -66,6 +69,7 @@ private:
     QString m_token;
     QString m_discoveryFile;
     quint16 m_requestedPort = 0;
+    std::function<bool()> m_pluginsReady;
     quint16 m_port = 0;
     std::unique_ptr<Router> m_router;
     std::unique_ptr<EventHub> m_events;

@@ -57,7 +57,7 @@ The rules between them:
 
 | Folder | Target | Depends on | Job | State |
 |---|---|---|---|---|
-| `src/core/` | `MikserStudio::core` | Qt Core | Command bus, undo, JSON Schema validation, project model, transport interface, plugin manager (discovery, manifests, settings). | built |
+| `src/core/` | `MikserStudio::core` | Qt Core | Command bus, undo, JSON Schema validation, project model, transport interface, plugin manager (discovery, manifests, settings) and its `plugins.*` commands. | built |
 | `src/engine/` | `MikserStudio::engine` | core, MLT 7, Qt Gui | MLT runtime, media probe, playback engines (source clip, program timeline), GPU monitor (QRhi). | built |
 | `src/api/` | `MikserStudio::api` | core, Qt HttpServer/WebSockets | Versioned local API on 127.0.0.1: `/v1` HTTP + WebSocket events. | built |
 | `src/lua/` | `MikserStudio::lua` | core, Lua 5.4, sol2 | The Lua host: one sandboxed state per plugin on its own thread, the `ms` API (its Lua half in `src/lua/src/prelude.lua`), permissions, hot reload. It implements core's plugin runtime interface. | built |

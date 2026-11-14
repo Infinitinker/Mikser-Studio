@@ -11,8 +11,9 @@ class QPushButton;
 class QStackedLayout;
 
 namespace mikserstudio::core {
+class CommandBus;
 class PluginManager;
-}
+}  // namespace mikserstudio::core
 
 namespace mikserstudio::ui {
 
@@ -25,7 +26,7 @@ class PluginsPanel final : public QWidget {
     Q_OBJECT
 
 public:
-    explicit PluginsPanel(core::PluginManager& plugins, QWidget* parent = nullptr);
+    PluginsPanel(core::CommandBus& bus, core::PluginManager& plugins, QWidget* parent = nullptr);
 
     void selectPlugin(const QString& id);
 
@@ -37,6 +38,7 @@ private:
     void showDetails();
     void setFeedback(const QString& message, bool error);
 
+    core::CommandBus& m_bus;
     core::PluginManager& m_plugins;
     QString m_selectedId;
     QString m_formPluginId;  // Whose settings the form shows.

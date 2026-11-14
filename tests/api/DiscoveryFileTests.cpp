@@ -133,7 +133,7 @@ TEST_CASE("start() refuses to run without a discovery file to write", "[api][dis
 {
     mikserstudio::core::UndoStack undo;
     mikserstudio::core::CommandBus bus(undo);
-    mikserstudio::api::ApiServer server(bus, {.port = 0, .token = {}, .discoveryFile = {}});
+    mikserstudio::api::ApiServer server(bus, {.port = 0, .token = {}, .discoveryFile = {}, .pluginsReady = {}});
     const auto started = server.start();
     REQUIRE_FALSE(started.has_value());
     CHECK(started.error().contains(u"no discovery file"_s));
@@ -151,7 +151,8 @@ TEST_CASE("start() fails cleanly when the discovery file cannot be written", "[a
     }
     mikserstudio::core::UndoStack undo;
     mikserstudio::core::CommandBus bus(undo);
-    mikserstudio::api::ApiServer server(bus, {.port = 0, .token = {}, .discoveryFile = blocker + u"/api.json"_s});
+    mikserstudio::api::ApiServer server(
+        bus, {.port = 0, .token = {}, .discoveryFile = blocker + u"/api.json"_s, .pluginsReady = {}});
 
     const auto started = server.start();
     REQUIRE_FALSE(started.has_value());

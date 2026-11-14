@@ -25,6 +25,9 @@ TEST_CASE("GET /v1/health answers without a token", "[api][http]")
     CHECK(body.value(u"name"_s).toString() == u"Mikser Studio"_s);
     CHECK_FALSE(body.value(u"version"_s).toString().isEmpty());
     CHECK(body.value(u"apiVersion"_s).toInt() == mikserstudio::api::kApiVersion);
+    CHECK(body.value(u"pluginsReady"_s).toBool());
+    fixture.pluginsReady = false;
+    CHECK_FALSE(sendRequest("GET", fixture.url(u"/v1/health"_s)).object().value(u"pluginsReady"_s).toBool(true));
 
     const auto post = sendRequest("POST", fixture.url(u"/v1/health"_s), "{}");
     CHECK(post.status == 405);

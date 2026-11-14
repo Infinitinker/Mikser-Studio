@@ -243,7 +243,7 @@ void Shell::registerCorePanels()
     host.registerPanel({kLog.toString(), u"Log"_s, DockArea::Bottom, true,
                         [this](QWidget* parent) { return new LogPanel(*m_log, parent); }});
     host.registerPanel({kPlugins.toString(), u"Plugins"_s, DockArea::Right, true,
-                        [this](QWidget* parent) { return new PluginsPanel(m_plugins, parent); }});
+                        [this](QWidget* parent) { return new PluginsPanel(m_bus, m_plugins, parent); }});
 }
 
 void Shell::syncPluginPanels()

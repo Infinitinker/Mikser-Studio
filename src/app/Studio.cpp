@@ -7,6 +7,7 @@
 #include "Logging.h"
 #include "UnavailableProbe.h"
 
+#include "mikserstudio/core/PluginCommands.h"
 #include "mikserstudio/core/ProjectCommands.h"
 #include "mikserstudio/core/ProjectSnapshot.h"
 #include "mikserstudio/core/Transport.h"
@@ -78,6 +79,7 @@ Studio::Studio(const AppPaths& paths, StudioOptions options)
             m_plugins.addSearchPath(folder, core::PluginSource::Development);
     }
     m_plugins.discover();
+    core::registerPluginCommands(m_bus, m_plugins);
     QObject::connect(&m_plugins, &core::PluginManager::pluginFailed, [](const QString& id, const QString& message) {
         qCWarning(lcApp) << "Plugin" << id << "failed:" << message;
     });
@@ -98,6 +100,7 @@ void Studio::start()
         api::ApiServerOptions apiOptions;
         apiOptions.port = m_options.apiPort;
         apiOptions.discoveryFile = m_discoveryFile;
+        apiOptions.pluginsReady = [this] { return m_plugins.ready(); };
         m_api = std::make_unique<api::ApiServer>(m_bus, apiOptions);
         if (const auto port = m_api->start(); port)
             qCInfo(lcApp) << "API listening on 127.0.0.1:" << *port << "discovery file:" << m_api->discoveryFilePath();

@@ -49,14 +49,16 @@ TEST_CASE("A fixed port is used, and a taken port is reported", "[api][lifecycle
     mikserstudio::core::UndoStack undo;
     mikserstudio::core::CommandBus bus(undo);
 
-    mikserstudio::api::ApiServer blocked(bus, {.port = taken, .token = {}, .discoveryFile = dir.filePath(u"a.json"_s)});
+    mikserstudio::api::ApiServer blocked(
+        bus, {.port = taken, .token = {}, .discoveryFile = dir.filePath(u"a.json"_s), .pluginsReady = {}});
     const auto failed = blocked.start();
     REQUIRE_FALSE(failed.has_value());
     CHECK(failed.error().contains(QString::number(taken)));
     CHECK_FALSE(QFileInfo::exists(dir.filePath(u"a.json"_s)));
 
     probe.close();
-    mikserstudio::api::ApiServer fixed(bus, {.port = taken, .token = {}, .discoveryFile = dir.filePath(u"b.json"_s)});
+    mikserstudio::api::ApiServer fixed(
+        bus, {.port = taken, .token = {}, .discoveryFile = dir.filePath(u"b.json"_s), .pluginsReady = {}});
     const auto started = fixed.start();
     REQUIRE(started.has_value());
     CHECK(*started == taken);

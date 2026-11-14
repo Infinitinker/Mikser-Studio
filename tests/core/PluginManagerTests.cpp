@@ -1,11 +1,11 @@
 // The plugin manager: discovery of valid and broken plugins, starting and stopping them through a
 // plugin runtime, built-in and the person's own plugins and their permissions, and settings that are
 // validated, saved and kept across restarts.
+#include "FakePluginRuntime.h"
 #include "TestSupport.h"
 
 #include "mikserstudio/core/CommandBus.h"
 #include "mikserstudio/core/PluginManager.h"
-#include "mikserstudio/core/PluginRuntime.h"
 #include "mikserstudio/core/UndoStack.h"
 
 #include <catch2/catch_test_macros.hpp>
@@ -17,11 +17,10 @@
 #include <QTemporaryDir>
 
 #include <algorithm>
-#include <memory>
-#include <ranges>
 
 using namespace Qt::StringLiterals;
 using namespace mikserstudio::core;
+using mikserstudio::tests::FakePluginRuntime;
 using mikserstudio::tests::json;
 
 namespace {
@@ -49,66 +48,6 @@ QJsonObject fixtureManifest(const QString& id = kFixtureId)
     return manifest;
 }
 
-// One start of a plugin, as the fake runtime saw it.
-struct Start {
-    PluginManifest manifest;
-    PluginActivation activation;
-    bool running = true;
-    QJsonObject settings;
-};
-
-class FakeInstance final : public PluginInstance {
-public:
-    explicit FakeInstance(std::shared_ptr<Start> start)
-        : m_start(std::move(start))
-    {
-    }
-    ~FakeInstance() override { m_start->running = false; }
-    FakeInstance(const FakeInstance&) = delete;
-    FakeInstance& operator=(const FakeInstance&) = delete;
-    void setSettings(const QJsonObject& settings) override { m_start->settings = settings; }
-
-private:
-    std::shared_ptr<Start> m_start;
-};
-
-// A runtime that starts nothing by itself: the test says when a plugin has started or failed.
-class FakeRuntime final : public PluginRuntime {
-public:
-    std::expected<std::unique_ptr<PluginInstance>, QString> activate(const PluginManifest& manifest,
-                                                                     PluginActivation activation) override
-    {
-        if (!refusal.isEmpty())
-            return std::unexpected(refusal);
-        auto start = std::make_shared<Start>(
-            Start{.manifest = manifest, .activation = std::move(activation), .running = true, .settings = {}});
-        start->settings = start->activation.settings;
-        starts.append(start);
-        return std::make_unique<FakeInstance>(start);
-    }
-
-    // Says that every running plugin has started.
-    void startAll() const
-    {
-        for (const auto& start : starts) {
-            if (start->running)
-                start->activation.started();
-        }
-    }
-
-    [[nodiscard]] std::shared_ptr<Start> last(const QString& id) const
-    {
-        for (const auto& start : std::views::reverse(starts)) {
-            if (start->manifest.id == id)
-                return start;
-        }
-        return nullptr;
-    }
-
-    QString refusal;  // When set, activating fails at once with it.
-    QList<std::shared_ptr<Start>> starts;
-};
-
 struct Environment {
     [[nodiscard]] QString pluginsDir(const QString& name = u"plugins"_s) const { return temp.filePath(name); }
     [[nodiscard]] QString settingsDir() const { return temp.filePath(u"settings"_s); }
@@ -134,7 +73,7 @@ struct Environment {
     QTemporaryDir temp;
     UndoStack stack;
     CommandBus bus{stack};
-    FakeRuntime runtime;
+    FakePluginRuntime runtime;
 };
 
 struct Manager {

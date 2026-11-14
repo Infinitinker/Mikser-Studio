@@ -25,7 +25,8 @@ public:
     // How long a command run through POST may take before the API stops waiting for it.
     static constexpr std::chrono::seconds kRunTimeout{60};
 
-    Router(core::CommandBus& bus, QByteArray token);
+    // `pluginsReady` says whether the plugins have started; none: they have.
+    Router(core::CommandBus& bus, QByteArray token, std::function<bool()> pluginsReady);
 
     // Answers `request` through `answer`: at once, or, for a command that answers later
     // (CommandSpec::async), when it has finished or after kRunTimeout. `receiver` is the
@@ -42,6 +43,7 @@ private:
 
     core::CommandBus& m_bus;
     QByteArray m_token;
+    std::function<bool()> m_pluginsReady;
 };
 
 }  // namespace mikserstudio::api

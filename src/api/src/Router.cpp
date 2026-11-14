@@ -111,9 +111,10 @@ std::expected<QJsonObject, ApiResponse> paramsOf(const QHttpServerRequest& reque
 
 }  // namespace
 
-Router::Router(core::CommandBus& bus, QByteArray token)
+Router::Router(core::CommandBus& bus, QByteArray token, std::function<bool()> pluginsReady)
     : m_bus(bus)
     , m_token(std::move(token))
+    , m_pluginsReady(std::move(pluginsReady))
 {
 }
 
@@ -160,6 +161,7 @@ ApiResponse Router::health(const QHttpServerRequest& request) const
         {u"name"_s, u"Mikser Studio"_s},
         {u"version"_s, QStringLiteral(MIKSERSTUDIO_VERSION_STRING)},
         {u"apiVersion"_s, kApiVersion},
+        {u"pluginsReady"_s, m_pluginsReady ? m_pluginsReady() : true},
     });
 }
 

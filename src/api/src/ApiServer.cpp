@@ -47,6 +47,7 @@ ApiServer::ApiServer(core::CommandBus& bus, Options options, QObject* parent)
     , m_token(options.token.isEmpty() ? generateToken() : std::move(options.token))
     , m_discoveryFile(std::move(options.discoveryFile))
     , m_requestedPort(options.port)
+    , m_pluginsReady(std::move(options.pluginsReady))
 {
 }
 
@@ -69,7 +70,7 @@ std::expected<quint16, QString> ApiServer::start()
     }
 
     const QByteArray token = m_token.toUtf8();
-    m_router = std::make_unique<Router>(m_bus, token);
+    m_router = std::make_unique<Router>(m_bus, token, m_pluginsReady);
     m_http = std::make_unique<HttpFrontend>(*m_router, token);
 
     auto ipv4 = listenOn(*m_http, QHostAddress(QHostAddress::LocalHost), m_requestedPort);

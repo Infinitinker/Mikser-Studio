@@ -1,6 +1,7 @@
 // The Plugins panel: plugin list, activation and enabling, and the settings form from the settings schema.
 #include "PluginsPanel.h"
 
+#include "CommandInvoker.h"
 #include "PanelLayout.h"
 
 #include "mikserstudio/core/PluginManager.h"
@@ -59,14 +60,18 @@ QColor statusColor(core::PluginStatus status)
 
 }  // namespace
 
-PluginsPanel::PluginsPanel(core::PluginManager& plugins, QWidget* parent)
+PluginsPanel::PluginsPanel(core::CommandBus& bus, core::PluginManager& plugins, QWidget* parent)
     : QWidget(parent)
+    , m_bus(bus)
     , m_plugins(plugins)
 {
     auto* layout = makePanelLayout(this);
     auto* rescan = new QPushButton(u"Rescan"_s, this);
     rescan->setToolTip(u"Reads the plugin folders again for new or changed plugins."_s);
-    connect(rescan, &QPushButton::clicked, this, [this] { m_plugins.discover(); });
+    connect(rescan, &QPushButton::clicked, this, [this] {
+        if (const auto result = executeAsking(m_bus, u"plugins.rescan"_s, {}, this); result && !*result)
+            setFeedback(result->error().message, true);
+    });
     layout->addLayout(makePanelHeader(u"Plugins"_s, {rescan}));
 
     auto* splitter = new QSplitter(Qt::Vertical, this);
@@ -142,8 +147,12 @@ PluginsPanel::PluginsPanel(core::PluginManager& plugins, QWidget* parent)
     });
     connect(m_activate, &QPushButton::clicked, this, &PluginsPanel::toggleActive);
     connect(m_enabled, &QCheckBox::toggled, this, [this](bool enabled) {
-        if (const auto result = m_plugins.setEnabled(m_selectedId, enabled); !result)
-            setFeedback(result.error(), true);
+        const auto result = executeAsking(m_bus, u"plugins.set_enabled"_s,
+                                          {{u"id"_s, m_selectedId}, {u"enabled"_s, enabled}}, this);
+        if (!result)
+            showDetails();  // Declined: the box shows the plugin as it is.
+        else if (!*result)
+            setFeedback(result->error().message, true);
     });
     connect(m_save, &QPushButton::clicked, this, &PluginsPanel::saveSettings);
     connect(&plugins, &core::PluginManager::pluginsChanged, this, &PluginsPanel::reloadList);
@@ -185,8 +194,12 @@ void PluginsPanel::saveSettings()
         setFeedback(u"Fix the highlighted settings first."_s, true);
         return;
     }
-    if (const auto result = m_plugins.setSettings(m_selectedId, m_form->value()); !result) {
-        setFeedback(result.error(), true);
+    const auto result = executeAsking(m_bus, u"plugins.set_settings"_s,
+                                      {{u"id"_s, m_selectedId}, {u"settings"_s, m_form->value()}}, this);
+    if (!result)
+        return;
+    if (!*result) {
+        setFeedback(result->error().message, true);
         return;
     }
     setFeedback(u"Settings saved."_s, false);
