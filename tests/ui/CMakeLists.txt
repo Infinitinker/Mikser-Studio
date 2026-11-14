@@ -10,6 +10,7 @@ add_executable(mikserstudio-ui-tests
     MediaBinPanelTests.cpp
     MessageBoxAnswer.h
     PluginPanelBridgeTests.cpp
+    PluginsPanelTests.cpp
     PropertiesPanelTests.cpp
     ShellStateTests.cpp
     SchemaFormTests.cpp

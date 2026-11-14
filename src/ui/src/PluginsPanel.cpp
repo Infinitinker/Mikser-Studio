@@ -58,6 +58,19 @@ QColor statusColor(core::PluginStatus status)
     return theme.textMuted;
 }
 
+// What the panel calls a plugin: its name, or its id when its manifest is broken and has none.
+QString title(const core::PluginManifest& manifest)
+{
+    return manifest.name.isEmpty() ? manifest.id : manifest.name;
+}
+
+// The parts that aren't empty, joined by the separator.
+QString joined(QStringList parts, const QString& separator)
+{
+    parts.removeAll(QString());
+    return parts.join(separator);
+}
+
 }  // namespace
 
 PluginsPanel::PluginsPanel(core::CommandBus& bus, core::PluginManager& plugins, QWidget* parent)
@@ -211,7 +224,7 @@ void PluginsPanel::reloadList()
     const QSignalBlocker blocker(m_list);
     m_list->clear();
     for (const core::PluginState& state : m_plugins.plugins()) {
-        auto* item = new QListWidgetItem(u"%1  %2"_s.arg(state.manifest.name, state.manifest.version), m_list);
+        auto* item = new QListWidgetItem(joined({title(state.manifest), state.manifest.version}, u"  "_s), m_list);
         item->setData(Qt::UserRole, state.manifest.id);
         item->setData(Qt::DecorationRole, statusColor(state.status));
         item->setToolTip(u"%1 — %2"_s.arg(state.manifest.id, statusText(state.status)));
@@ -232,10 +245,10 @@ void PluginsPanel::showDetails()
         return;
     }
     const core::PluginManifest& manifest = state->manifest;
-    m_name->setText(manifest.name);
+    m_name->setText(title(manifest));
     const QString permissions = state->granted.isEmpty() ? u"No permissions"_s
                                                          : u"Permissions: %1"_s.arg(state->granted.join(u", "_s));
-    m_meta->setText(u"%1  ·  %2  ·  %3"_s.arg(manifest.id, manifest.version, permissions));
+    m_meta->setText(joined({manifest.id, manifest.version, permissions}, u"  ·  "_s));
     m_description->setText(manifest.description);
     m_description->setVisible(!manifest.description.isEmpty());
     m_status->setText(statusText(state->status));
