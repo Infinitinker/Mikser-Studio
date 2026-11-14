@@ -30,6 +30,45 @@ jobs:
       - name: Include directions
         run: lua5.4 tools/check_includes.lua
 
+  # The Lua in tools/ and in the plugins (docs/development.md, "Lua"): StyLua and luacheck, each with
+  # the settings in the folder it checks, and Lua 5.4's own compiler, which only parses (-p), for what
+  # luacheck accepts without checking, such as <const> and <close>. StyLua's and luacheck's release
+  # binaries are pinned by version and checked against their SHA-256s; luac5.4 comes with Ubuntu's
+  # lua5.4. Each step fails on any finding.
+  lua:
+    name: Lua
+    runs-on: ubuntu-26.04
+    timeout-minutes: 15
+    env:
+      STYLUA_URL: https://github.com/JohnnyMorganz/StyLua/releases/download/v2.6.0/stylua-linux-x86_64.zip
+      STYLUA_SHA256: a485f72bbfa22e4642e77a84b5edc2611a5cab7477b34e2e709dd8f78e919895
+      LUACHECK_URL: https://github.com/lunarmodules/luacheck/releases/download/v1.2.0/luacheck
+      LUACHECK_SHA256: d68da17fca0697d9e2fb04201f3884abd259fa558b3a449bccaed47f1390defc
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/lua
+      - name: Install StyLua and luacheck
+        run: |
+          mkdir -p "$RUNNER_TEMP/bin"
+          cd "$RUNNER_TEMP"
+          curl -fsSL -o stylua.zip "$STYLUA_URL"
+          echo "$STYLUA_SHA256  stylua.zip" | sha256sum --check --strict
+          unzip -q stylua.zip -d bin
+          curl -fsSL -o bin/luacheck "$LUACHECK_URL"
+          echo "$LUACHECK_SHA256  bin/luacheck" | sha256sum --check --strict
+          chmod +x bin/stylua bin/luacheck
+          echo "$RUNNER_TEMP/bin" >> "$GITHUB_PATH"
+      - name: StyLua
+        run: |
+          (cd tools && stylua --check .)
+          (cd plugins && stylua --check .)
+      - name: luacheck
+        run: |
+          (cd tools && luacheck .)
+          (cd plugins && luacheck .)
+      - name: Parse with luac5.4
+        run: git ls-files -z 'tools/*.lua' 'plugins/*.lua' | xargs -0 -n 1 luac5.4 -p
+
   # The C++ build with the ci preset, where warnings are errors, and its tests, the MCP bridge's and
   # those of the scripts in tools/ among them. The whole AI path, through the app against a fake AI
   # tool, is tested in e2e.yml.

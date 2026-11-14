@@ -1,6 +1,6 @@
-# Installs Lua 5.4 from Ubuntu's packages, for the jobs on Linux runners that run scripts in tools/
-# needing Lua alone: the include check (checks.yml) and reading the version (build-windows.yml,
-# release.yml). Jobs on Windows get Lua with MSYS2 (.github/actions/msys2). Needs a checkout first, as
+# Installs Lua 5.4 from Ubuntu's packages, with its compiler luac5.4, for the jobs on Linux runners
+# that need Lua alone: the include check and the Lua checks (checks.yml) and reading the version
+# (build-windows.yml, release.yml). Jobs on Windows get Lua with MSYS2 (.github/actions/msys2). Needs a checkout first, as
 # every local action does.
 name: Lua
 description: Installs Lua 5.4 on an Ubuntu runner.

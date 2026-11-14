@@ -64,8 +64,7 @@ include which, and the names the project uses for its concepts.
 2. Run the checks before pushing, as "Checks" in [docs/development.md](docs/development.md) lists
    them: the build and its tests, clang-format, clang-tidy and `tools/check_includes.lua` for the C++
    code; StyLua, luacheck and `luac5.4 -p` for the scripts in `tools/` and the plugins. The `Checks`
-   workflow runs all but those three for every pull request, and the `E2E tests` workflow the
-   end-to-end tests.
+   workflow runs them all for every pull request, and the `E2E tests` workflow the end-to-end tests.
 3. Modules include only what [docs/architecture.md](docs/architecture.md#import-directions) allows:
    plugins see only the Lua API, and the app's modules only the core. A new dependency is justified and its
    license checked before it is added; after adding or upgrading a library a release ships,

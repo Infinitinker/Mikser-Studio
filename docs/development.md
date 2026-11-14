@@ -167,7 +167,7 @@ also runs on its own: `lua5.4 tools/tests/test_licenses.lua`.
 lua5.4 tools/check_includes.lua
 ```
 
-**Lua** (no job yet): StyLua, luacheck and `luac5.4 -p`, each failing on any finding, for the scripts
+**Lua** (job `Lua`): StyLua, luacheck and `luac5.4 -p`, each failing on any finding, for the scripts
 in `tools/` and for the plugins. Each folder has its own `stylua.toml` and `.luacheckrc`: in `tools/`
 luacheck knows Lua 5.4's standard library, and in `plugins/` only what the plugins' sandbox offers
 (as `src/lua/src/LuaWorker.cpp` and its prelude build it) and the `ms` API, so a removed global such
@@ -247,5 +247,5 @@ The scripts in `tools/` need Lua 5.4 there too, with LuaFileSystem; the include 
 ## Branches
 
 `main` is stable and the default branch; work happens on `dev`, and changes reach `main` only through
-pull requests from `dev`, merged with a merge commit. The `Checks` jobs (`Lint`, `Tests`, `Licenses`,
-`C++ checks`) have short, fixed names so the main branch's ruleset can require them.
+pull requests from `dev`, merged with a merge commit. The `Checks` jobs (`Lint`, `Lua`, `Tests`,
+`Licenses`, `C++ checks`) have short, fixed names so the main branch's ruleset can require them.
