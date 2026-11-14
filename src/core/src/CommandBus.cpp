@@ -284,7 +284,19 @@ std::expected<QJsonObject, CommandError> CommandBus::admit(const Entry& entry, c
             u"“%1” needs the “%2” permission, and %3 doesn’t have it. Grant it, or run the command yourself."_s.arg(
                 id, permission, describeOrigin(context.origins.constLast()))});
     }
-    QJsonObject effective = JsonSchema::applyDefaults(params, entry.spec.paramsSchema);
+    QJsonObject given = params;
+    if (context.origins.constLast().startsWith(u"plugin:"_s)) {
+        // A plugin never agrees for the person: only their answer to the question
+        // (ms.ui.confirm) does, and only for the call it was given for.
+        if (!entry.spec.confirmation.isEmpty() && !context.confirmed)
+            return std::unexpected(CommandError{CommandErrorCode::NeedsConfirmation, entry.spec.confirmation});
+        if (const QString& agreement = entry.spec.confirmationParam; !agreement.isEmpty()) {
+            given.remove(agreement);
+            if (context.confirmed)
+                given.insert(agreement, true);
+        }
+    }
+    QJsonObject effective = JsonSchema::applyDefaults(given, entry.spec.paramsSchema);
     if (const QStringList problems = JsonSchema::validate(effective, entry.spec.paramsSchema); !problems.isEmpty()) {
         return std::unexpected(CommandError{CommandErrorCode::InvalidParams,
                                             u"Invalid parameters for “%1”: %2"_s.arg(id, problems.join(u"; "_s))});

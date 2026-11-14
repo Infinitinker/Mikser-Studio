@@ -85,7 +85,9 @@ struct CallContext {
     QStringList origins{QStringLiteral("ui")};
     // The permissions the caller carries. The person and the API carry them all.
     QStringList permissions = allPermissions();
-    // The person agreed to this run, as the command's confirmation asks.
+    // The person agreed to this run, as the command's confirmation asks. It matters for a plugin's
+    // call: without it, a command with a confirmation answers NeedsConfirmation and a
+    // confirmationParam the plugin set is dropped; with it, the bus sets that param to true.
     bool confirmed = false;
 
     [[nodiscard]] static CallContext ui() { return {}; }

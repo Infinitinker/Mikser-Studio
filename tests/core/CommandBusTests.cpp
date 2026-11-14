@@ -784,6 +784,56 @@ TEST_CASE("A caller without a command's permission is refused before it runs", "
     CHECK(value == 3);
 }
 
+TEST_CASE("A plugin can't agree for the person to a command that asks first", "[commands][context]")
+{
+    UndoStack stack;
+    CommandBus bus(stack);
+    int runs = 0;
+    QJsonObject seen;
+    const auto counting = [&runs, &seen](const QJsonObject& params) -> CommandResult {
+        ++runs;
+        seen = params;
+        return CommandOutcome{};
+    };
+    CommandSpec always = setSpec();
+    always.id = u"test.replace"_s;
+    always.undoable = false;
+    always.paramsSchema = {};
+    always.confirmation = u"Replace the value?"_s;
+    REQUIRE(bus.registerCommand(always, counting));
+    CommandSpec sometimes = always;
+    sometimes.id = u"test.discard"_s;
+    sometimes.confirmation.clear();
+    sometimes.paramsSchema = json(
+        R"({"type": "object", "properties": {"sure": {"type": "boolean", "default": false}}})");
+    sometimes.confirmationParam = u"sure"_s;
+    REQUIRE(bus.registerCommand(sometimes, counting));
+
+    const CallContext plugin = CallContext::api().through(u"plugin:hello"_s, allPermissions());
+    const auto asked = bus.execute(u"test.replace"_s, {}, plugin);
+    REQUIRE_FALSE(asked.has_value());
+    CHECK(asked.error().code == CommandErrorCode::NeedsConfirmation);
+    CHECK(asked.error().message == u"Replace the value?"_s);
+    CHECK(runs == 0);
+
+    CHECK(bus.execute(u"test.discard"_s, QJsonObject{{u"sure"_s, true}}, plugin));
+    CHECK(runs == 1);
+    CHECK(seen.value(u"sure"_s) == false);  // The plugin's own agreement is dropped.
+
+    CallContext agreed = plugin;
+    agreed.confirmed = true;  // As ms.ui.confirm gives it, for one call.
+    CHECK(bus.execute(u"test.replace"_s, {}, agreed));
+    CHECK(bus.execute(u"test.discard"_s, {}, agreed));
+    CHECK(runs == 3);
+    CHECK(seen.value(u"sure"_s) == true);
+
+    // The API and the interface still run them as before: the person's client asks.
+    CHECK(bus.execute(u"test.replace"_s, {}, CallContext::api()));
+    CHECK(bus.execute(u"test.discard"_s, QJsonObject{{u"sure"_s, true}}, CallContext::ui()));
+    CHECK(runs == 5);
+    CHECK(seen.value(u"sure"_s) == true);
+}
+
 TEST_CASE("Commands that run each other without end stop at the depth limit", "[commands][context]")
 {
     UndoStack stack;

@@ -80,7 +80,7 @@ Host functions (always pass `host->host` as the first argument):
 |---|---|
 | `log(level, message)` | Writes to the `mikserstudio.core.plugins` log as `[plugin-id] message`. |
 | `register_command(spec_json, fn, user_data, error)` | `spec_json` = `{"id", "title", "description", "category", "paramsSchema", "resultSchema", "shortcut", "readOnly", "quiet", "openWorld", "confirmation"}`; only `id` and `title` are required. The id must start with `<plugin-id>.`; `category` defaults to the plugin name. Set `"readOnly": true` for commands that never change anything (UIs keep them out of logs, API clients may cache them), `"quiet": true` for bookkeeping that changes something but is not worth a log line, and `"openWorld": true` for commands that reach outside the app, such as an online service. `resultSchema` is the JSON Schema (`"type": "object"`) of the result. The command's owner is the plugin's id. A non-empty `confirmation` is an English question the UI asks the user before running the command; the API does not ask. Plugin commands are not undoable in API 1. |
-| `execute_command(id, params_json, result, error)` | Runs any command like the UI would. Returns 0 on success. |
+| `execute_command(id, params_json, result, error)` | Runs any command like the UI would. Returns 0 on success. A plugin can't agree for the person: a command with a `confirmation` answers with its question as the error, and a `confirmationParam` the plugin sets (such as `discard` for `project.new`) is dropped, so the command asks when it needs to. |
 | `get_settings(sink)` | Current settings as a JSON object, schema defaults applied. |
 
 A command function receives the params already validated against its `paramsSchema` with

@@ -157,7 +157,9 @@ runs: `project.new` and `project.open` (`discard`) only while there are unsaved 
 `project.save` and `project.save_as` (`overwrite`) only when they would replace another existing file;
 saving to the project's own file never asks. Such a run without the parameter fails with
 `409 needs_confirmation`, whose message is the question to ask; the client asks the person and, when
-they agree, runs the command again with the parameter set to `true`.
+they agree, runs the command again with the parameter set to `true`. A plugin can't agree for the
+person: when a plugin runs one of these commands, the run answers `409 needs_confirmation` until the
+person agrees.
 
 `owner` is `core` for the app's own commands and the plugin's id for a plugin's; a command's spec
 changes (`command.changed`) and its commands go away with their owner. `resultSchema`, when

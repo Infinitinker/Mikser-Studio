@@ -210,6 +210,11 @@ The permission a command needs belongs to its caller. The call context keeps the
 permission itself. The bus checks it before the handler runs and answers `permission_denied`
 (built: `core::CallContext`). The commands a handler runs keep its caller's origins and
 permissions, but not the person's agreement, and runs nest at most 16 deep, which stops a loop.
+A plugin never agrees for the person: a command with a `confirmation` that a plugin runs answers
+`needs_confirmation` with the question, a `confirmationParam` the plugin sets is dropped, and only
+`ms.ui.confirm` agrees, for that one call (built: `CallContext::confirmed`). The API and the MCP
+bridge keep their contract: the API runs such commands without asking, and the bridge asks the
+person first.
 
 ### Ids
 
