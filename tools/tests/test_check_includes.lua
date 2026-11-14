@@ -77,7 +77,7 @@ end)
 
 test("the plugins' tests include the core and the Lua host", function()
     local tracked = { "tests/core/TestSupport.h" }
-    local plugin_test = "tests/plugins/hello/HelloPluginTests.cpp"
+    local plugin_test = "tests/plugins/PluginSpecTests.cpp"
     equal(problems(plugin_test, '#include "mikserstudio/core/PluginManager.h"\n'), {})
     equal(problems(plugin_test, '#include "mikserstudio/lua/LuaRuntime.h"\n'), {})
     equal(problems(plugin_test, '#include "TestSupport.h"\n', tracked), {})
