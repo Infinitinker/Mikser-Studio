@@ -133,7 +133,13 @@ public:
     std::expected<Track, QString> removeTrack(const QString& id);
     std::expected<void, QString> setTrackFlags(const QString& id, bool muted, bool hidden);
 
-    // Creates a new empty project with tracks V1, V2, A1, A2.
+    // The project's own file: the one it was opened from or last saved to, as an absolute path;
+    // empty for a project that has never been saved. reset() empties it; loadJson() leaves it to
+    // the caller, which knows where the project came from.
+    [[nodiscard]] const QString& filePath() const { return m_filePath; }
+    void setFilePath(const QString& path);
+
+    // Creates a new empty project with tracks V1, V2, A1, A2, and no file.
     void reset(Rational frameRate = {30, 1}, int width = 1920, int height = 1080);
 
     [[nodiscard]] QJsonObject toJson() const;
@@ -154,6 +160,7 @@ Q_SIGNALS:
     void trackChanged(const QString& id);  // Muted or hidden changed.
     void projectReset();  // Everything changed (new project or load).
     void timelineChanged();  // Any clip/track change; coalesce rebuilds on this.
+    void filePathChanged(const QString& path);
 
 private:
     [[nodiscard]] std::optional<QString> checkPlacement(const Clip& clip, const QString& ignoreClipId) const;
@@ -165,6 +172,7 @@ private:
     QList<MediaItem> m_media;
     QList<Track> m_tracks;
     QList<Clip> m_clips;
+    QString m_filePath;
 };
 
 // True for an absolute path to a file on this computer (not a URL or a network share such as

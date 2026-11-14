@@ -207,6 +207,13 @@ TEST_CASE("The MCP bridge drives the headless studio and follows it as it starts
     CHECK_FALSE(listed.contains(u"isError"_s));
     CHECK(listed[u"structuredContent"_s].isObject());
 
+    // An unsaved change, so a new project asks first.
+    const QJsonObject added = client
+                                  .request(u"tools/call"_s,
+                                           {{u"name"_s, u"timeline_add_track"_s},
+                                            {u"arguments"_s, QJsonObject{{u"kind"_s, u"video"_s}}}})[u"result"_s]
+                                  .toObject();
+    REQUIRE_FALSE(added.contains(u"isError"_s));
     client.send(toolCall(100, u"project_new"_s));
     const QJsonObject asked = client.next();
     REQUIRE(asked[u"method"_s] == u"elicitation/create"_s);

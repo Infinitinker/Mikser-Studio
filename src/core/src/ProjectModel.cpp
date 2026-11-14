@@ -317,8 +317,17 @@ std::expected<void, QString> ProjectModel::setTrackFlags(const QString& id, bool
     return {};
 }
 
+void ProjectModel::setFilePath(const QString& path)
+{
+    if (path == m_filePath)
+        return;
+    m_filePath = path;
+    Q_EMIT filePathChanged(m_filePath);
+}
+
 void ProjectModel::reset(Rational frameRate, int width, int height)
 {
+    setFilePath({});
     m_frameRate = frameRate;
     m_width = width;
     m_height = height;

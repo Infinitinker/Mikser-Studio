@@ -14,6 +14,8 @@ add_executable(mikser-studio WIN32
     Logging.h
     LogFile.cpp
     LogFile.h
+    ProjectFileCommands.cpp
+    ProjectFileCommands.h
     ShutdownSignals.cpp
     ShutdownSignals.h
     Studio.cpp

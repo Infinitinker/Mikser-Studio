@@ -142,11 +142,13 @@ curl -s -H "Authorization: Bearer $TOKEN" "$API/v1/commands"
 object. `undoable` is true when a successful run adds a step to the undo history. `readOnly` is true
 when the command only reads and changes nothing (such as `project.list`). `confirmation`, when not
 empty, is the question a client asks the person before it runs the command, because the command
-replaces or deletes their work (such as `project.new` and `project.open`); the API itself runs it
-without asking. `confirmationParam`, when not empty, names a boolean parameter for commands that need
-the person's agreement only on some runs: `project.save` asks only when the file exists. Such a run
-without the parameter fails with `409 needs_confirmation`, whose message is the question to ask; the
-client asks the person and, when they agree, runs the command again with the parameter set to `true`.
+always replaces or deletes their work; the API itself runs it without asking. `confirmationParam`,
+when not empty, names a boolean parameter for commands that need the person's agreement only on some
+runs: `project.new` and `project.open` (`discard`) only while there are unsaved changes, and
+`project.save` and `project.save_as` (`overwrite`) only when they would replace another existing file;
+saving to the project's own file never asks. Such a run without the parameter fails with
+`409 needs_confirmation`, whose message is the question to ask; the client asks the person and, when
+they agree, runs the command again with the parameter set to `true`.
 Plugins add and remove commands at run time; the events socket reports those changes.
 
 ### `GET /v1/commands/<id>`

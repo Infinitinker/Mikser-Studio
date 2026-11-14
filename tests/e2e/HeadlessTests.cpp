@@ -226,7 +226,13 @@ TEST_CASE("The headless studio answers its API and removes its discovery file wh
     CHECK(saved.body.object().value(u"result"_s).toObject().value(u"path"_s).toString() == saveTo + u".msproj"_s);
     CHECK(QFile::exists(saveTo + u".msproj"_s));
 
-    // Saving over it needs the user's agreement, given with overwrite.
+    // The project's own file is saved again without asking, also without a path.
+    CHECK(send(baseUrl + u"/v1/commands/project.save"_s, token, {{u"path"_s, saveTo}}).status == 200);
+    CHECK(send(baseUrl + u"/v1/commands/project.save"_s, token, {{u"overwrite"_s, false}}).status == 200);
+
+    // Saving over another file needs the person's agreement, given with overwrite.
+    const QString other = studio.folder().filePath(u"second"_s);
+    REQUIRE(send(baseUrl + u"/v1/commands/project.save_as"_s, token, {{u"path"_s, other}}).status == 200);
     const Reply asked = send(baseUrl + u"/v1/commands/project.save"_s, token, {{u"path"_s, saveTo}});
     CHECK(asked.status == 409);
     CHECK(asked.body.object().value(u"error"_s).toObject().value(u"code"_s).toString() == u"needs_confirmation"_s);

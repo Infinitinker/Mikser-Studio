@@ -53,12 +53,16 @@ void UndoStack::push(std::unique_ptr<UndoableEdit> edit)
     }
     if (isGrouping()) {
         m_groupEdits.push_back(std::move(edit));
+        updateClean();
         return;
     }
+    if (m_cleanIndex && *m_cleanIndex > m_index)
+        m_cleanIndex.reset();  // The clean point was in the redo branch this push discards.
     m_edits.erase(m_edits.begin() + static_cast<std::ptrdiff_t>(m_index), m_edits.end());
     m_edits.push_back(std::move(edit));
     m_index = m_edits.size();
     Q_EMIT changed();
+    updateClean();
 }
 
 void UndoStack::beginGroup(const QString& text)
@@ -108,6 +112,7 @@ bool UndoStack::undo()
     --m_index;
     m_edits[m_index]->undo();
     Q_EMIT changed();
+    updateClean();
     return true;
 }
 
@@ -118,17 +123,40 @@ bool UndoStack::redo()
     m_edits[m_index]->redo();
     ++m_index;
     Q_EMIT changed();
+    updateClean();
     return true;
 }
 
 void UndoStack::clear()
 {
     m_groupEdits.clear();
-    if (m_edits.empty())
+    m_cleanIndex.reset();
+    if (!m_edits.empty()) {
+        m_edits.clear();
+        m_index = 0;
+        Q_EMIT changed();
+    }
+    updateClean();
+}
+
+void UndoStack::setClean()
+{
+    m_cleanIndex = m_index;
+    updateClean();
+}
+
+bool UndoStack::isClean() const
+{
+    return m_cleanIndex == m_index && m_groupEdits.empty();
+}
+
+void UndoStack::updateClean()
+{
+    const bool clean = isClean();
+    if (clean == m_clean)
         return;
-    m_edits.clear();
-    m_index = 0;
-    Q_EMIT changed();
+    m_clean = clean;
+    Q_EMIT cleanChanged(clean);
 }
 
 }  // namespace mikserstudio::core

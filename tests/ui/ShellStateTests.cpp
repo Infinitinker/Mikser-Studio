@@ -1,5 +1,5 @@
 // The shell's saved state: it starts in the Editing workspace and keeps the layout and the last used
-// workspace across sessions.
+// workspace across sessions. Its title names the project and shows unsaved changes.
 #include "mikserstudio/core/CommandBus.h"
 #include "mikserstudio/core/PluginManager.h"
 #include "mikserstudio/core/Project.h"
@@ -10,6 +10,7 @@
 
 #include <catch2/catch_test_macros.hpp>
 
+#include <QCoreApplication>
 #include <QDir>
 #include <QFile>
 #include <QLabel>
@@ -131,4 +132,36 @@ TEST_CASE("Shell restores the workspace that was last used", "[shell]")
         CHECK(shell.dockHost().currentWorkspace() == u"AI"_s);
         CHECK(shell.dockHost().isPanelOpen(panel_ids::kAi.toString()));
     }
+}
+
+namespace {
+
+// A change the person made, as far as the undo history can tell.
+class SomeEdit final : public mikserstudio::core::UndoableEdit {
+public:
+    void undo() override { }
+    void redo() override { }
+    [[nodiscard]] QString text() const override { return u"Some edit"_s; }
+};
+
+}  // namespace
+
+TEST_CASE("Shell titles the window after the project's file and marks unsaved changes", "[shell]")
+{
+    QTemporaryDir dir;
+    Core core(dir.path());
+    Shell shell(core.bus, core.project, core.plugins, dir.filePath(u"config"_s));
+    QMainWindow* window = shell.mainWindow();
+    const QString app = QCoreApplication::applicationName();
+
+    CHECK(window->windowTitle() == u"Untitled[*] – %1"_s.arg(app));
+    CHECK_FALSE(window->isWindowModified());
+
+    core.undo.push(std::make_unique<SomeEdit>());
+    CHECK(window->isWindowModified());
+
+    core.project.setFilePath(u"D:/projects/Cut v1.2.msproj"_s);
+    core.undo.setClean();
+    CHECK(window->windowTitle() == u"Cut v1.2[*] – %1"_s.arg(app));
+    CHECK_FALSE(window->isWindowModified());
 }

@@ -89,6 +89,22 @@ TEST_CASE("A new project has four tracks and default format", "[project]")
     CHECK(project.width() == 1280);
 }
 
+TEST_CASE("A project keeps the path of its file until it is reset", "[project]")
+{
+    ProjectModel project;
+    CHECK(project.filePath().isEmpty());
+    QStringList signaled;
+    QObject::connect(&project, &ProjectModel::filePathChanged,
+                     [&signaled](const QString& path) { signaled.append(path); });
+
+    project.setFilePath(u"D:/projects/cut.msproj"_s);
+    project.setFilePath(u"D:/projects/cut.msproj"_s);
+    CHECK(project.filePath() == u"D:/projects/cut.msproj"_s);
+    project.reset();
+    CHECK(project.filePath().isEmpty());
+    CHECK(signaled == QStringList{u"D:/projects/cut.msproj"_s, QString()});
+}
+
 TEST_CASE("Media can be added, found and removed", "[project]")
 {
     ProjectModel project;

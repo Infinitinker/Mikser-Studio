@@ -20,6 +20,7 @@
 #include "mikserstudio/core/CommandBus.h"
 #include "mikserstudio/core/PluginManager.h"
 #include "mikserstudio/core/Project.h"
+#include "mikserstudio/core/UndoStack.h"
 #include "mikserstudio/ui/ClipSelection.h"
 #include "mikserstudio/ui/CommandPalette.h"
 #include "mikserstudio/ui/KddwDockHost.h"
@@ -28,8 +29,10 @@
 
 #include <QAction>
 #include <QCloseEvent>
+#include <QCoreApplication>
 #include <QDir>
 #include <QFile>
+#include <QFileInfo>
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QLabel>
@@ -96,6 +99,9 @@ Shell::Shell(core::CommandBus& bus, core::ProjectModel& project, core::PluginMan
     syncPluginPanels();
     connect(m_dockHost.get(), &KddwDockHost::currentWorkspaceChanged, this, &Shell::updateWorkspaceLabel);
     updateWorkspaceLabel();
+    connect(&project, &core::ProjectModel::filePathChanged, this, &Shell::updateWindowTitle);
+    connect(&bus.undoStack(), &core::UndoStack::cleanChanged, this, &Shell::updateWindowTitle);
+    updateWindowTitle();
 }
 
 Shell::~Shell() = default;
@@ -295,6 +301,17 @@ void Shell::updateWorkspaceLabel()
 {
     const QString name = m_dockHost->currentWorkspace();
     m_workspaceLabel->setText(name.isEmpty() ? QString() : u"Workspace: %1"_s.arg(name));
+}
+
+void Shell::updateWindowTitle()
+{
+    // "Cut v1.2* – Mikser Studio Dev": the project's file name, marked while there are unsaved changes
+    // ([*] is where Qt shows the mark), and the instance's name (core/Instance.h).
+    const QString file = m_project.filePath();
+    const QString name = file.isEmpty() ? u"Untitled"_s : QFileInfo(file).completeBaseName();
+    QMainWindow* window = mainWindow();
+    window->setWindowTitle(u"%1[*] – %2"_s.arg(name, QCoreApplication::applicationName()));
+    window->setWindowModified(!m_bus.undoStack().isClean());
 }
 
 }  // namespace mikserstudio::ui

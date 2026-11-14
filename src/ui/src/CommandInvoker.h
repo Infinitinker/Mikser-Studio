@@ -51,8 +51,10 @@ void executeReported(core::CommandBus& bus, const QString& id, const QJsonObject
 [[nodiscard]] bool needsParamsDialog(const core::CommandSpec& spec);
 
 // Runs a command picked in a menu, by its shortcut or in the palette: asks for confirmation, then
-// commands with required params get a dialog with a form generated from their schema. Returns
-// std::nullopt when the user canceled (or the command is gone), otherwise the command's result.
+// commands with required params get a dialog with a form generated from their schema. A command
+// whose params are all optional runs at once, and gets the dialog only when it answers
+// invalid_params (as "Save project" does before the project has a file). Returns std::nullopt when
+// the user canceled (or the command is gone), otherwise the command's result.
 std::optional<std::expected<QJsonObject, core::CommandError>> invokeCommand(core::CommandBus& bus, const QString& id,
                                                                             QWidget* parent);
 

@@ -85,6 +85,7 @@ private:
     void syncPluginPanels();
     void buildMenus();
     void updateWorkspaceLabel();
+    void updateWindowTitle();
     void applyPendingWorkspace();
 
     core::CommandBus& m_bus;

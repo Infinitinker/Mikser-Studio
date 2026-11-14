@@ -6,6 +6,7 @@
 #include <QObject>
 
 #include <memory>
+#include <optional>
 #include <vector>
 
 namespace mikserstudio::core {
@@ -16,6 +17,11 @@ namespace mikserstudio::core {
 // recorded; the outermost endGroup() pushes them as one compound edit named by the outermost
 // group's text (undo reverts them in reverse order). Groups nest; an empty group pushes nothing.
 // While a group is open, canUndo()/canRedo() are false and undo()/redo() return false.
+//
+// The clean state: setClean() marks the current point of the history as the one saved to the
+// project's file. isClean() is true while the history is back at that point and no group holds
+// edits; undo and redo can leave and return to it. Pushing an edit after undoing past the clean
+// point makes it unreachable, and clear() forgets it, until setClean() marks a new one.
 class UndoStack final : public QObject {
     Q_OBJECT
 
@@ -39,15 +45,23 @@ public:
     bool redo();  // Returns false when there is nothing to redo.
     void clear();  // Also drops the edits collected by an open group; the group stays open.
 
+    void setClean();
+    [[nodiscard]] bool isClean() const;
+
 Q_SIGNALS:
     void changed();
+    void cleanChanged(bool clean);
 
 private:
+    void updateClean();
+
     std::vector<std::unique_ptr<UndoableEdit>> m_edits;
     std::size_t m_index = 0;  // Number of applied edits; m_edits[m_index..] are redoable.
     int m_groupDepth = 0;
     QString m_groupText;
     std::vector<std::unique_ptr<UndoableEdit>> m_groupEdits;
+    std::optional<std::size_t> m_cleanIndex = 0;  // m_index at the clean point; empty when unreachable.
+    bool m_clean = true;  // isClean() when cleanChanged() was last emitted.
 };
 
 // Opens an undo group for its lifetime, also when the scope is left by an exception.

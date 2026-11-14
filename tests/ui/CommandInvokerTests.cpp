@@ -1,9 +1,11 @@
 // The command invoker: commands with a confirmation ask before an interactive run, a confirmation
-// parameter is asked for only when a run needs it, plugin panels get a canceled error when declined,
-// and read-only commands stay out of the command log and status bar.
+// parameter is asked for only when a run needs it, a command that needs an optional param gets the
+// params dialog, plugin panels get a canceled error when declined, and read-only commands stay out of
+// the command log and status bar.
 #include "mikserstudio/core/CommandBus.h"
 #include "mikserstudio/core/PluginManager.h"
 #include "mikserstudio/core/UndoStack.h"
+#include "mikserstudio/ui/SchemaForm.h"
 
 #include "CommandInvoker.h"
 #include "CommandLogModel.h"
@@ -17,9 +19,15 @@
 #include <catch2/catch_test_macros.hpp>
 
 #include <QAction>
+#include <QApplication>
+#include <QDialog>
 #include <QLabel>
 #include <QMenuBar>
+#include <QPushButton>
 #include <QTemporaryDir>
+#include <QTimer>
+
+#include <algorithm>
 
 using namespace Qt::StringLiterals;
 using mikserstudio::ui::test::answerNextMessageBox;
@@ -132,6 +140,64 @@ TEST_CASE("A command asks for its confirmation parameter only when a run needs i
     CHECK_FALSE(mikserstudio::ui::executeInteractive(bus, u"demo.save"_s, QJsonObject{{u"overwrite"_s, true}}, &window)
                     .has_value());
     CHECK_FALSE(runs.last().value(u"overwrite"_s).toBool());
+}
+
+TEST_CASE("A command that needs an optional param gets the dialog, which asks before replacing", "[invoker][dialog]")
+{
+    mikserstudio::core::UndoStack undo;
+    mikserstudio::core::CommandBus bus{undo};
+    QWidget window;
+    QList<QJsonObject> runs;
+    const auto schema = QJsonObject{
+        {u"type"_s, u"object"_s},
+        {u"properties"_s, QJsonObject{{u"path"_s, QJsonObject{{u"type"_s, u"string"_s}}},
+                                      {u"overwrite"_s, QJsonObject{{u"type"_s, u"boolean"_s}, {u"default"_s, false}}}}},
+        {u"additionalProperties"_s, false},
+    };
+    // Like "Save project" before the project has a file: no path, no save.
+    REQUIRE(bus.registerCommand({.id = u"demo.save"_s,
+                                 .title = u"Save"_s,
+                                 .description = u"Saves (test)."_s,
+                                 .category = u"Demo"_s,
+                                 .paramsSchema = schema,
+                                 .shortcut = {},
+                                 .confirmationParam = u"overwrite"_s},
+                                [&](const QJsonObject& params) -> mikserstudio::core::CommandResult {
+                                    runs.append(params);
+                                    if (!params.contains(u"path"_s))
+                                        return mikserstudio::core::commandFailure(
+                                            mikserstudio::core::CommandErrorCode::InvalidParams, u"Give a path."_s);
+                                    if (!params.value(u"overwrite"_s).toBool())
+                                        return mikserstudio::core::commandFailure(
+                                            mikserstudio::core::CommandErrorCode::NeedsConfirmation, u"Replace it?"_s);
+                                    return mikserstudio::core::CommandOutcome{};
+                                }));
+
+    // When the dialog opens: fill in the path, arm the answer to the question, and run.
+    QString shown;
+    bool dialogShown = false;
+    QTimer::singleShot(0, [&] {
+        auto* dialog = qobject_cast<QDialog*>(QApplication::activeModalWidget());
+        REQUIRE(dialog);
+        dialogShown = true;
+        auto* form = dialog->findChild<mikserstudio::ui::SchemaForm*>();
+        REQUIRE(form);
+        CHECK_FALSE(form->value().contains(u"overwrite"_s));  // Given by answering, not in the form.
+        form->setValue({{u"path"_s, u"D:/cuts/first.msproj"_s}});
+        answerNextMessageBox(QMessageBox::AcceptRole, &shown);
+        const auto buttons = dialog->findChildren<QPushButton*>();
+        const auto run = std::ranges::find_if(buttons, [](const QPushButton* b) { return b->text() == u"Run"_s; });
+        REQUIRE(run != buttons.end());
+        (*run)->click();
+    });
+    const auto saved = mikserstudio::ui::invokeCommand(bus, u"demo.save"_s, &window);
+    CHECK(dialogShown);
+    REQUIRE(saved.has_value());
+    CHECK(saved->has_value());
+    CHECK(shown == u"Replace it?"_s);
+    REQUIRE(runs.size() == 3);
+    CHECK(runs[1].value(u"path"_s) == u"D:/cuts/first.msproj"_s);
+    CHECK(runs[2].value(u"overwrite"_s).toBool());
 }
 
 TEST_CASE("Menu actions and their shortcuts ask before running a command with a confirmation", "[invoker][menus]")

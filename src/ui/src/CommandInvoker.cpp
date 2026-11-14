@@ -81,16 +81,36 @@ bool needsParamsDialog(const core::CommandSpec& spec)
     return !spec.paramsSchema.value(u"required").toArray().isEmpty();
 }
 
+namespace {
+
+// True when the dialog has something to ask: a parameter besides the agreement the person gives by
+// answering the command's question.
+bool hasFormParams(const core::CommandSpec& spec)
+{
+    QJsonObject properties = spec.paramsSchema.value(u"properties").toObject();
+    properties.remove(spec.confirmationParam);
+    return !properties.isEmpty();
+}
+
+}  // namespace
+
 std::optional<std::expected<QJsonObject, core::CommandError>> invokeCommand(core::CommandBus& bus, const QString& id,
                                                                             QWidget* parent)
 {
     const core::CommandSpec* spec = bus.spec(id);
     if (!spec)
         return std::nullopt;
-    if (!needsParamsDialog(*spec))
-        return executeInteractive(bus, id, {}, parent);
-    if (!confirmCommand(bus, id, parent))
+    if (!needsParamsDialog(*spec)) {
+        auto run = executeInteractive(bus, id, {}, parent);
+        // A command whose params are all optional may still need one now, such as "Save project"
+        // before the project has a file: it answers invalid_params, and the dialog asks for it.
+        spec = bus.spec(id);
+        if (!run || *run || run->error().code != core::CommandErrorCode::InvalidParams || !spec ||
+            !hasFormParams(*spec))
+            return run;
+    } else if (!confirmCommand(bus, id, parent)) {
         return std::nullopt;
+    }
     // The question box ran an event loop; the command may be gone.
     spec = bus.spec(id);
     if (!spec)

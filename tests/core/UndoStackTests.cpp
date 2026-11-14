@@ -1,5 +1,5 @@
-// The undo stack: steps are undone and redone in order, a new push discards the redo branch, and grouped
-// edits become one step that is reverted in reverse order.
+// The undo stack: steps are undone and redone in order, a new push discards the redo branch, grouped
+// edits become one step that is reverted in reverse order, and the clean point says what was saved.
 #include "TestSupport.h"
 
 #include "mikserstudio/core/UndoStack.h"
@@ -223,4 +223,67 @@ TEST_CASE("UndoStack handles empty, unbalanced and interrupted groups", "[undo]"
         CHECK(value == 1);
         CHECK_FALSE(stack.canUndo());
     }
+}
+
+TEST_CASE("UndoStack is clean at the point marked saved, and undo and redo return to it", "[undo]")
+{
+    UndoStack stack;
+    QList<bool> signaled;
+    QObject::connect(&stack, &UndoStack::cleanChanged, [&signaled](bool clean) { signaled.append(clean); });
+    int value = 0;
+    CHECK(stack.isClean());
+
+    apply(stack, value, 1);
+    CHECK_FALSE(stack.isClean());
+    stack.setClean();
+    CHECK(stack.isClean());
+
+    apply(stack, value, 2);
+    CHECK_FALSE(stack.isClean());
+    REQUIRE(stack.undo());
+    CHECK(stack.isClean());
+    REQUIRE(stack.undo());
+    CHECK_FALSE(stack.isClean());
+    REQUIRE(stack.redo());
+    CHECK(stack.isClean());
+    CHECK(signaled == QList<bool>{false, true, false, true, false, true});
+}
+
+TEST_CASE("UndoStack loses its clean point when a push discards it or the history is cleared", "[undo]")
+{
+    UndoStack stack;
+    int value = 0;
+    apply(stack, value, 1);
+    apply(stack, value, 2);
+    stack.setClean();
+
+    SECTION("a push after undoing past the clean point")
+    {
+        REQUIRE(stack.undo());
+        apply(stack, value, 5);
+        CHECK_FALSE(stack.isClean());
+        REQUIRE(stack.undo());
+        CHECK_FALSE(stack.isClean());
+    }
+    SECTION("clear, until setClean marks a new point")
+    {
+        stack.clear();
+        CHECK_FALSE(stack.isClean());
+        stack.setClean();
+        CHECK(stack.isClean());
+    }
+}
+
+TEST_CASE("UndoStack is not clean while an open group holds edits", "[undo]")
+{
+    UndoStack stack;
+    int value = 0;
+    stack.beginGroup(u"Both"_s);
+    CHECK(stack.isClean());
+    apply(stack, value, 1);
+    CHECK_FALSE(stack.isClean());
+    stack.endGroup();
+    CHECK_FALSE(stack.isClean());
+    REQUIRE(stack.undo());
+    CHECK(stack.isClean());
 }
