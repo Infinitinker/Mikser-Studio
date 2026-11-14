@@ -144,7 +144,7 @@ HttpJobs::HttpJobs(core::JobManager& jobs, HttpJobOptions options, QObject* pare
                         !problems.isEmpty()) {
                         return std::unexpected(
                             core::CommandError{core::CommandErrorCode::InvalidParams,
-                                               u"The %1 input doesn't fit: %2"_s.arg(kind, problems.join(u"; "_s))});
+                                               u"The %1 input doesn’t fit: %2"_s.arg(kind, problems.join(u"; "_s))});
                     }
                     HttpCall call = readCall(input, stream);
                     if (!isWebAddress(call.url)) {

@@ -133,7 +133,7 @@ public:
         m_openTimer.setSingleShot(true);
         m_openTimer.setInterval(kSocketOpen);
         connect(&m_openTimer, &QTimer::timeout, this, [this] {
-            fail(u"ComfyUI's socket did not open at %1. Check that ComfyUI is running and try again."_s.arg(
+            fail(u"ComfyUI’s socket did not open at %1. Check that ComfyUI is running and try again."_s.arg(
                 shown(m_input.url)));
         });
         m_silenceTimer.setSingleShot(true);
@@ -141,7 +141,7 @@ public:
         connect(&m_silenceTimer, &QTimer::timeout, this, [this] {
             if (!m_finishedInComfy)
                 deleteQueued(m_network, m_input.url, m_promptId);
-            fail(u"ComfyUI sent nothing about the job for %1 minutes. Check ComfyUI's window or log, then try again."_s
+            fail(u"ComfyUI sent nothing about the job for %1 minutes. Check ComfyUI’s window or log, then try again."_s
                      .arg(std::chrono::duration_cast<std::chrono::minutes>(kSilence).count()));
         });
     }
@@ -149,7 +149,7 @@ public:
     void start()
     {
         if (!QDir().mkpath(m_folder)) {
-            fail(u"Mikser Studio could not make the folder “%1” for ComfyUI's files. Check that there is free space."_s
+            fail(u"Mikser Studio could not make the folder “%1” for ComfyUI’s files. Check that there is free space."_s
                      .arg(QDir::toNativeSeparators(m_folder)));
             return;
         }
@@ -259,7 +259,7 @@ private:
                 fail(u"ComfyUI took the job but gave it no id. Check that ComfyUI is up to date and try again."_s);
                 return;
             }
-            m_jobs.progress(m_jobId, 0.0, u"Waiting in ComfyUI's queue"_s);
+            m_jobs.progress(m_jobId, 0.0, u"Waiting in ComfyUI’s queue"_s);
             m_silenceTimer.start();
             const QList<QJsonObject> early = std::exchange(m_early, {});
             for (const QJsonObject& event : early) {
@@ -323,7 +323,7 @@ private:
                         m_files.append(file.toObject());
                 }
                 if (m_files.isEmpty()) {
-                    fail(u"ComfyUI finished without saving a file. Look at ComfyUI's log for why."_s);
+                    fail(u"ComfyUI finished without saving a file. Look at ComfyUI’s log for why."_s);
                     return;
                 }
                 download(0);
@@ -461,7 +461,7 @@ ComfyUiJobs::ComfyUiJobs(core::JobManager& jobs, ComfyUiJobOptions options, QObj
                     !problems.isEmpty()) {
                     return std::unexpected(
                         core::CommandError{core::CommandErrorCode::InvalidParams,
-                                           u"The %1 input doesn't fit: %2"_s.arg(kKind, problems.join(u"; "_s))});
+                                           u"The %1 input doesn’t fit: %2"_s.arg(kKind, problems.join(u"; "_s))});
                 }
                 Run::Input call{
                     .url = QUrl(input.value(u"url").toString().trimmed(), QUrl::StrictMode),

@@ -55,7 +55,7 @@ std::expected<void, QString> checkNetworkAccess(const QStringList& entries, cons
     const bool local = isThisComputer(host);
     if (local && apiPort && std::cmp_equal(port, *apiPort)) {
         return std::unexpected(
-            u"%1 is Mikser Studio's own API, which plugins can't connect to."_s.arg(hostAndPort(host, port)));
+            u"%1 is Mikser Studio’s own API, which plugins can’t connect to."_s.arg(hostAndPort(host, port)));
     }
     for (const QString& text : entries) {
         const auto entry = core::parseNetworkEntry(text);
@@ -65,7 +65,7 @@ std::expected<void, QString> checkNetworkAccess(const QStringList& entries, cons
             return {};
     }
     return std::unexpected(
-        u"The plugin may not connect to %1: its manifest's network entries (%2) don't include it."_s.arg(
+        u"The plugin may not connect to %1: its manifest’s network entries (%2) don’t include it."_s.arg(
             hostAndPort(host, port), entries.isEmpty() ? u"none"_s : entries.join(u", "_s)));
 }
 

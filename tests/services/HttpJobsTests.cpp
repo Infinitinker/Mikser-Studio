@@ -195,7 +195,7 @@ TEST_CASE("The jobs reach only what the network entries allow, and never the app
         f.network = {u"127.0.0.1:*"_s, u"*:*"_s};
         const auto refused = f.start(u"http.request"_s, input);
         REQUIRE_FALSE(refused.has_value());
-        CHECK(refused.error().message.contains(u"Mikser Studio's own API"_s));
+        CHECK(refused.error().message.contains(u"Mikser Studio’s own API"_s));
     }
     SECTION("Without the network permission nothing starts")
     {
