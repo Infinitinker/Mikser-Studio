@@ -68,7 +68,7 @@ The rules between them:
 | `src/mcp/` | `mikser-studio-mcp` | Qt Network/WebSockets | The MCP bridge, a program of its own: offers the commands to agents as MCP tools through the local API. | built |
 | `plugins/` | Lua plugins | the Lua API | Built-in plugins in `plugins/builtin/<name>/`, the example in `plugins/examples/hello/`. | built (the example; no built-in plugins yet) |
 | `effects/` | GLSL effects | — | One folder per effect: `effect.frag` and `effect.json`. | planned |
-| `tools/` | development scripts | — | The release build, the third-party notices, the license and include checks and what they read from MSYS2, in Lua 5.4 with LuaFileSystem and lua-cjson, with their tests in `tools/tests/`; never shipped. Checked with StyLua and selene, with the settings in `tools/stylua.toml` and `tools/selene.toml`. | built |
+| `tools/` | development scripts | — | The release build, the third-party notices, the license and include checks and what they read from MSYS2, in Lua 5.4 with LuaFileSystem and lua-cjson, with their tests in `tools/tests/`; never shipped. Checked with StyLua, luacheck and `luac5.4 -p`, with the settings in `tools/stylua.toml` and `tools/.luacheckrc`. | built |
 | `tests/` | `*-tests` | Catch2 | Tests mirroring `src/` and `plugins/`, and the end-to-end tests. | built |
 
 ## Import directions

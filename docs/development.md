@@ -32,10 +32,16 @@ The C++ checks need clang-format and clang-tidy:
 pacman -S --needed mingw-w64-ucrt-x86_64-{clang,clang-tools-extra}
 ```
 
-The checks of the scripts in `tools/` are [StyLua](https://github.com/JohnnyMorganz/StyLua) and
-[selene](https://github.com/Kampfkarren/selene), two single programs to put on `PATH`. Both must
-read Lua 5.4: a plain `cargo install` builds them without it, so build StyLua with
-`--features lua54` and selene with its Lua 5.2 to 5.4 features.
+The Lua checks, of the scripts in `tools/` and of the plugins, need two single programs on `PATH`,
+both of which read Lua 5.4, and MSYS2's `luac5.4`, which comes with its Lua:
+
+- [StyLua](https://github.com/JohnnyMorganz/StyLua) 2.6.0. A plain `cargo install` builds it
+  without Lua 5.4, so build it with `cargo install --locked stylua --features lua54`, or take the
+  release binary.
+- [luacheck](https://github.com/lunarmodules/luacheck) 1.2.0, the release binary `luacheck.exe`
+  from <https://github.com/lunarmodules/luacheck/releases/tag/v1.2.0> (SHA-256
+  `0f1c69c4d09f1ebb4d8df14c215e4553e2e639bd4cb7bf3c639b0daa6198317b`), which has Lua 5.4 built in.
+  Not LuaRocks.
 
 Ollama and ComfyUI are optional: the Ollama plugin and the AI commands use them when they run
 ([ai.md](ai.md)), and the tests use fakes of them.
@@ -161,15 +167,18 @@ also runs on its own: `lua5.4 tools/tests/test_licenses.lua`.
 lua5.4 tools/check_includes.lua
 ```
 
-**Lua** (no job yet): StyLua and selene, both failing on any finding, for the scripts in `tools/`,
-with the settings in `tools/stylua.toml` and `tools/selene.toml` (and Lua 5.4's standard library for
-selene in `tools/lua54.yml`), and for the plugins, with those in `plugins/stylua.toml` and
-`plugins/selene.toml` (and what the plugins' sandbox offers in `plugins/mikserstudio.yml`).
-`stylua .` formats the files in place.
+**Lua** (no job yet): StyLua, luacheck and `luac5.4 -p`, each failing on any finding, for the scripts
+in `tools/` and for the plugins. Each folder has its own `stylua.toml` and `.luacheckrc`: in `tools/`
+luacheck knows Lua 5.4's standard library, and in `plugins/` only what the plugins' sandbox offers
+(as `src/lua/src/LuaWorker.cpp` and its prelude build it) and the `ms` API, so a removed global such
+as `io` or `os.execute` fails. A warning is silenced only in the line it is about, with the reason.
+luacheck accepts the `<const>` and `<close>` attributes without checking them, so Lua 5.4's own
+compiler parses every file too (`-p` writes nothing). `stylua .` formats the files in place.
 
 ```sh
-(cd tools && stylua --check . && selene .)
-(cd plugins && stylua --check . && selene .)
+(cd tools && stylua --check . && luacheck .)
+(cd plugins && stylua --check . && luacheck .)
+git ls-files -z 'tools/*.lua' 'plugins/*.lua' | xargs -0 -n 1 luac5.4 -p
 ```
 
 The plugins' types for Lua language servers, `plugins/types/ms.lua`, are what

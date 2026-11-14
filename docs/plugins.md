@@ -323,8 +323,9 @@ plugin is `plugins/builtin/ollama`, and [ai.md](ai.md#the-ollama-plugin) describ
 
 - [StyLua](https://github.com/JohnnyMorganz/StyLua) formats plugins with the settings in
   `plugins/stylua.toml`: four spaces and lines of up to 120 characters.
-- [selene](https://github.com/Kampfkarren/selene) checks them against what the sandbox offers and
-  the `ms` API, from `plugins/selene.toml` and `plugins/mikserstudio.yml`.
+- [luacheck](https://github.com/lunarmodules/luacheck) checks them against what the sandbox
+  offers and the `ms` API, from `plugins/.luacheckrc`: a global the sandbox leaves out, such as `io`,
+  fails. `luac5.4 -p` parses them, for the `<const>` and `<close>` that luacheck doesn't check.
 - A Lua language server, such as LuaLS, completes and checks the `ms` API from
   `plugins/types/ms.lua`, which `.luarc.json` at the repository's root points it to. A plugin
   outside the repository gets the same file from `mikser-studio --print-lua-types ms.lua`.
@@ -332,5 +333,5 @@ plugin is `plugins/builtin/ollama`, and [ai.md](ai.md#the-ollama-plugin) describ
 ```sh
 cd plugins
 stylua --check .
-selene .
+luacheck .
 ```
