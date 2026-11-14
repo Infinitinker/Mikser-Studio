@@ -249,7 +249,9 @@ Each text message is one JSON object with a `type`:
 ```
 
 - Events cover **every** command run, whether it came from the API, the UI, a shortcut or a plugin.
-  `params` are the params after defaults were applied. `origin` says who started the run: `ui` (the
+  A run that answers `needs_confirmation` publishes none: it is a question for the caller, and the
+  run after the person agrees is the one reported. `params` are the params after defaults were
+  applied. `origin` says who started the run: `ui` (the
   person, in the interface), `api` (a client of this API, such as an agent through the MCP bridge) or
   `plugin:<id>`. `origins` is the chain of callers, the one who started the run first: a plugin's
   command run through the API is `["api", "plugin:hello"]`. Commands a command runs keep its origin.
