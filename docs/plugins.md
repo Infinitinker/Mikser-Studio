@@ -141,6 +141,24 @@ Handlers, event callbacks and the entry file each run as a task of their own, so
 events are handled meanwhile. They work only in those tasks, not in a coroutine the plugin makes
 itself.
 
+### Job kinds
+
+The app's job kinds, which `ms.jobs.start` starts. Both need the `network` permission and connect
+only where the plugin's [network entries](#the-network) allow. Their `body`, when there is one, is
+sent as JSON; redirects aren't followed, and answers over 16 MB fail.
+
+- `http.request {url, method = "GET", body, timeout = 30, title}` answers
+  `{status, body, json}`: the status and the text of the answer, also of one that isn't 2xx, and
+  `json` when the text is JSON. It fails only when the address can't be reached or nothing comes
+  back for `timeout` seconds.
+- `http.stream_ndjson {url, method = "POST", body, fields = {"response"}, messages, timeout = 600,
+  title}` reads an answer of JSON lines, such as Ollama's, and answers `{fields, last, lines}`: the
+  text of each of `fields` joined across the lines, the last line, and how many there were.
+  `messages` maps a field to the progress shown while it grows, such as
+  `{response = "Writing ({count})"}`, with the lines so far for `{count}`. It fails with the tool's
+  own message for an answer that isn't 2xx or a line with an `error`, and when nothing comes for
+  `timeout` seconds, which allows for a model that takes minutes to load.
+
 ### Errors
 
 A command that fails raises a table `{code, message}` in `ms.run`, where `code` is one of:

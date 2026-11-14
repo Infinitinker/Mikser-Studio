@@ -102,10 +102,12 @@ void Studio::start()
         apiOptions.discoveryFile = m_discoveryFile;
         apiOptions.pluginsReady = [this] { return m_plugins.ready(); };
         m_api = std::make_unique<api::ApiServer>(m_bus, apiOptions);
-        if (const auto port = m_api->start(); port)
+        if (const auto port = m_api->start(); port) {
+            m_apiPort = *port;
             qCInfo(lcApp) << "API listening on 127.0.0.1:" << *port << "discovery file:" << m_api->discoveryFilePath();
-        else
+        } else {
             qCWarning(lcApp) << "The local API is off:" << port.error();
+        }
     }
     m_plugins.activateAll();
 }

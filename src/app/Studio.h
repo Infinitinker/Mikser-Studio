@@ -13,10 +13,12 @@
 #include "mikserstudio/engine/TimelinePlayer.h"
 #include "mikserstudio/lua/LuaRuntime.h"
 #include "mikserstudio/services/AiEngine.h"
+#include "mikserstudio/services/HttpJobs.h"
 
 #include <QString>
 
 #include <memory>
+#include <optional>
 
 namespace mikserstudio::app {
 
@@ -70,6 +72,8 @@ private:
 
     services::AiEngine m_ai;
     core::JobManager m_jobs{m_bus};  // After m_ai: it mirrors the AI engine's jobs.
+    std::optional<quint16> m_apiPort;  // While the API serves; the HTTP jobs never reach it.
+    services::HttpJobs m_http{m_jobs, services::HttpJobOptions{.apiPort = [this] { return m_apiPort; }}};
     lua::LuaRuntime m_lua;
 
     QString m_discoveryFile;

@@ -1,5 +1,5 @@
-# Services tests: the AI engine, its backends and the AI commands against fake Ollama and ComfyUI servers in
-# the test process. The whole path through the app is tested in tests/e2e.
+# Services tests: the AI engine, its backends, the AI commands and the HTTP job kinds against fake Ollama
+# and ComfyUI servers and an HTTP server in the test process. The whole path through the app is tested in tests/e2e.
 find_package(Qt6 6.8 REQUIRED COMPONENTS HttpServer Network WebSockets)
 
 add_executable(mikserstudio-services-tests
@@ -7,6 +7,7 @@ add_executable(mikserstudio-services-tests
     AiEngineTests.cpp
     FakeAiTools.cpp
     FakeAiTools.h
+    HttpJobsTests.cpp
     ServicesTestSupport.cpp
     ServicesTestSupport.h
     main.cpp
