@@ -30,7 +30,7 @@ The Lua side is being built now. Each part below is marked **built** (in the cod
 - **Interfaces at the seams.** The docking library (`ui::DockHost`), the media engine
   (`core::Transport`, `core::MediaProbe`) and the plugin runtime (`core::PluginRuntime`) sit behind
   small interfaces, so each can be replaced (e.g. MLT's CPU compositor by our own GPU compositor
-  later). (built; the plugin manager starts plugins through the runtime seam next)
+  later). (built)
 
 ## Layers
 
@@ -39,7 +39,7 @@ The Lua side is being built now. Each part below is marked **built** (in the cod
 | 1 | Engine | C++ | Decoding and encoding (FFmpeg, MLT), the render graph, GPU drawing (QRhi; OpenColorIO and scopes later), the real-time audio thread, the project and timeline model with undo. | built (OCIO, scopes planned) |
 | 2 | Shell | C++/Qt | The main window and docking, the monitors, the timeline widget: the UI that must stay smooth. | built |
 | 3 | Command bus | C++ | Commands with schemas, events and async jobs. `/v1` and the MCP bridge sit on it. | built (events and jobs in core planned) |
-| 4 | Lua host | C++ | Lua 5.4.9 through sol2 3.5.0. One state per plugin, each on its own worker thread. Permissions, sandbox, hot reload. | built (the app doesn't run it yet) |
+| 4 | Lua host | C++ | Lua 5.4.9 through sol2 3.5.0. One state per plugin, each on its own worker thread. Permissions, sandbox, hot reload. | built |
 | 5 | App layer | Lua | Most features, shipped as built-in plugins that use only the public API. | planned |
 | 6 | Plugins | Lua | Third-party and user plugins: the same API, sandboxed. | planned |
 | 7 | Effects | GLSL | Text files compiled at run time with Qt ShaderTools. | planned |
@@ -65,7 +65,7 @@ The rules between them:
 | `src/ui/` | `MikserStudio::ui` | core, Qt Widgets/Quick, KDDockWidgets | Main window, docking, workspaces, panels (media bin, timeline, AI, palette, properties, log). | built |
 | `src/app/` | `mikser-studio` | all | Wires the modules together; `mikser-studio --headless` runs without UI. | built |
 | `src/mcp/` | `mikser-studio-mcp` | Qt Network/WebSockets | The MCP bridge, a program of its own: offers the commands to agents as MCP tools through the local API. | built |
-| `plugins/` | Lua plugins | the Lua API | Built-in plugins in `plugins/builtin/<name>/`, the example in `plugins/examples/hello/`. | planned (today: the native `plugins/hello/`) |
+| `plugins/` | Lua plugins | the Lua API | Built-in plugins in `plugins/builtin/<name>/`, the example in `plugins/examples/hello/`. | built (the example; no built-in plugins yet) |
 | `effects/` | GLSL effects | — | One folder per effect: `effect.frag` and `effect.json`. | planned |
 | `sdk/` | `MikserStudio::sdk` | — | The C ABI of native plugins (`plugin_api.h`, MIT). Native plugins go away when the Lua host is in, and `sdk/` with them. | built, to be removed |
 | `tools/` | development scripts | — | The release build, the third-party notices, the license and include checks and what they read from MSYS2, in Lua 5.4 with LuaFileSystem and lua-cjson, with their tests in `tools/tests/`; never shipped. Checked with StyLua and selene, with the settings in `tools/stylua.toml` and `tools/selene.toml`. | built |
@@ -91,9 +91,8 @@ on its own. `tools/check_includes.lua` checks them, and the `Checks` workflow ru
 - `tests/e2e/` includes only the core: the end-to-end tests run the app and the MCP bridge as
   processes, and use the services tests' fake AI tools and the API tests' HTTP helpers. Every C++ file is in a folder the check
   knows, so a new folder has to be added to it before its includes pass.
-- Until they are removed: `sdk/` includes nothing of Mikser Studio, native plugins in `plugins/`
-  include only the plugin ABI, in angle brackets (`<mikserstudio/plugin_api.h>`), and
-  `tests/plugins/` includes only the core.
+- `tests/plugins/` includes only the core and the Lua host, and the shared support files of their
+  tests. Until it is removed, `sdk/` includes nothing of Mikser Studio.
 
 ## Terms
 
@@ -263,21 +262,26 @@ person first.
 - `id`, `name` and `version`;
 - `apiVersion`, which restarts at 1;
 - `entry`, a `.lua` file;
-- `permissions`;
-- `settings`, a JSON Schema;
-- `contributes`: commands, menus, shortcuts and panels.
+- `permissions`, each one the app knows, listed once;
+- `settingsSchema`, a JSON Schema of the plugin's settings;
+- `panels`: QML panels, for built-in plugins and the example.
 
-It has no `kind`: every plugin is a Lua plugin.
+It has no `kind`: every plugin is a Lua plugin, and a manifest that names one, or the old
+`capabilities`, is refused with the reason. (built; `contributes`, with commands, menus and
+shortcuts, planned)
 
 ### Folders
 
 - Built-in plugins: `plugins/builtin/<name>/`, staged to `bin/plugins/<name>/`.
 - The example: `plugins/examples/hello/`, never installed.
-- User plugins: `<data>/plugins/`, from `core::UserFolders`, one per instance. Plugin settings, which
-  are kept in `<config>/plugins/` today, move to `<config>/plugin-settings/`, so the two folders never
-  share a name.
-- User plugins stay off until the person enables them and grants their permissions in the Plugins
-  panel.
+- User plugins: `<data>/plugins/`, from `core::UserFolders`, one per instance. Plugin settings are
+  kept in `<config>/plugin-settings/`, so the two folders never share a name.
+- User plugins stay off until the person enables them in the Plugins panel, which grants the
+  permissions their manifests ask for, but `plugins.manage`, which only built-in plugins get.
+- Plugins in development: the folders `MIKSERSTUDIO_PLUGIN_PATH` names (separated like `PATH`),
+  which are on, with the permissions of the person's own plugins. `--safe-mode` runs only the
+  built-in plugins. A plugin reloads when its files change in a build from source, or with
+  `MIKSERSTUDIO_PLUGIN_HOT_RELOAD=1`. (built)
 
 ### Licensing
 
@@ -300,7 +304,6 @@ that they run inside a GPL-3.0-or-later program but only through its API.
   that tells the user what went wrong and what to do. Never swallow errors; use `QLoggingCategory`
   (`mikserstudio.<module>`), not `qDebug` without a category.
 - Small files with one job each. No dead or commented-out code, no speculative abstractions.
-- All internal libraries are static; native plugins are shared libraries loaded through the C ABI
-  until the Lua host replaces them.
+- All internal libraries are static.
 - Tests use Catch2 v3 and run without a GPU, network or audio device (use MLT's `null` consumer and
   `color:` producers, fake transports, ephemeral ports).

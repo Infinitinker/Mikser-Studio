@@ -15,6 +15,9 @@ AppPaths AppPaths::resolve()
     AppPaths paths;
     paths.user = core::UserFolders::resolve();
     paths.pluginsDir = appDir.filePath(u"plugins"_s);
+    paths.userPluginsDir = QDir(paths.user.data).filePath(u"plugins"_s);
+    paths.developmentPluginsDirs =
+        qEnvironmentVariable("MIKSERSTUDIO_PLUGIN_PATH").split(QDir::listSeparator(), Qt::SkipEmptyParts);
     return paths;
 }
 

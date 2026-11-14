@@ -2,7 +2,10 @@
 //
 //   mikser-studio [files...] [--play] [--screenshot <png> [--screenshot-delay <ms>]]
 //   mikser-studio --headless [--api-port <port>]
-//   mikser-studio [--no-api] [--api-port <port>]
+//   mikser-studio [--no-api] [--api-port <port>] [--safe-mode]
+//
+// MIKSERSTUDIO_PLUGIN_PATH names folders of plugins in development; MIKSERSTUDIO_PLUGIN_HOT_RELOAD=1
+// reloads a plugin when its files change, which a build from source does anyway.
 
 #include "AppPaths.h"
 #include "DesktopApp.h"
@@ -35,6 +38,7 @@ struct CommandLine {
     bool headless = false;
     bool api = true;
     quint16 apiPort = 0;
+    bool safeMode = false;
     app::DesktopOptions desktop;
 };
 
@@ -60,17 +64,19 @@ std::expected<CommandLine, QString> parseCommandLine(const QCoreApplication& app
                                       u"Run without a window; control Mikser Studio through the local API."_s);
     const QCommandLineOption noApi(u"no-api"_s, u"Do not start the local API."_s);
     const QCommandLineOption apiPort(u"api-port"_s, u"Port of the local API (default: any free port)."_s, u"port"_s);
+    const QCommandLineOption safeMode(u"safe-mode"_s, u"Run only the built-in plugins."_s);
     const QCommandLineOption play(u"play"_s, u"Start playing the timeline after start-up."_s);
     const QCommandLineOption screenshot(u"screenshot"_s, u"Save a screenshot of the window to <png>, then quit."_s,
                                         u"png"_s);
     const QCommandLineOption screenshotDelay(u"screenshot-delay"_s, u"Milliseconds to wait before the screenshot."_s,
                                              u"ms"_s, u"4000"_s);
-    parser.addOptions({headless, noApi, apiPort, play, screenshot, screenshotDelay});
+    parser.addOptions({headless, noApi, apiPort, safeMode, play, screenshot, screenshotDelay});
     parser.process(app);
 
     CommandLine line;
     line.headless = parser.isSet(headless);
     line.api = !parser.isSet(noApi);
+    line.safeMode = parser.isSet(safeMode);
     if (parser.isSet(apiPort)) {
         bool ok = false;
         const uint port = parser.value(apiPort).toUInt(&ok);
@@ -105,6 +111,24 @@ std::expected<void, QString> setIdentity()
     return {};
 }
 
+// A plugin reloads when its files change in a build from source (Mikser Studio Dev), or when
+// MIKSERSTUDIO_PLUGIN_HOT_RELOAD is 1.
+bool pluginHotReload()
+{
+    const auto instance = core::currentInstance();
+    const bool fromSource = instance && instance->appId == QLatin1StringView(core::kAppId) + u".dev"_s;
+    return fromSource || qEnvironmentVariable("MIKSERSTUDIO_PLUGIN_HOT_RELOAD") == u"1"_s;
+}
+
+app::StudioOptions studioOptions(const CommandLine& line, bool headless)
+{
+    return {.audio = !headless,
+            .api = headless || line.api,
+            .apiPort = line.apiPort,
+            .safeMode = line.safeMode,
+            .pluginHotReload = pluginHotReload()};
+}
+
 // The log file in the instance's logs folder; without one, Mikser Studio runs on and says why. A
 // command line that cannot run adds its reason to the current log rather than starting a new one, and
 // --help, --version and unknown options stop before the log is opened: neither pushes out the log of
@@ -137,7 +161,7 @@ int runHeadless(int argc, char** argv)
         return 2;
     }
     const app::ShutdownSignals shutdown;  // Outlives the studio, so Ctrl+C runs its teardown.
-    app::Studio studio(paths, {.audio = false, .api = true, .apiPort = line->apiPort});
+    app::Studio studio(paths, studioOptions(*line, true));
     studio.start();
     if (!studio.apiServer() || !studio.apiServer()->isRunning())
         return 1;
@@ -163,7 +187,7 @@ int runDesktop(int argc, char** argv)
         return 2;
     }
     const app::ShutdownSignals shutdown;
-    app::Studio studio(paths, {.audio = true, .api = line->api, .apiPort = line->apiPort});
+    app::Studio studio(paths, studioOptions(*line, false));
     studio.start();
     app::DesktopApp desktop(studio, paths.user.config, line->desktop);
     desktop.show();

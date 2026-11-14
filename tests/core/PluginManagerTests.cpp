@@ -1,20 +1,24 @@
-// The plugin manager: discovery of valid and broken plugins, activation and deactivation, command prefixes,
-// unloadable libraries, and settings that are validated, saved and kept across restarts.
+// The plugin manager: discovery of valid and broken plugins, starting and stopping them through a
+// plugin runtime, built-in and the person's own plugins and their permissions, and settings that are
+// validated, saved and kept across restarts.
 #include "TestSupport.h"
 
 #include "mikserstudio/core/CommandBus.h"
 #include "mikserstudio/core/PluginManager.h"
+#include "mikserstudio/core/PluginRuntime.h"
 #include "mikserstudio/core/UndoStack.h"
 
 #include <catch2/catch_test_macros.hpp>
 
 #include <QDir>
 #include <QFile>
-#include <QFileInfo>
 #include <QJsonArray>
+#include <QJsonDocument>
 #include <QTemporaryDir>
 
 #include <algorithm>
+#include <memory>
+#include <ranges>
 
 using namespace Qt::StringLiterals;
 using namespace mikserstudio::core;
@@ -24,80 +28,105 @@ namespace {
 
 const QString kFixtureId = u"mikserstudio.tests.fixture"_s;
 
-// Captures log messages for the lifetime of the object.
-class LogCapture {
-public:
-    LogCapture()
-    {
-        s_messages.clear();
-        m_previous = qInstallMessageHandler(&LogCapture::handle);
-    }
-    ~LogCapture() { qInstallMessageHandler(m_previous); }
-    LogCapture(const LogCapture&) = delete;
-    LogCapture& operator=(const LogCapture&) = delete;
-
-    [[nodiscard]] bool contains(const QString& text) const
-    {
-        return std::ranges::any_of(s_messages, [&text](const QString& message) { return message.contains(text); });
-    }
-
-private:
-    static void handle(QtMsgType, const QMessageLogContext&, const QString& message) { s_messages.append(message); }
-
-    static inline QStringList s_messages;
-    QtMessageHandler m_previous = nullptr;
-};
-
-QJsonObject fixtureManifest(const QString& entry = u"fixture"_s)
+QJsonObject fixtureManifest(const QString& id = kFixtureId)
 {
     QJsonObject manifest = json(R"({
-        "id": "mikserstudio.tests.fixture",
         "name": "Fixture",
         "version": "1.0.0",
         "apiVersion": 1,
-        "kind": "native",
-        "capabilities": ["commands"],
+        "entry": "main.lua",
+        "permissions": ["project.read", "plugins.manage"],
         "settingsSchema": {
             "type": "object",
             "properties": {
-                "mode": {"enum": ["ok", "fail_activate", "register_then_fail", "bad_prefix"], "default": "ok"},
+                "mode": {"enum": ["quiet", "loud"], "default": "quiet"},
                 "greeting": {"type": "string", "minLength": 1, "default": "hi"}
             },
             "additionalProperties": false
         }
     })");
-    manifest.insert(u"entry"_s, entry);
+    manifest.insert(u"id"_s, id);
     return manifest;
 }
 
-struct Environment {
-    QString pluginsDir() const { return temp.filePath(u"plugins"_s); }
-    QString settingsDir() const { return temp.filePath(u"settings"_s); }
+// One start of a plugin, as the fake runtime saw it.
+struct Start {
+    PluginManifest manifest;
+    PluginActivation activation;
+    bool running = true;
+    QJsonObject settings;
+};
 
-    // Copies a built library into <plugins>/<folder>/ and writes its manifest. Returns the copy.
-    QString install(const QString& folder, const QString& library, const QJsonObject& manifest) const
+class FakeInstance final : public PluginInstance {
+public:
+    explicit FakeInstance(std::shared_ptr<Start> start)
+        : m_start(std::move(start))
     {
-        const QDir dir(pluginsDir() + u'/' + folder);
-        REQUIRE(QDir().mkpath(dir.path()));
-        QString copy;
-        if (!library.isEmpty()) {
-            copy = dir.filePath(QFileInfo(library).fileName());
-            REQUIRE(QFile::copy(library, copy));
+    }
+    ~FakeInstance() override { m_start->running = false; }
+    FakeInstance(const FakeInstance&) = delete;
+    FakeInstance& operator=(const FakeInstance&) = delete;
+    void setSettings(const QJsonObject& settings) override { m_start->settings = settings; }
+
+private:
+    std::shared_ptr<Start> m_start;
+};
+
+// A runtime that starts nothing by itself: the test says when a plugin has started or failed.
+class FakeRuntime final : public PluginRuntime {
+public:
+    std::expected<std::unique_ptr<PluginInstance>, QString> activate(const PluginManifest& manifest,
+                                                                     PluginActivation activation) override
+    {
+        if (!refusal.isEmpty())
+            return std::unexpected(refusal);
+        auto start = std::make_shared<Start>(
+            Start{.manifest = manifest, .activation = std::move(activation), .running = true, .settings = {}});
+        start->settings = start->activation.settings;
+        starts.append(start);
+        return std::make_unique<FakeInstance>(start);
+    }
+
+    // Says that every running plugin has started.
+    void startAll() const
+    {
+        for (const auto& start : starts) {
+            if (start->running)
+                start->activation.started();
         }
-        writeManifest(folder, QJsonDocument(manifest).toJson());
-        return copy;
     }
 
-    QString installFixture(const QString& folder = u"fixture"_s) const
+    [[nodiscard]] std::shared_ptr<Start> last(const QString& id) const
     {
-        const QString library = QString::fromUtf8(MIKSERSTUDIO_TEST_FIXTURE_PLUGIN);
-        return install(folder, library, fixtureManifest(QFileInfo(library).completeBaseName()));
+        for (const auto& start : std::views::reverse(starts)) {
+            if (start->manifest.id == id)
+                return start;
+        }
+        return nullptr;
     }
 
-    void writeManifest(const QString& folder, const QByteArray& content) const
+    QString refusal;  // When set, activating fails at once with it.
+    QList<std::shared_ptr<Start>> starts;
+};
+
+struct Environment {
+    [[nodiscard]] QString pluginsDir(const QString& name = u"plugins"_s) const { return temp.filePath(name); }
+    [[nodiscard]] QString settingsDir() const { return temp.filePath(u"settings"_s); }
+
+    // Writes <root>/<folder>/ with the manifest and an entry file.
+    void install(const QString& folder, const QJsonObject& manifest, const QString& root = u"plugins"_s) const
     {
-        REQUIRE(QDir().mkpath(pluginsDir() + u'/' + folder));
-        QFile file(pluginsDir() + u'/' + folder + u"/mikserstudio-plugin.json"_s);
+        writeManifest(folder, QJsonDocument(manifest).toJson(), root);
+        QFile entry(pluginsDir(root) + u'/' + folder + u"/main.lua"_s);
+        REQUIRE(entry.open(QIODevice::WriteOnly));
+    }
+
+    void installFixture(const QString& folder = u"fixture"_s) const { install(folder, fixtureManifest()); }
+
+    void writeManifest(const QString& folder, const QByteArray& content, const QString& root = u"plugins"_s) const
+    {
+        REQUIRE(QDir().mkpath(pluginsDir(root) + u'/' + folder));
+        QFile file(pluginsDir(root) + u'/' + folder + u"/mikserstudio-plugin.json"_s);
         REQUIRE(file.open(QIODevice::WriteOnly));
         file.write(content);
     }
@@ -105,19 +134,23 @@ struct Environment {
     QTemporaryDir temp;
     UndoStack stack;
     CommandBus bus{stack};
+    FakeRuntime runtime;
 };
 
 struct Manager {
     explicit Manager(Environment& env)
         : manager(env.bus, env.settingsDir())
     {
+        manager.setRuntime(&env.runtime);
         manager.addSearchPath(env.pluginsDir());
+        manager.addSearchPath(env.pluginsDir(u"user"_s), PluginSource::User);
+        manager.addSearchPath(env.pluginsDir(u"development"_s), PluginSource::Development);
         QObject::connect(&manager, &PluginManager::pluginFailed,
                          [this](const QString& id, const QString& message) { failures.append({id, message}); });
         manager.discover();
     }
 
-    PluginStatus status(const QString& id) const
+    [[nodiscard]] PluginStatus status(const QString& id) const
     {
         const PluginState* state = manager.plugin(id);
         REQUIRE(state);
@@ -158,9 +191,10 @@ TEST_CASE("Discovery lists valid plugins and reports broken manifests", "[plugin
 
     CHECK_FALSE(m.manager.activate(u"bad_manifest"_s));
     CHECK_FALSE(m.manager.activate(u"mikserstudio.tests.unknown"_s));
+    CHECK(env.runtime.starts.isEmpty());
 }
 
-TEST_CASE("A Python plugin is listed as failed, with the reason", "[plugins]")
+TEST_CASE("A native or Python plugin is listed as failed, with the reason", "[plugins]")
 {
     Environment env;
     env.writeManifest(u"python_plugin"_s, R"({"id": "mikserstudio.tests.py", "name": "Py", "version": "0.1.0",
@@ -168,7 +202,7 @@ TEST_CASE("A Python plugin is listed as failed, with the reason", "[plugins]")
 
     Manager m(env);
     CHECK(m.status(u"python_plugin"_s) == PluginStatus::Failed);
-    CHECK(m.manager.plugin(u"python_plugin"_s)->error.contains(u"no longer runs Python plugins"_s));
+    CHECK(m.manager.plugin(u"python_plugin"_s)->error.contains(u"runs Lua plugins only"_s));
     REQUIRE(m.failures.size() == 1);
     CHECK(m.failures[0].first == u"python_plugin"_s);
     CHECK_FALSE(m.manager.activate(u"python_plugin"_s));
@@ -179,10 +213,13 @@ TEST_CASE("Discovery ignores a second plugin with the same id", "[plugins]")
     Environment env;
     env.installFixture(u"first"_s);
     env.installFixture(u"second"_s);
+    // A plugin found in an earlier search path wins over the person's own.
+    env.install(u"mine"_s, fixtureManifest(), u"user"_s);
     Manager m(env);
     CHECK(m.manager.plugins().size() == 1);
     CHECK(m.manager.plugin(kFixtureId)->manifest.directory.endsWith(u"/first"_s));
-    REQUIRE(m.failures.size() == 1);
+    CHECK(m.manager.plugin(kFixtureId)->source == PluginSource::BuiltIn);
+    REQUIRE(m.failures.size() == 2);
     CHECK(m.failures[0].second.contains(u"ignored"_s));
 
     PluginManager missing(env.bus, env.settingsDir());
@@ -219,143 +256,124 @@ TEST_CASE("A broken manifest cannot hide a valid plugin with the same id", "[plu
     }
 }
 
-TEST_CASE("A native plugin activates, runs commands and deactivates cleanly", "[plugins]")
-{
-    Environment env;
-    const QString library = env.installFixture();
-    LogCapture logs;
-    Manager m(env);
-
-    REQUIRE(m.manager.activate(kFixtureId));
-    CHECK(m.status(kFixtureId) == PluginStatus::Active);
-    CHECK(logs.contains(u"[mikserstudio.tests.fixture] fixture: activate ok"_s));
-    REQUIRE(env.bus.contains(kFixtureId + u".echo"_s));
-    CHECK(env.bus.spec(kFixtureId + u".echo"_s)->category == u"Fixture"_s);
-    CHECK_FALSE(env.bus.spec(kFixtureId + u".echo"_s)->undoable);
-    CHECK(env.bus.spec(kFixtureId + u".echo"_s)->readOnly);
-    CHECK(env.bus.spec(kFixtureId + u".echo"_s)->confirmation.isEmpty());
-    CHECK_FALSE(env.bus.spec(kFixtureId + u".run"_s)->readOnly);
-    CHECK(env.bus.spec(kFixtureId + u".run"_s)->confirmation == u"Run another command?"_s);
-    CHECK(m.manager.activate(kFixtureId));  // Already active is fine.
-
-    SECTION("commands are validated by the host and answered by the plugin")
-    {
-        const auto echoed = env.bus.execute(kFixtureId + u".echo"_s, json(R"({"text": "ping"})"));
-        REQUIRE(echoed);
-        CHECK(*echoed == json(R"({"echo": "ping", "greeting": "hi"})"));
-        const auto invalid = env.bus.execute(kFixtureId + u".echo"_s);
-        REQUIRE_FALSE(invalid);
-        CHECK(invalid.error().code == CommandErrorCode::InvalidParams);
-    }
-    SECTION("plugins can execute other commands through the host")
-    {
-        const auto nested = env.bus.execute(
-            kFixtureId + u".run"_s, json(R"({"command": "mikserstudio.tests.fixture.echo", "params": {"text": "x"}})"));
-        REQUIRE(nested);
-        CHECK(nested->value(u"echo").toString() == u"x"_s);
-        const auto unknown = env.bus.execute(kFixtureId + u".run"_s, json(R"({"command": "no.such_command"})"));
-        REQUIRE_FALSE(unknown);
-        CHECK(unknown.error().message.contains(u"Unknown command “no.such_command”"_s));
-    }
-    SECTION("get_settings returns the current settings")
-    {
-        REQUIRE(m.manager.setSettings(kFixtureId, json(R"({"greeting": "hey"})")));
-        const auto echoed = env.bus.execute(kFixtureId + u".echo"_s, json(R"({"text": "a"})"));
-        REQUIRE(echoed);
-        CHECK(echoed->value(u"greeting").toString() == u"hey"_s);
-    }
-
-    m.manager.deactivate(kFixtureId);
-    CHECK(m.status(kFixtureId) == PluginStatus::Discovered);
-    CHECK(logs.contains(u"fixture: deactivate"_s));
-    CHECK_FALSE(env.bus.contains(kFixtureId + u".echo"_s));
-    CHECK_FALSE(env.bus.contains(kFixtureId + u".run"_s));
-    CHECK(QFile::remove(library));  // The library is unloaded (Windows keeps loaded DLLs locked).
-}
-
-TEST_CASE("A plugin that fails to activate is reported and unloaded", "[plugins]")
-{
-    Environment env;
-    const QString library = env.installFixture();
-    Manager m(env);
-
-    SECTION("failure before registering")
-    {
-        REQUIRE(m.manager.setSettings(kFixtureId, json(R"({"mode": "fail_activate"})")));
-        const auto result = m.manager.activate(kFixtureId);
-        REQUIRE_FALSE(result);
-        CHECK(result.error().contains(u"fixture refused to start"_s));
-    }
-    SECTION("failure after registering a command")
-    {
-        REQUIRE(m.manager.setSettings(kFixtureId, json(R"({"mode": "register_then_fail"})")));
-        const auto result = m.manager.activate(kFixtureId);
-        REQUIRE_FALSE(result);
-        CHECK(result.error().contains(u"fixture failed after registering"_s));
-        CHECK_FALSE(env.bus.contains(kFixtureId + u".echo"_s));
-    }
-    CHECK(m.status(kFixtureId) == PluginStatus::Failed);
-    CHECK_FALSE(m.manager.plugin(kFixtureId)->error.isEmpty());
-    REQUIRE(m.failures.size() == 1);
-    CHECK(m.failures[0].first == kFixtureId);
-    CHECK(QFile::remove(library));
-
-    m.manager.activateAll();  // Failed plugins are not retried until the next discovery.
-    CHECK(m.failures.size() == 1);
-    m.manager.discover();
-    CHECK(m.status(kFixtureId) == PluginStatus::Discovered);
-}
-
-TEST_CASE("Plugin commands must start with the plugin id", "[plugins]")
+TEST_CASE("A plugin starts through the runtime, with its permissions and settings", "[plugins]")
 {
     Environment env;
     env.installFixture();
     Manager m(env);
-    REQUIRE(m.manager.setSettings(kFixtureId, json(R"({"mode": "bad_prefix"})")));
-    REQUIRE(m.manager.activate(kFixtureId));
-    CHECK_FALSE(env.bus.contains(u"other.plugin.command"_s));
-    const auto lastError = env.bus.execute(kFixtureId + u".last_error"_s);
-    REQUIRE(lastError);
-    CHECK(lastError->value(u"error").toString().contains(u"must start with the plugin id"_s));
-    CHECK(lastError->value(u"error").toString().contains(u"mikserstudio.tests.fixture."_s));
+    CHECK_FALSE(m.manager.ready());
+
+    m.manager.activateAll();
+    CHECK(m.status(kFixtureId) == PluginStatus::Starting);
+    CHECK_FALSE(m.manager.ready());
+    const auto start = env.runtime.last(kFixtureId);
+    REQUIRE(start);
+    CHECK(start->activation.granted == QStringList{u"project.read"_s, u"plugins.manage"_s});
+    CHECK(start->settings == json(R"({"mode": "quiet", "greeting": "hi"})"));
+
+    env.runtime.startAll();
+    CHECK(m.status(kFixtureId) == PluginStatus::Active);
+    CHECK(m.manager.ready());
+
+    // A reload whose new code doesn't run fails the plugin; the next one that runs starts it again.
+    start->activation.failed(u"main.lua:3: oops"_s);
+    CHECK(m.status(kFixtureId) == PluginStatus::Failed);
+    CHECK(m.manager.plugin(kFixtureId)->error == u"main.lua:3: oops"_s);
+    REQUIRE(m.failures.size() == 1);
+    CHECK(start->running);
+    start->activation.started();
+    CHECK(m.status(kFixtureId) == PluginStatus::Active);
+    CHECK(m.manager.plugin(kFixtureId)->error.isEmpty());
+
+    REQUIRE(m.manager.setSettings(kFixtureId, json(R"({"mode": "loud"})")));
+    CHECK(start->settings == json(R"({"mode": "loud", "greeting": "hi"})"));
+
+    m.manager.deactivate(kFixtureId);
+    CHECK_FALSE(start->running);
+    CHECK(m.status(kFixtureId) == PluginStatus::Discovered);
+    // What a stopped plugin's runtime says afterwards changes nothing.
+    start->activation.started();
+    CHECK(m.status(kFixtureId) == PluginStatus::Discovered);
 }
 
-TEST_CASE("Unloadable libraries are reported without crashing", "[plugins]")
+TEST_CASE("Activating a failed plugin starts it anew", "[plugins]")
 {
     Environment env;
-    QJsonObject manifest = fixtureManifest(u"missing"_s);
-    env.install(u"missing"_s, QString(), manifest);
-
-    const QString noEntry = QString::fromUtf8(MIKSERSTUDIO_TEST_NOENTRY_PLUGIN);
-    manifest = fixtureManifest(QFileInfo(noEntry).completeBaseName());
-    manifest.insert(u"id"_s, u"mikserstudio.tests.noentry"_s);
-    const QString noEntryCopy = env.install(u"noentry"_s, noEntry, manifest);
-
-    const QString wrongApi = QString::fromUtf8(MIKSERSTUDIO_TEST_WRONGAPI_PLUGIN);
-    manifest = fixtureManifest(QFileInfo(wrongApi).completeBaseName());
-    manifest.insert(u"id"_s, u"mikserstudio.tests.wrongapi"_s);
-    const QString wrongApiCopy = env.install(u"wrongapi"_s, wrongApi, manifest);
-
-    QFile garbage(env.pluginsDir() + u"/garbage/garbage.dll"_s);
-    manifest = fixtureManifest(u"garbage"_s);
-    manifest.insert(u"id"_s, u"mikserstudio.tests.garbage"_s);
-    env.install(u"garbage"_s, QString(), manifest);
-    REQUIRE(garbage.open(QIODevice::WriteOnly));
-    garbage.write("this is not a library");
-    garbage.close();
-
+    env.installFixture();
     Manager m(env);
-    m.manager.activateAll();
-    CHECK(m.status(kFixtureId) == PluginStatus::Failed);
-    CHECK(m.manager.plugin(kFixtureId)->error.contains(u"Could not load the plugin library"_s));
-    CHECK(m.status(u"mikserstudio.tests.noentry"_s) == PluginStatus::Failed);
-    CHECK(m.manager.plugin(u"mikserstudio.tests.noentry"_s)->error.contains(u"mikserstudio_plugin_v1"_s));
-    CHECK(m.status(u"mikserstudio.tests.wrongapi"_s) == PluginStatus::Failed);
-    CHECK(m.manager.plugin(u"mikserstudio.tests.wrongapi"_s)->error.contains(u"API version 99"_s));
-    CHECK(m.status(u"mikserstudio.tests.garbage"_s) == PluginStatus::Failed);
-    CHECK(m.failures.size() == 4);
-    CHECK(QFile::remove(noEntryCopy));
-    CHECK(QFile::remove(wrongApiCopy));
+    REQUIRE(m.manager.activate(kFixtureId));
+    const auto first = env.runtime.last(kFixtureId);
+    first->activation.failed(u"main.lua:1: no"_s);
+    REQUIRE(m.status(kFixtureId) == PluginStatus::Failed);
+
+    REQUIRE(m.manager.activate(kFixtureId));
+    CHECK_FALSE(first->running);
+    CHECK(env.runtime.starts.size() == 2);
+    CHECK(m.status(kFixtureId) == PluginStatus::Starting);
+    first->activation.started();  // The first start's answer is too late.
+    CHECK(m.status(kFixtureId) == PluginStatus::Starting);
+    env.runtime.startAll();
+    CHECK(m.status(kFixtureId) == PluginStatus::Active);
+}
+
+TEST_CASE("A plugin that can't start is reported", "[plugins]")
+{
+    Environment env;
+    env.installFixture();
+
+    SECTION("by the runtime")
+    {
+        env.runtime.refusal = u"main.lua is missing."_s;
+        Manager m(env);
+        m.manager.activateAll();
+        CHECK(m.status(kFixtureId) == PluginStatus::Failed);
+        CHECK(m.manager.plugin(kFixtureId)->error == u"main.lua is missing."_s);
+        REQUIRE(m.failures.size() == 1);
+        CHECK(m.manager.ready());
+    }
+    SECTION("without a runtime")
+    {
+        PluginManager manager(env.bus, env.settingsDir());
+        manager.addSearchPath(env.pluginsDir());
+        manager.discover();
+        const auto activated = manager.activate(kFixtureId);
+        REQUIRE_FALSE(activated);
+        CHECK(activated.error().contains(u"runs no plugins"_s));
+        CHECK(manager.plugin(kFixtureId)->status == PluginStatus::Failed);
+    }
+}
+
+TEST_CASE("The person's own plugins are off until enabled, and only built-in ones manage plugins", "[plugins]")
+{
+    Environment env;
+    env.install(u"builtin"_s, fixtureManifest(u"mikserstudio.tests.builtin"_s));
+    env.install(u"mine"_s, fixtureManifest(u"mikserstudio.tests.mine"_s), u"user"_s);
+    env.install(u"dev"_s, fixtureManifest(u"mikserstudio.tests.dev"_s), u"development"_s);
+    const QStringList readOnly{u"project.read"_s};
+    {
+        Manager m(env);
+        CHECK(m.status(u"mikserstudio.tests.builtin"_s) == PluginStatus::Discovered);
+        CHECK(m.status(u"mikserstudio.tests.mine"_s) == PluginStatus::Disabled);
+        CHECK(m.status(u"mikserstudio.tests.dev"_s) == PluginStatus::Discovered);
+        CHECK(m.manager.plugin(u"mikserstudio.tests.builtin"_s)->granted ==
+              QStringList{u"project.read"_s, u"plugins.manage"_s});
+        CHECK(m.manager.plugin(u"mikserstudio.tests.mine"_s)->granted == readOnly);
+        CHECK(m.manager.plugin(u"mikserstudio.tests.mine"_s)->source == PluginSource::User);
+        CHECK(m.manager.plugin(u"mikserstudio.tests.dev"_s)->granted == readOnly);
+
+        m.manager.activateAll();
+        CHECK_FALSE(env.runtime.last(u"mikserstudio.tests.mine"_s));
+        REQUIRE(m.manager.setEnabled(u"mikserstudio.tests.mine"_s, true));
+        REQUIRE(m.manager.activate(u"mikserstudio.tests.mine"_s));
+        CHECK(env.runtime.last(u"mikserstudio.tests.mine"_s)->activation.granted == readOnly);
+    }
+    {
+        Manager m(env);
+        CHECK(m.status(u"mikserstudio.tests.mine"_s) == PluginStatus::Discovered);
+        REQUIRE(m.manager.setEnabled(u"mikserstudio.tests.mine"_s, false));
+    }
+    Manager m(env);
+    CHECK(m.status(u"mikserstudio.tests.mine"_s) == PluginStatus::Disabled);
 }
 
 TEST_CASE("Plugin settings are validated and persisted", "[plugins]")
@@ -364,7 +382,7 @@ TEST_CASE("Plugin settings are validated and persisted", "[plugins]")
     env.installFixture();
     {
         Manager m(env);
-        CHECK(m.manager.settings(kFixtureId) == json(R"({"mode": "ok", "greeting": "hi"})"));
+        CHECK(m.manager.settings(kFixtureId) == json(R"({"mode": "quiet", "greeting": "hi"})"));
         CHECK(m.manager.settings(u"mikserstudio.tests.unknown"_s).isEmpty());
 
         QList<QJsonObject> changes;
@@ -381,9 +399,9 @@ TEST_CASE("Plugin settings are validated and persisted", "[plugins]")
         CHECK(changes.isEmpty());
 
         REQUIRE(m.manager.setSettings(kFixtureId, json(R"({"greeting": "yo"})")));
-        CHECK(m.manager.settings(kFixtureId) == json(R"({"mode": "ok", "greeting": "yo"})"));
+        CHECK(m.manager.settings(kFixtureId) == json(R"({"mode": "quiet", "greeting": "yo"})"));
         REQUIRE(changes.size() == 1);
-        CHECK(changes[0] == json(R"({"mode": "ok", "greeting": "yo"})"));
+        CHECK(changes[0] == json(R"({"mode": "quiet", "greeting": "yo"})"));
     }
 
     QFile file(env.settingsDir() + u"/mikserstudio.tests.fixture.json"_s);
@@ -400,7 +418,7 @@ TEST_CASE("Plugin settings are validated and persisted", "[plugins]")
     file.close();
     {
         Manager m(env);
-        CHECK(m.manager.settings(kFixtureId) == json(R"({"mode": "ok", "greeting": "hi"})"));
+        CHECK(m.manager.settings(kFixtureId) == json(R"({"mode": "quiet", "greeting": "hi"})"));
     }
 }
 
@@ -409,7 +427,7 @@ TEST_CASE("Plugins without a settings schema take no settings", "[plugins]")
     Environment env;
     QJsonObject manifest = fixtureManifest();
     manifest.remove(u"settingsSchema"_s);
-    env.install(u"plain"_s, QString(), manifest);
+    env.install(u"plain"_s, manifest);
     Manager m(env);
     CHECK(m.manager.settings(kFixtureId).isEmpty());
     CHECK(m.manager.setSettings(kFixtureId, {}));
@@ -423,9 +441,10 @@ TEST_CASE("Disabled plugins stay inactive across restarts", "[plugins]")
     {
         Manager m(env);
         REQUIRE(m.manager.activate(kFixtureId));
+        const auto start = env.runtime.last(kFixtureId);
         REQUIRE(m.manager.setEnabled(kFixtureId, false));
         CHECK(m.status(kFixtureId) == PluginStatus::Disabled);
-        CHECK_FALSE(env.bus.contains(kFixtureId + u".echo"_s));
+        CHECK_FALSE(start->running);
         const auto blocked = m.manager.activate(kFixtureId);
         REQUIRE_FALSE(blocked);
         CHECK(blocked.error().contains(u"disabled"_s));
@@ -436,15 +455,18 @@ TEST_CASE("Disabled plugins stay inactive across restarts", "[plugins]")
         CHECK(m.status(kFixtureId) == PluginStatus::Disabled);
         m.manager.activateAll();
         CHECK(m.status(kFixtureId) == PluginStatus::Disabled);
+        CHECK(m.manager.ready());
         REQUIRE(m.manager.setEnabled(kFixtureId, true));
         CHECK(m.status(kFixtureId) == PluginStatus::Discovered);
         m.manager.activateAll();
+        env.runtime.startAll();
         CHECK(m.status(kFixtureId) == PluginStatus::Active);
     }
-    CHECK_FALSE(env.bus.contains(kFixtureId + u".echo"_s));  // The destructor deactivated it.
+    // The destructor stopped it.
+    CHECK_FALSE(env.runtime.last(kFixtureId)->running);
 }
 
-TEST_CASE("Rediscovery keeps active plugins active", "[plugins]")
+TEST_CASE("Rediscovery keeps running plugins running", "[plugins]")
 {
     Environment env;
     env.installFixture();
@@ -452,8 +474,9 @@ TEST_CASE("Rediscovery keeps active plugins active", "[plugins]")
     int changes = 0;
     QObject::connect(&m.manager, &PluginManager::pluginsChanged, [&changes] { ++changes; });
     REQUIRE(m.manager.activate(kFixtureId));
+    env.runtime.startAll();
     m.manager.discover();
     CHECK(m.status(kFixtureId) == PluginStatus::Active);
-    CHECK(env.bus.contains(kFixtureId + u".echo"_s));
-    CHECK(changes == 2);
+    CHECK(env.runtime.last(kFixtureId)->running);
+    CHECK(changes == 3);
 }

@@ -11,6 +11,7 @@
 #include "mikserstudio/engine/ClipPlayer.h"
 #include "mikserstudio/engine/MltMediaProbe.h"
 #include "mikserstudio/engine/TimelinePlayer.h"
+#include "mikserstudio/lua/LuaRuntime.h"
 #include "mikserstudio/services/AiEngine.h"
 
 #include <QString>
@@ -25,13 +26,16 @@ struct StudioOptions {
     bool audio = true;  // false: players run silent (headless, tests).
     bool api = true;
     quint16 apiPort = 0;  // 0: a free port, published in the discovery file.
+    bool safeMode = false;  // Only the built-in plugins run.
+    bool pluginHotReload = false;  // A plugin reloads when one of its files changes.
 };
 
 // Everything except the UI: the core, the playback engine, the AI engine, plugins and the API.
 //
 // Members are declared in construction order so they are destroyed in reverse: the API and the
-// plugins go before the bus, the players before the project they play. Playback is paused before
-// any of that, and a new or opened project closes the source monitor.
+// plugins go before the Lua host that runs them, and all of them before the bus; the players go
+// before the project they play. Playback is paused before any of that, and a new or opened project
+// closes the source monitor.
 class Studio final {
 public:
     Studio(const AppPaths& paths, StudioOptions options);
@@ -66,6 +70,7 @@ private:
 
     services::AiEngine m_ai;
     core::JobManager m_jobs{m_bus};  // After m_ai: it mirrors the AI engine's jobs.
+    lua::LuaRuntime m_lua;
 
     QString m_discoveryFile;
     core::PluginManager m_plugins;

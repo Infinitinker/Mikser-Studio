@@ -46,7 +46,7 @@ check.ALLOWED = {
 --- bundled plugins' tests load them through the core's PluginManager.
 check.TEST_FOLDERS = {
     e2e = { "core", "services" },
-    plugins = { "core" },
+    plugins = { "core", "lua" },
 }
 --- Other tests' folders whose own headers a TEST_FOLDERS folder may include, without the modules
 --- they test: the end-to-end tests send their requests with the API tests' HTTP helpers.

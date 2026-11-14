@@ -8,6 +8,7 @@
 #include "UnavailableProbe.h"
 
 #include "mikserstudio/core/ProjectCommands.h"
+#include "mikserstudio/core/ProjectSnapshot.h"
 #include "mikserstudio/core/Transport.h"
 #include "mikserstudio/engine/MltRuntime.h"
 #include "mikserstudio/services/AiCommands.h"
@@ -33,8 +34,12 @@ services::AiEngineOptions aiOptions(const AppPaths& paths)
 Studio::Studio(const AppPaths& paths, StudioOptions options)
     : m_options(options)
     , m_ai(aiOptions(paths))
+    , m_lua({.bus = &m_bus,
+             .jobs = &m_jobs,
+             .snapshot = [this] { return m_project.snapshot(); },
+             .hotReload = options.pluginHotReload})
     , m_discoveryFile(paths.user.discoveryFile)
-    , m_plugins(m_bus, QDir(paths.user.config).filePath(u"plugins"_s))
+    , m_plugins(m_bus, QDir(paths.user.config).filePath(u"plugin-settings"_s))
 {
     const auto audio = options.audio ? engine::AudioOutput::Device : engine::AudioOutput::Silent;
     if (const auto runtime = engine::MltRuntime::initialize(); runtime) {
@@ -63,7 +68,15 @@ Studio::Studio(const AppPaths& paths, StudioOptions options)
     core::registerJobCommands(m_bus, m_jobs);
     services::mirrorAiJobs(m_ai, m_jobs);
 
-    m_plugins.addSearchPath(paths.pluginsDir);
+    m_plugins.setRuntime(&m_lua);
+    m_plugins.addSearchPath(paths.pluginsDir, core::PluginSource::BuiltIn);
+    if (options.safeMode) {
+        qCInfo(lcApp) << "Safe mode: only the built-in plugins run";
+    } else {
+        m_plugins.addSearchPath(paths.userPluginsDir, core::PluginSource::User);
+        for (const QString& folder : paths.developmentPluginsDirs)
+            m_plugins.addSearchPath(folder, core::PluginSource::Development);
+    }
     m_plugins.discover();
     QObject::connect(&m_plugins, &core::PluginManager::pluginFailed, [](const QString& id, const QString& message) {
         qCWarning(lcApp) << "Plugin" << id << "failed:" << message;

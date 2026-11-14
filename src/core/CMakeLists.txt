@@ -7,6 +7,7 @@ add_library(mikserstudio-core STATIC
     include/mikserstudio/core/JobManager.h
     include/mikserstudio/core/JsonSchema.h
     include/mikserstudio/core/PluginManager.h
+    include/mikserstudio/core/PluginRuntime.h
     include/mikserstudio/core/Project.h
     include/mikserstudio/core/ProjectCommands.h
     include/mikserstudio/core/ProjectSnapshot.h

@@ -24,7 +24,8 @@ add_executable(mikser-studio WIN32
     main.cpp
 )
 target_link_libraries(mikser-studio PRIVATE
-    MikserStudio::core MikserStudio::engine MikserStudio::api MikserStudio::services MikserStudio::ui Qt6::Widgets)
+    MikserStudio::core MikserStudio::engine MikserStudio::api MikserStudio::lua MikserStudio::services
+    MikserStudio::ui Qt6::Widgets)
 target_compile_definitions(mikser-studio PRIVATE
     MIKSERSTUDIO_VERSION="${PROJECT_VERSION}"
     MIKSERSTUDIO_DESCRIPTION="${PROJECT_DESCRIPTION}")

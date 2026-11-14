@@ -27,6 +27,8 @@ QString statusText(core::PluginStatus status)
     switch (status) {
     case core::PluginStatus::Active:
         return u"Active"_s;
+    case core::PluginStatus::Starting:
+        return u"Starting"_s;
     case core::PluginStatus::Failed:
         return u"Failed"_s;
     case core::PluginStatus::Disabled:
@@ -43,6 +45,8 @@ QColor statusColor(core::PluginStatus status)
     switch (status) {
     case core::PluginStatus::Active:
         return theme.success;
+    case core::PluginStatus::Starting:
+        return theme.textMuted;
     case core::PluginStatus::Failed:
         return theme.danger;
     case core::PluginStatus::Disabled:
@@ -165,7 +169,7 @@ void PluginsPanel::toggleActive()
     const core::PluginState* state = m_plugins.plugin(m_selectedId);
     if (!state)
         return;
-    if (state->status == core::PluginStatus::Active) {
+    if (state->status == core::PluginStatus::Active || state->status == core::PluginStatus::Starting) {
         m_plugins.deactivate(m_selectedId);
         setFeedback(u"Deactivated."_s, false);
     } else if (const auto result = m_plugins.activate(m_selectedId); !result) {
@@ -216,7 +220,9 @@ void PluginsPanel::showDetails()
     }
     const core::PluginManifest& manifest = state->manifest;
     m_name->setText(manifest.name);
-    m_meta->setText(u"%1  ·  %2  ·  %3"_s.arg(manifest.id, manifest.version, manifest.kind));
+    const QString permissions = state->granted.isEmpty() ? u"No permissions"_s
+                                                         : u"Permissions: %1"_s.arg(state->granted.join(u", "_s));
+    m_meta->setText(u"%1  ·  %2  ·  %3"_s.arg(manifest.id, manifest.version, permissions));
     m_description->setText(manifest.description);
     m_description->setVisible(!manifest.description.isEmpty());
     m_status->setText(statusText(state->status));
@@ -224,7 +230,7 @@ void PluginsPanel::showDetails()
     m_error->setText(state->error);
     m_error->setVisible(!state->error.isEmpty());
 
-    const bool active = state->status == core::PluginStatus::Active;
+    const bool active = state->status == core::PluginStatus::Active || state->status == core::PluginStatus::Starting;
     m_activate->setText(active ? u"Deactivate"_s : u"Activate"_s);
     m_activate->setEnabled(state->status != core::PluginStatus::Disabled);
     {

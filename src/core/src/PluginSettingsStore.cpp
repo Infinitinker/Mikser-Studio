@@ -1,4 +1,4 @@
-// Reading and writing the plugins' settings files and the list of disabled plugins.
+// Reading and writing the plugins' settings files and the person's choice of plugins.
 #include "PluginSettingsStore.h"
 
 #include <QDir>
@@ -28,22 +28,37 @@ std::expected<void, QString> PluginSettingsStore::save(const QString& pluginId, 
     return write(pluginId + u".json"_s, settings);
 }
 
-std::expected<QSet<QString>, QString> PluginSettingsStore::loadDisabled() const
+namespace {
+
+QSet<QString> idSet(const QJsonValue& ids)
+{
+    QSet<QString> set;
+    for (const QJsonValue id : ids.toArray())
+        set.insert(id.toString());
+    return set;
+}
+
+QJsonArray sortedIds(const QSet<QString>& set)
+{
+    QStringList ids(set.begin(), set.end());
+    std::ranges::sort(ids);
+    return QJsonArray::fromStringList(ids);
+}
+
+}  // namespace
+
+std::expected<PluginChoices, QString> PluginSettingsStore::loadChoices() const
 {
     auto json = read(u"plugins.json"_s);
     if (!json)
         return std::unexpected(json.error());
-    QSet<QString> disabled;
-    for (const QJsonValue id : json->value(u"disabled").toArray())
-        disabled.insert(id.toString());
-    return disabled;
+    return PluginChoices{.disabled = idSet(json->value(u"disabled")), .enabled = idSet(json->value(u"enabled"))};
 }
 
-std::expected<void, QString> PluginSettingsStore::saveDisabled(const QSet<QString>& disabled) const
+std::expected<void, QString> PluginSettingsStore::saveChoices(const PluginChoices& choices) const
 {
-    QStringList ids(disabled.begin(), disabled.end());
-    std::ranges::sort(ids);
-    return write(u"plugins.json"_s, QJsonObject{{u"disabled"_s, QJsonArray::fromStringList(ids)}});
+    return write(u"plugins.json"_s,
+                 QJsonObject{{u"disabled"_s, sortedIds(choices.disabled)}, {u"enabled"_s, sortedIds(choices.enabled)}});
 }
 
 std::expected<QJsonObject, QString> PluginSettingsStore::read(const QString& fileName) const

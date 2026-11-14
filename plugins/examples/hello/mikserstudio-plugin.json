@@ -1,12 +1,11 @@
 {
     "id": "mikserstudio.examples.hello",
     "name": "Hello",
-    "version": "0.1.0",
-    "description": "Example native plugin: a greeting command and a panel that runs it.",
+    "version": "0.2.0",
+    "description": "Example plugin: a greeting command and a panel that runs it.",
     "apiVersion": 1,
-    "kind": "native",
-    "entry": "hello",
-    "capabilities": ["commands", "panels"],
+    "entry": "main.lua",
+    "permissions": ["project.read", "ui"],
     "settingsSchema": {
         "type": "object",
         "properties": {

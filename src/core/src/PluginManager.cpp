@@ -1,15 +1,15 @@
-// Finding plugin folders, validating manifests, activating and deactivating plugins and saving their settings.
+// Finding plugin folders, validating manifests, starting and stopping plugins through the plugin
+// runtime, and saving their settings and the person's choice of plugins.
 #include "mikserstudio/core/PluginManager.h"
 
 #include "Logging.h"
-#include "NativePlugin.h"
 #include "PluginSettingsStore.h"
 #include "mikserstudio/core/JsonSchema.h"
+#include "mikserstudio/core/PluginRuntime.h"
 
 #include <QDir>
 #include <QFile>
 #include <QJsonDocument>
-#include <QSet>
 
 #include <map>
 #include <ranges>
@@ -25,12 +25,29 @@ struct Record {
     PluginState state;
     bool manifestValid = false;
     QJsonObject storedSettings;  // As saved, without defaults.
-    std::unique_ptr<NativePlugin> native;
+    std::unique_ptr<PluginInstance> instance;
+    // Which start the runtime's callbacks belong to; 0 when the plugin isn't running.
+    quint64 activation = 0;
+};
+
+struct SearchPath {
+    QString directory;
+    PluginSource source;
 };
 
 QString displayName(const Record& record)
 {
     return record.state.manifest.name.isEmpty() ? record.state.manifest.id : record.state.manifest.name;
+}
+
+// The permissions a plugin runs with: what its manifest asks for, but only a built-in plugin
+// manages plugins.
+QStringList grantedFor(const PluginManifest& manifest, PluginSource source)
+{
+    QStringList granted = manifest.permissions;
+    if (source != PluginSource::BuiltIn)
+        granted.removeAll(u"plugins.manage"_s);
+    return granted;
 }
 
 }  // namespace
@@ -49,24 +66,36 @@ struct PluginManager::Impl {
         return it == records.end() ? nullptr : &it->second;
     }
 
-    Record readRecord(const QString& directory) const;
+    // Off: the person disabled it, or it is one of their own that they haven't enabled.
+    [[nodiscard]] bool isOff(const QString& id, PluginSource source) const
+    {
+        return choices.disabled.contains(id) || (source == PluginSource::User && !choices.enabled.contains(id));
+    }
+
+    Record readRecord(const QString& directory, PluginSource source) const;
     void loadStoredSettings(Record& record) const;
     void fail(const QString& id, const QString& message);
+    void started(const QString& id, quint64 activation);
+    void failedToStart(const QString& id, quint64 activation, const QString& message);
 
     PluginManager& q;
     CommandBus& bus;
     PluginSettingsStore store;
-    QStringList searchPaths;
-    QSet<QString> disabled;
+    PluginRuntime* runtime = nullptr;
+    QList<SearchPath> searchPaths;
+    PluginChoices choices;
     std::map<QString, Record> records;
+    quint64 lastActivation = 0;
+    bool activatedAll = false;
 };
 
-Record PluginManager::Impl::readRecord(const QString& directory) const
+Record PluginManager::Impl::readRecord(const QString& directory, PluginSource source) const
 {
     Record record;
     record.state.manifest.directory = QDir::fromNativeSeparators(QDir(directory).absolutePath());
     record.state.manifest.id = QDir(directory).dirName();
     record.state.status = PluginStatus::Failed;
+    record.state.source = source;
 
     const QString manifestPath = QDir(directory).filePath(QLatin1StringView(kPluginManifestFileName));
     QFile file(manifestPath);
@@ -90,8 +119,8 @@ Record PluginManager::Impl::readRecord(const QString& directory) const
         return record;
     }
     record.state.manifest = std::move(*manifest);
-    record.state.status = disabled.contains(record.state.manifest.id) ? PluginStatus::Disabled
-                                                                      : PluginStatus::Discovered;
+    record.state.status = isOff(record.state.manifest.id, source) ? PluginStatus::Disabled : PluginStatus::Discovered;
+    record.state.granted = grantedFor(record.state.manifest, source);
     record.manifestValid = true;
     loadStoredSettings(record);
     return record;
@@ -126,45 +155,76 @@ void PluginManager::Impl::fail(const QString& id, const QString& message)
     Q_EMIT q.pluginsChanged();
 }
 
+void PluginManager::Impl::started(const QString& id, quint64 activation)
+{
+    Record* record = find(id);
+    if (!record || record->activation != activation)
+        return;
+    record->state.status = PluginStatus::Active;
+    record->state.error.clear();
+    qCInfo(lcPlugins).noquote() << "Activated" << id;
+    Q_EMIT q.pluginsChanged();
+}
+
+void PluginManager::Impl::failedToStart(const QString& id, quint64 activation, const QString& message)
+{
+    const Record* record = find(id);
+    if (!record || record->activation != activation)
+        return;
+    // The instance stays: a plugin that reloads when its files change can start again.
+    fail(id, message);
+}
+
 PluginManager::PluginManager(CommandBus& bus, const QString& settingsDirectory, QObject* parent)
     : QObject(parent)
     , d(std::make_unique<Impl>(*this, bus, settingsDirectory))
 {
-    auto disabled = d->store.loadDisabled();
-    if (disabled)
-        d->disabled = std::move(*disabled);
+    auto choices = d->store.loadChoices();
+    if (choices)
+        d->choices = std::move(*choices);
     else
-        qCWarning(lcPlugins).noquote() << "All plugins are enabled because the plugin list could not be read:"
-                                       << disabled.error();
+        qCWarning(lcPlugins).noquote() << "The built-in plugins are on and the others off, because the plugin list "
+                                          "could not be read:"
+                                       << choices.error();
 }
 
 PluginManager::~PluginManager()
 {
-    for (auto& [id, record] : std::views::reverse(d->records))
-        record.native.reset();
+    for (auto& [id, record] : std::views::reverse(d->records)) {
+        record.activation = 0;
+        record.instance.reset();
+    }
 }
 
-void PluginManager::addSearchPath(const QString& directory)
+void PluginManager::setRuntime(PluginRuntime* runtime)
+{
+    d->runtime = runtime;
+}
+
+void PluginManager::addSearchPath(const QString& directory, PluginSource source)
 {
     const QString path = QDir::fromNativeSeparators(QDir(directory).absolutePath());
-    if (!d->searchPaths.contains(path))
-        d->searchPaths.append(path);
+    const bool known = std::ranges::any_of(d->searchPaths,
+                                           [&path](const SearchPath& p) { return p.directory == path; });
+    if (!known)
+        d->searchPaths.append({path, source});
 }
 
 void PluginManager::discover()
 {
     std::map<QString, Record> found;
     QList<std::pair<QString, QString>> failures;
-    for (const QString& path : std::as_const(d->searchPaths)) {
-        const QDir root(path);
+    for (const SearchPath& path : std::as_const(d->searchPaths)) {
+        const QDir root(path.directory);
         if (!root.exists()) {
-            qCInfo(lcPlugins).noquote() << "Plugin folder" << QDir::toNativeSeparators(path) << "does not exist";
+            qCInfo(lcPlugins).noquote() << "Plugin folder" << QDir::toNativeSeparators(path.directory)
+                                        << "does not exist";
             continue;
         }
         for (const QFileInfo& folder : root.entryInfoList(QDir::Dirs | QDir::NoDotAndDotDot, QDir::Name)) {
             if (!QFile::exists(QDir(folder.absoluteFilePath()).filePath(QLatin1StringView(kPluginManifestFileName))))
                 continue;
-            Record record = d->readRecord(folder.absoluteFilePath());
+            Record record = d->readRecord(folder.absoluteFilePath(), path.source);
             const QString id = record.state.manifest.id;
             if (const auto existing = found.find(id); existing != found.end()) {
                 // Broken manifests are listed under their folder name; a folder named like a plugin
@@ -192,7 +252,7 @@ void PluginManager::discover()
         }
     }
     for (auto& [id, record] : d->records) {
-        if (record.native)
+        if (record.instance)
             found.insert_or_assign(id, std::move(record));
     }
     d->records = std::move(found);
@@ -224,24 +284,42 @@ std::expected<void, QString> PluginManager::activate(const QString& id)
     Record* record = d->find(id);
     if (!record)
         return std::unexpected(u"There is no plugin “%1”. Check the plugin folders and rescan."_s.arg(id));
-    if (record->native)
+    if (record->instance && record->state.status != PluginStatus::Failed)
         return {};
     if (!record->manifestValid)
         return std::unexpected(record->state.error);
     if (record->state.status == PluginStatus::Disabled)
         return std::unexpected(u"“%1” is disabled. Enable it in the plugin manager first."_s.arg(displayName(*record)));
+    if (!d->runtime) {
+        const QString message = u"“%1” can't start: this Mikser Studio runs no plugins."_s.arg(displayName(*record));
+        d->fail(id, message);
+        return std::unexpected(message);
+    }
 
-    auto native = NativePlugin::activate(record->state.manifest, d->bus, [this, id] { return settings(id); });
-    record = d->find(id);  // The plugin may have run commands that changed the plugin list.
-    if (!native) {
-        d->fail(id, native.error());
-        return std::unexpected(native.error());
+    // Activating again a plugin that failed starts it anew.
+    record->activation = 0;
+    record->instance.reset();
+    const quint64 activation = ++d->lastActivation;
+    record->activation = activation;
+    record->state.status = PluginStatus::Starting;
+    record->state.error.clear();
+    PluginActivation start{
+        .granted = record->state.granted,
+        .settings = settings(id),
+        .started = [this, id, activation] { d->started(id, activation); },
+        .failed = [this, id, activation](const QString& message) { d->failedToStart(id, activation, message); },
+    };
+    auto instance = d->runtime->activate(record->state.manifest, std::move(start));
+    record = d->find(id);
+    if (!instance) {
+        if (record)
+            record->activation = 0;
+        d->fail(id, instance.error());
+        return std::unexpected(instance.error());
     }
     if (!record)
         return std::unexpected(u"Plugin “%1” was removed while it started."_s.arg(id));
-    record->native = std::move(*native);
-    record->state.status = PluginStatus::Active;
-    record->state.error.clear();
+    record->instance = std::move(*instance);
     Q_EMIT pluginsChanged();
     return {};
 }
@@ -249,17 +327,20 @@ std::expected<void, QString> PluginManager::activate(const QString& id)
 void PluginManager::deactivate(const QString& id)
 {
     Record* record = d->find(id);
-    if (!record || !record->native)
+    if (!record || !record->instance)
         return;
-    std::unique_ptr<NativePlugin> native = std::move(record->native);
-    record->state.status = d->disabled.contains(id) ? PluginStatus::Disabled : PluginStatus::Discovered;
-    native.reset();
+    std::unique_ptr<PluginInstance> instance = std::move(record->instance);
+    record->activation = 0;
+    record->state.status = d->isOff(id, record->state.source) ? PluginStatus::Disabled : PluginStatus::Discovered;
+    record->state.error.clear();
+    instance.reset();
     qCInfo(lcPlugins).noquote() << "Deactivated" << id;
     Q_EMIT pluginsChanged();
 }
 
 void PluginManager::activateAll()
 {
+    d->activatedAll = true;
     QStringList ids;
     for (const auto& [id, record] : d->records) {
         if (record.manifestValid && record.state.status == PluginStatus::Discovered)
@@ -269,20 +350,35 @@ void PluginManager::activateAll()
         std::ignore = activate(id);  // Failures are reported through pluginFailed().
 }
 
+bool PluginManager::ready() const
+{
+    return d->activatedAll && std::ranges::none_of(d->records, [](const auto& entry) {
+               return entry.second.state.status == PluginStatus::Starting;
+           });
+}
+
 std::expected<void, QString> PluginManager::setEnabled(const QString& id, bool enabled)
 {
     Record* record = d->find(id);
     if (!record || !record->manifestValid)
         return std::unexpected(u"There is no usable plugin “%1”."_s.arg(id));
 
-    QSet<QString> disabled = d->disabled;
-    if (enabled)
-        disabled.remove(id);
-    else
-        disabled.insert(id);
-    if (auto saved = d->store.saveDisabled(disabled); !saved)
+    // The person's own plugins are off until enabled; the others are on until disabled.
+    PluginChoices choices = d->choices;
+    if (record->state.source == PluginSource::User) {
+        choices.disabled.remove(id);
+        if (enabled)
+            choices.enabled.insert(id);
+        else
+            choices.enabled.remove(id);
+    } else if (enabled) {
+        choices.disabled.remove(id);
+    } else {
+        choices.disabled.insert(id);
+    }
+    if (auto saved = d->store.saveChoices(choices); !saved)
         return std::unexpected(saved.error());
-    d->disabled = std::move(disabled);
+    d->choices = std::move(choices);
 
     if (enabled) {
         if (record->state.status == PluginStatus::Disabled)
@@ -290,7 +386,7 @@ std::expected<void, QString> PluginManager::setEnabled(const QString& id, bool e
         Q_EMIT pluginsChanged();
         return {};
     }
-    if (record->native)
+    if (record->instance)
         deactivate(id);
     if (Record* current = d->find(id))
         current->state.status = PluginStatus::Disabled;
@@ -323,6 +419,8 @@ std::expected<void, QString> PluginManager::setSettings(const QString& id, const
         return std::unexpected(saved.error());
 
     record->storedSettings = settings;
+    if (record->instance)
+        record->instance->setSettings(effective);
     Q_EMIT settingsChanged(id, effective);
     return {};
 }
