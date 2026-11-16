@@ -1,0 +1,19 @@
+# Build output
+/build/
+dist/
+
+# Editors and their personal settings
+.vscode/
+.idea/
+.vs/
+
+# Claude Code's personal files; the rest of .claude/ is shared
+.claude/settings.local.json
+.claude/launch.json
+
+# Logs
+*.log
+
+# Never committed: secrets, and crash dumps, which can hold the app's memory
+.env
+*.dmp
