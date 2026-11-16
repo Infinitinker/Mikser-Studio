@@ -2,6 +2,15 @@
 /build/
 dist/
 
+# Python: the virtual environment for the repository's tools, their caches, and the metadata an
+# editable install writes
+.venv/
+__pycache__/
+.ruff_cache/
+.mypy_cache/
+.pytest_cache/
+*.egg-info/
+
 # Editors and their personal settings
 .vscode/
 .idea/
