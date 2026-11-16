@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/images/icon.png" alt="Mikser Studio icon: three colored mixer faders on a dark rounded tile" width="128">
+  <img src="docs/images/icon.png" alt="Mikser Studio icon: a mixing console's fader bank, with coral, amber and sky fader caps, on a violet badge" width="128">
 </p>
 
 <h1 align="center">Mikser Studio</h1>
