@@ -1,0 +1,13 @@
+# shared-start: the text up to shared-end is the same in every project; change it only where all projects change together.
+name: Bug report
+description: Something in Mikser Studio does not work as it should.
+labels: [bug]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What you did, what you expected, and what happened instead. A screenshot helps.
+    validations:
+      required: true
+# shared-end
